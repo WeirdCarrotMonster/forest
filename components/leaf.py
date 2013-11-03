@@ -12,7 +12,7 @@ class Leaf():
                  fcgi_port=3000,
                  pidfile=None,
                  executable=None,
-                 env={}
+                 env=""
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -36,7 +36,9 @@ class Leaf():
             "port=" + str(self.fcgi_port),
             "pidfile=" + self.pidfile
         ]
-        process = subprocess.call(cmd)
+        my_env = os.environ
+        my_env["VCAP_SERVICES"] = self.launch_env
+        process = subprocess.call(cmd, env=my_env)
         try:
             pidfile_result = open(self.pidfile, 'r')
             self.pid = int(pidfile_result.read().strip())
