@@ -69,5 +69,15 @@ def get_leaves_proxy(settings):
     )
     leaves = client.air.leaves
     for leaf in leaves.find():
-        print(leaf)
-    # TODO: подходящее форматирование
+        conf = """
+$HTTP["host"] == " """ + leaf["address"] + """ " {
+    fastcgi.server = ("/" => ((
+        "host" => " """ + leaf["host"] + """ ",
+        "port" => """ + leaf["port"] + """,
+        "check-local" => "disable",
+        "disable-time" => 1,
+        "fix-root-scriptname" => "enable"
+    )))
+}
+        """
+        print(conf)
