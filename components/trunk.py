@@ -59,8 +59,27 @@ class Trunk(tornado.web.RequestHandler):
             "env": env_for_leaf
         }
         body = urllib.urlencode(post_data)
-        response = http_client.fetch(
+        response = json.loads(http_client.fetch(
             "http://{0}:{1}".format(branch["address"], branch["port"]),
+            method='POST',
+            body=body
+        ).body)
+
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        post_data = {
+            "function": "publish_leaf",
+            "name": leaf_data["name"],
+            "address": leaf_data["address"],
+            "host": response["host"],
+            "port": response["port"]
+        }
+
+        body = urllib.urlencode(post_data)
+        response = http_client.fetch(
+            "http://{0}:{1}".format(air["address"], air["port"]),
             method='POST',
             body=body
         )
@@ -72,3 +91,6 @@ class Trunk(tornado.web.RequestHandler):
 
     def get_branch(self):
         return self.application.settings["branches"][0]
+
+    def get_air(self):
+        return self.application.settings["air"][0]

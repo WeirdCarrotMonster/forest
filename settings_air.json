@@ -1,0 +1,14 @@
+{
+    "connections":
+    {
+        "address": "127.0.0.1",
+        "port": 1237
+    },
+    "role": "air",
+    "settings":
+    {
+        "host": "192.168.0.2",
+        "mongo_host": "127.0.0.1",
+        "mongo_port": 27017
+    }
+}
