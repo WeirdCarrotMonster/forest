@@ -45,8 +45,18 @@ class Branch(tornado.web.RequestHandler):
 
     def add_leaf(self):
         name = self.get_argument("name", None)
+        env = self.get_argument("env", None)
         if not name:
-            return "Argument is missing: name"
+            return json.dumps({
+                "result": "failure",
+                "message": "missing argument: name"
+            })
+
+        if not name:
+            return json.dumps({
+                "result": "failure",
+                "message": "missing argument: env"
+            })
 
         client = pymongo.MongoClient(
             self.application.settings["mongo_host"],
@@ -64,7 +74,7 @@ class Branch(tornado.web.RequestHandler):
             })
 
         print("Creating new leaf")
-        env = self.get_argument("env", "")
+
         new_leaf = Leaf(
             name=name,
             executable=self.application.settings["executable"],

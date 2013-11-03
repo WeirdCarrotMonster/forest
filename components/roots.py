@@ -60,7 +60,10 @@ class Roots(tornado.web.RequestHandler):
     def prepare_database(self):
         name = self.get_argument("name", None)
         if not name:
-            return "Argument is missing: name"
+            return json.dumps({
+                "result": "failure",
+                "message": "missing argument: name"
+            })
 
         print("Preparing database for {0}".format(name))
         client = pymongo.MongoClient(
@@ -72,11 +75,15 @@ class Roots(tornado.web.RequestHandler):
         if leaf:
             print("Found existing database")
             result = {
-                "db_host": self.application.settings["mysql_host"],
-                "db_port": self.application.settings["mysql_port"],
-                "db_name": leaf["db_name"],
-                "db_user": leaf["db_user"],
-                "db_pass": leaf["db_pass"]
+                "result": "success",
+                "env":
+                {
+                    "db_host": self.application.settings["mysql_host"],
+                    "db_port": self.application.settings["mysql_port"],
+                    "db_name": leaf["db_name"],
+                    "db_user": leaf["db_user"],
+                    "db_pass": leaf["db_pass"]
+                }
             }
             return json.dumps(result)
 

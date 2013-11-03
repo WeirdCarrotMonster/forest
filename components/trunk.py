@@ -36,7 +36,7 @@ class Trunk(tornado.web.RequestHandler):
         root = self.get_root()
         post_data = {
             "function": "prepare_database",
-            "db_name": leaf_data["name"]
+            "name": leaf_data["name"]
         }
         body = urllib.urlencode(post_data)
         response = http_client.fetch(
@@ -44,7 +44,11 @@ class Trunk(tornado.web.RequestHandler):
             method='POST',
             body=body
         )
-        env_for_leaf = response.body
+        response = json.loads(response.body)
+        if response["result"] != "success":
+            return "Failed to get database settings: {0}".format(response["message"])
+
+        env_for_leaf = json.dumps(response["env"])
         # =========================================
         # Обращаемся к branch для поднятия листа
         # =========================================
