@@ -1,0 +1,35 @@
+{
+    "connections":
+    {
+        "address": "127.0.0.1",
+        "port": 1234
+    },
+    "role": "trunk",
+    "settings":
+    {
+        "branches":
+        [
+            {
+                "name": "main",
+                "address": "127.0.0.1",
+                "port": 1236
+            }
+        ],
+        "roots":
+        [
+            {
+                "name": "main",
+                "address": "127.0.0.1",
+                "port": 1235
+            }
+        ],
+        "air":
+        [
+            {
+                "name": "main",
+                "address": "127.0.0.1",
+                "port": 7997
+            }
+        ]
+    }
+}

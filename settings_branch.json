@@ -1,0 +1,15 @@
+{
+    "connections":
+    {
+        "address": "127.0.0.1",
+        "port": 1236
+    },
+    "role": "branch",
+    "settings":
+    {
+        "host": "127.0.0.1",
+        "port_range": [8000, 8001, 8002, 8003],
+        "executable": "/home/wcm/project/manage.py",
+        "pid_dir": "/home/wcm/forest/pid"
+    }
+}
