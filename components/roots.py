@@ -125,3 +125,13 @@ class Roots(tornado.web.RequestHandler):
                     " OPTION".format(db_name, username))
         db.close()
         return json.dumps(result)
+
+    def delete_database(self):
+        name = self.get_argument("name", None)
+        if not name:
+            return json.dumps({
+                "result": "failure",
+                "message": "missing argument: name"
+            })
+        # TODO: Удаление самой базы и инстанса по имени из сохраненных
+        pass

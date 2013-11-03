@@ -107,3 +107,29 @@ class Branch(tornado.web.RequestHandler):
                 "port": new_leaf.fcgi_port,
                 "comment": "created new leaf"
             })
+
+    def del_leaf(self):
+        name = self.get_argument("name", None)
+        if not name:
+            return json.dumps({
+                "result": "failure",
+                "message": "missing argument: name"
+            })
+
+        for leaf in self.application.leaves:
+            if leaf.name == name:
+                leaf.stop()
+                self.application.leaves.remove(leaf)
+                break
+
+        client = pymongo.MongoClient(
+            self.application.settings["mongo_host"],
+            self.application.settings["mongo_port"]
+        )
+        leaves = client.branch.leaves
+        leaves.remove({"name": name})
+
+        return json.dumps({
+            "result": "success",
+            "message": "deleted leaf info from server"
+        })
