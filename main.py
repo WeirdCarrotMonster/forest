@@ -10,7 +10,7 @@ import tornado.web
 import simplejson as json
 from components.trunk import Trunk
 from components.roots import Roots
-from components.branch import Branch
+from components.branch import Branch, init_leaves
 
 file = sys.argv[1]  # TODO: проверка на наличие параметра и т.п.
 FOREST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -40,9 +40,12 @@ if SETTINGS["role"] == "branch":
 
 # Создаем и запускаем приложение
 application = tornado.web.Application(listeners)
+application.settings = settings
+
 if SETTINGS["role"] == "branch":
     application.leaves = []
-application.settings = settings
+    init_leaves(application)
+
 
 print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))
 application.listen(SETTINGS["connections"]["port"], SETTINGS["connections"]["address"])
