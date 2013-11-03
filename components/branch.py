@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import os
 import tornado.web
-from leaf import *
+from components.leaf import Leaf
 import simplejson as json
 
 
@@ -35,13 +36,15 @@ class Branch(tornado.web.RequestHandler):
             new_leaf.start()
             self.application.leaves.append(new_leaf)
             new_leaf.prepare_database()
-        except Exception, e:
-            print e
+        except:
             self.application.settings["port_range"].append(new_leaf.fcgi_port)
-            # TODO: Ну и эксешпон дальше прокинуть не помешает
-            return "failed"
+            return json.dumps({
+                "result": "failure",
+                "message": ""
+            })
         else:
             return json.dumps({
+                "result": "success",
                 "host": self.application.settings["host"],
                 "port": new_leaf.fcgi_port
             })

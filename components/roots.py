@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-import subprocess
-import os
+
+from __future__ import print_function
 import MySQLdb
 import string
 import random
 import simplejson as json
 import tornado.web
+import pymongo
 
 
 class Roots(tornado.web.RequestHandler):
@@ -57,10 +58,29 @@ class Roots(tornado.web.RequestHandler):
         return bool(result[0][0])
 
     def prepare_database(self):
-        db_name = self.get_argument("db_name", None)
-        if not db_name:
-            return "Argument is missing: db_name"
+        name = self.get_argument("name", None)
+        if not name:
+            return "Argument is missing: name"
 
+        print("Preparing database for {0}".format(name))
+        client = pymongo.MongoClient(
+            self.application.settings["mongo_host"],
+            self.application.settings["mongo_port"]
+        )
+        leaves = client.roots.leaves
+        leaf = leaves.find_one({"name": name})
+        if leaf:
+            print("Found existing database")
+            result = {
+                "db_host": self.application.settings["mysql_host"],
+                "db_port": self.application.settings["mysql_port"],
+                "db_name": leaf["db_name"],
+                "db_user": leaf["db_user"],
+                "db_pass": leaf["db_pass"]
+            }
+            return json.dumps(result)
+
+        db_name = name
         if self.mysql_db_exists(db_name):
             db_name = self.string_generator()
 
@@ -74,7 +94,15 @@ class Roots(tornado.web.RequestHandler):
             "db_pass": password
         }
 
-        print "Roots: asked to create database {0}".format(db_name)
+        leaf = {
+            "name": name,
+            "db_name": db_name,
+            "db_user": username,
+            "db_pass": password
+        }
+        leaves.insert(leaf)
+
+        print("No existing database; creating new called {0}".format(db_name))
 
         db = MySQLdb.connect(
             host=self.application.settings["mysql_host"],
