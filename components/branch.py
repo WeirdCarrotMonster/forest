@@ -34,6 +34,7 @@ class Branch(tornado.web.RequestHandler):
         try:
             new_leaf.start()
             self.application.leaves.append(new_leaf)
+            new_leaf.prepare_database()
         except Exception, e:
             print e
             self.application.settings["port_range"].append(new_leaf.fcgi_port)

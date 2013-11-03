@@ -24,6 +24,16 @@ class Leaf():
         self.launch_env = env
         self.pid = 0
 
+    def prepare_database(self):
+        cmd = [
+            self.python_executable,
+            self.executable,
+            "syncdb"
+        ]
+        my_env = os.environ
+        my_env["VCAP_SERVICES"] = self.launch_env
+        subprocess.Popen(cmd, env=my_env)
+
     def start(self):
         # TODO: кидать exception, если присутствуют не все настройки
         # что-то через not all(..)
