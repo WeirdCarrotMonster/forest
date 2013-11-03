@@ -48,7 +48,3 @@ class Branch(tornado.web.RequestHandler):
                 "host": self.application.settings["host"],
                 "port": new_leaf.fcgi_port
             })
-
-    def delete_leaves(self, leaf_names):
-        if not type(leaf_names) == list:
-            leaves = [leaf_names]

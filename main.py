@@ -4,6 +4,7 @@
 from __future__ import print_function
 import sys
 import os
+import signal
 import tornado.ioloop
 import tornado.web
 import simplejson as json
@@ -42,6 +43,24 @@ application = tornado.web.Application(listeners)
 if SETTINGS["role"] == "branch":
     application.leaves = []
 application.settings = settings
+
 print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))
 application.listen(SETTINGS["connections"]["port"], SETTINGS["connections"]["address"])
+
+
+def cleanup(signum=None, frame=None):
+    if signum:
+        print("Got signum: {0}".format(signum))
+    print("Cleaning up...")
+    try:
+        for leaf in application.leaves:
+            leaf.stop()
+    except:
+        pass
+    print("Done!")
+    sys.exit(0)
+
+for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+    signal.signal(sig, cleanup)
+
 tornado.ioloop.IOLoop.instance().start()
