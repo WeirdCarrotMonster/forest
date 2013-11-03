@@ -94,6 +94,7 @@ class Roots(tornado.web.RequestHandler):
         username = self.generate_username()
         password = self.string_generator()
         result = {
+            "result": "success",
             "db_host": self.application.settings["mysql_host"],
             "db_port": self.application.settings["mysql_port"],
             "db_name": db_name,
