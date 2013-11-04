@@ -94,8 +94,8 @@ def get_leaves_proxy(settings):
         conf = '''
 $HTTP["host"] == "''' + leaf["address"] + '''" {
     fastcgi.server = ("/" => ((
-        "host" => " """ + leaf["host"] + """ ",
-        "port" => """ + str(leaf["port"]) + """,
+        "host" => "''' + leaf["host"] + '''",
+        "port" => ''' + str(leaf["port"]) + ''',
         "check-local" => "disable",
         "disable-time" => 1,
         "fix-root-scriptname" => "enable"

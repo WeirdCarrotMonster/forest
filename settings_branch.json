@@ -11,7 +11,7 @@
         "host": "127.0.0.1",
         "port_range_begin": 8000,
         "port_range_end": 9000,
-        "executable": "/home/wcm/project/manage.py",
+        "executable": "/home/wcm/espresso/manage.py",
         "pid_dir": "/home/wcm/forest/pid",
         "mongo_host": "127.0.0.1",
         "mongo_port": 27017

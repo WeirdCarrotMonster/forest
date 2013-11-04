@@ -32,7 +32,7 @@ class Leaf():
             "--noinput"
         ]
         my_env = os.environ
-        my_env["VCAP_SERVICES"] = self.launch_env
+        my_env["DATABASE_SETTINGS"] = self.launch_env
         subprocess.Popen(cmd, env=my_env)
 
     def start(self):
