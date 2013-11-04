@@ -17,6 +17,8 @@ class Trunk(tornado.web.RequestHandler):
         response = ""
         if function == "create_leaf":
             response = self.add_leaf()
+        if function == "status_report":
+            response = self.status_report()
         self.write(response)
 
     @staticmethod
@@ -34,6 +36,82 @@ class Trunk(tornado.web.RequestHandler):
             body=body
         ).body, receiver["secret"]))
         return response
+
+    def status_report(self):
+        result = {
+            "success": [],
+            "error": [],
+        }
+        for branch in self.application.settings["branches"]:
+            response = self.send_message(branch, {
+                "function": "status_report"
+            })
+            if response["result"] == "success":
+                if response["role"] == "branch":
+                    result["success"].append({
+                        "name": branch["name"],
+                        "role": "branch"
+                    })
+                else:
+                    result["error"].append({
+                        "name": branch["name"],
+                        "role": response["role"],
+                        "error": "Specified role 'branch' doesn't match response '{0}'".format(response["role"])
+                    })
+            else:
+                result["error"].append({
+                    "name": branch["name"],
+                    "role": "branch",
+                    "error": "Request failed. Is component secret key valid?"
+                })
+
+        for branch in self.application.settings["roots"]:
+            response = self.send_message(branch, {
+                "function": "status_report"
+            })
+            if response["result"] == "success":
+                if response["role"] == "roots":
+                    result["success"].append({
+                        "name": branch["name"],
+                        "role": "roots"
+                    })
+                else:
+                    result["error"].append({
+                        "name": branch["name"],
+                        "role": response["role"],
+                        "error": "Specified role 'roots' doesn't match response '{0}'".format(response["role"])
+                    })
+            else:
+                result["error"].append({
+                    "name": branch["name"],
+                    "role": "roots",
+                    "error": "Request failed. Is component secret key valid?"
+                })
+
+        for branch in self.application.settings["air"]:
+            response = self.send_message(branch, {
+                "function": "status_report"
+            })
+            if response["result"] == "success":
+                if response["role"] == "air":
+                    result["success"].append({
+                        "name": branch["name"],
+                        "role": "air"
+                    })
+                else:
+                    result["error"].append({
+                        "name": branch["name"],
+                        "role": response["role"],
+                        "error": "Specified role 'air' doesn't match response '{0}'".format(response["role"])
+                    })
+            else:
+                result["error"].append({
+                    "name": branch["name"],
+                    "role": "air",
+                    "error": "Request failed. Is component secret key valid?"
+                })
+
+        return json.dumps(result)
 
     def add_leaf(self):
         required_args = ['name', 'address']

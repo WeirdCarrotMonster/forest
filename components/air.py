@@ -13,7 +13,6 @@ class Air(tornado.web.RequestHandler):
 
     def post(self):
         response = ""
-        message = None
         try:
             message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
         except:
@@ -27,8 +26,17 @@ class Air(tornado.web.RequestHandler):
         function = message.get('function', None)
         if function == "publish_leaf":
             response = self.publish_leaf(message)
+        if function == "status_report":
+            response = self.status_report()
 
         self.write(encode(response, self.application.settings["secret"]))
+
+    def status_report(self):
+        return json.dumps({
+            "result": "success",
+            "message": "Working well",
+            "role": "air"
+        })
 
     def publish_leaf(self, message):
         required_args = ['name', 'address', 'host', 'port']

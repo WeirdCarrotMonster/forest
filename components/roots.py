@@ -16,7 +16,6 @@ class Roots(tornado.web.RequestHandler):
 
     def post(self):
         response = ""
-        message = None
         try:
             message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
         except:
@@ -30,9 +29,17 @@ class Roots(tornado.web.RequestHandler):
         function = message.get('function', None)
         if function == "prepare_database":
             response = self.prepare_database(message)
+        if function == "status_report":
+            response = self.status_report()
 
         self.write(encode(response, self.application.settings["secret"]))
 
+    def status_report(self):
+        return json.dumps({
+            "result": "success",
+            "message": "Working well",
+            "role": "roots"
+        })
     @staticmethod
     def string_generator(size=16, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
