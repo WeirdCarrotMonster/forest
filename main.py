@@ -58,12 +58,11 @@ if SETTINGS["role"] == "branch":
     print("Setting role: branch")
     listeners.append((r"/", CommonListener))
     application = Branch(settings, handlers=listeners)
-    application.settings = settings
 
 if SETTINGS["role"] == "air":
     print("Setting role: air")
-    listeners.append((r"/", Air))
-    application = tornado.web.Application(listeners)
+    listeners.append((r"/", CommonListener))
+    application = Air(settings, handlers=listeners)
 
 # Создаем и запускаем приложение
 print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))

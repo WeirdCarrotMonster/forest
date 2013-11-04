@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*- 
-
+# -*- coding: utf-8 -*-
 import subprocess
 import tornado.web
 import simplejson as json
@@ -8,29 +7,24 @@ import pymongo
 from components.shadow import encode, decode
 
 
-class Air(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello to you from trunk!")
+class Air(tornado.web.Application):
+    def __init__(self, settings_dict, **settings):
+        super(Air, self).__init__(**settings)
+        self.settings = settings_dict
 
-    def post(self):
-        response = ""
-        try:
-            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
-        except:
-            self.write(json.dumps({
-                "result": "failure",
-                "message": "failed to decode message"
-            }))
-            return
-        # Далее message - тело запроса
-
+    def process_message(self, message):
         function = message.get('function', None)
         if function == "publish_leaf":
             response = self.publish_leaf(message)
         if function == "status_report":
             response = self.status_report()
 
-        self.write(encode(response, self.application.settings["secret"]))
+        if function is None:
+            response = json.dumps({
+                "result": "failure",
+                "message": "No function or unknown one called"
+            })
+        return response
 
     def status_report(self):
         return json.dumps({
@@ -55,8 +49,8 @@ class Air(tornado.web.RequestHandler):
         print("Publishing leaf {0} on address {1}".format(leaf_data["name"], leaf_data["address"]))
 
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.air.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
