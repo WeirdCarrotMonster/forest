@@ -54,6 +54,14 @@ class Branch(tornado.web.RequestHandler):
             response = self.add_leaf(message)
         if function == "status_report":
             response = self.status_report()
+        if function == "known_leaves":
+            response = self.known_leaves()
+
+        if function is None:
+            response = json.dumps({
+                "result": "failure",
+                "message": "No function or unknown one called"
+            })
 
         self.write(encode(response, self.application.settings["secret"]))
 
@@ -63,6 +71,25 @@ class Branch(tornado.web.RequestHandler):
             "message": "Working well",
             "role": "branch"
         })
+
+    def known_leaves(self):
+        client = pymongo.MongoClient(
+            self.application.settings["mongo_host"],
+            self.application.settings["mongo_port"]
+        )
+        leaves = client.branch.leaves
+        known_leaves = []
+        for leaf in leaves.find():
+            known_leaves.append({
+                "name": leaf["name"],
+                "port": leaf["port"],
+                "env": leaf["env"],
+            })
+        result = {
+            "result": "success",
+            "leaves": known_leaves
+        }
+        return json.dumps(result)
 
     def add_leaf(self, message):
         name = message.get("name", None)
@@ -141,7 +168,6 @@ class Branch(tornado.web.RequestHandler):
             if leaf.name == name:
                 leaf.stop()
                 self.application.leaves.remove(leaf)
-                break
 
         client = pymongo.MongoClient(
             self.application.settings["mongo_host"],

@@ -5,6 +5,7 @@ import tornado.web
 import simplejson as json
 import urllib
 import tornado.httpclient
+import pymongo
 from components.shadow import encode, decode
 
 
@@ -132,7 +133,16 @@ class Trunk(tornado.web.RequestHandler):
             else:
                 leaf_data[arg] = value
 
-        http_client = tornado.httpclient.HTTPClient()
+        # =========================================
+        # Проверяем, нет ли листа с таким именем в базе
+        # =========================================
+
+        client = pymongo.MongoClient(
+            self.application.settings["mongo_host"],
+            self.application.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        # TODO: проверка
 
         # =========================================
         # Обращаемся к roots для создания новой базы
