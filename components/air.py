@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*- 
 
+import subprocess
 import tornado.web
 import simplejson as json
 import tornado.httpclient
@@ -78,10 +79,16 @@ class Air(tornado.web.RequestHandler):
                 "host": leaf_data["host"],
                 "port": leaf_data["port"]
             })
+
+        self.reload_proxy()
         return json.dumps({
             "result": "success",
             "message": "Published leaf {0} on address {1}".format(leaf_data["name"], leaf_data["address"])
         })
+
+    def reload_proxy(self):
+        cmd = self.settings["proxy_restart_command"].split()
+        subprocess.Popen(cmd, shell=False)
 
 
 def get_leaves_proxy(settings):

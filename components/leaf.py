@@ -33,7 +33,7 @@ class Leaf():
         ]
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
-        subprocess.Popen(cmd, env=my_env)
+        subprocess.Popen(cmd, env=my_env, shell=False)
 
     def start(self):
         # TODO: кидать exception, если присутствуют не все настройки
