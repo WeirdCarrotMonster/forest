@@ -28,7 +28,8 @@ class Leaf():
         cmd = [
             self.python_executable,
             self.executable,
-            "syncdb"
+            "syncdb",
+            "--noinput"
         ]
         my_env = os.environ
         my_env["VCAP_SERVICES"] = self.launch_env
