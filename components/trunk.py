@@ -42,71 +42,80 @@ class Trunk(tornado.web.RequestHandler):
             "success": [],
             "error": [],
         }
-        for branch in self.application.settings["branches"]:
-            response = self.send_message(branch, {
-                "function": "status_report"
-            })
+        for branch in self.application.settings["branches"].keys():
+            response = self.send_message(
+                self.application.settings["branches"][branch],
+                {
+                    "function": "status_report"
+                }
+            )
             if response["result"] == "success":
                 if response["role"] == "branch":
                     result["success"].append({
-                        "name": branch["name"],
+                        "name": branch,
                         "role": "branch"
                     })
                 else:
                     result["error"].append({
-                        "name": branch["name"],
+                        "name": branch,
                         "role": response["role"],
                         "error": "Specified role 'branch' doesn't match response '{0}'".format(response["role"])
                     })
             else:
                 result["error"].append({
-                    "name": branch["name"],
+                    "name": branch,
                     "role": "branch",
                     "error": "Request failed. Is component secret key valid?"
                 })
 
-        for branch in self.application.settings["roots"]:
-            response = self.send_message(branch, {
-                "function": "status_report"
-            })
+        for root in self.application.settings["roots"].keys():
+            response = self.send_message(
+                self.application.settings["roots"][root],
+                {
+                    "function": "status_report"
+                }
+            )
             if response["result"] == "success":
                 if response["role"] == "roots":
                     result["success"].append({
-                        "name": branch["name"],
+                        "name": root,
                         "role": "roots"
                     })
                 else:
                     result["error"].append({
-                        "name": branch["name"],
+                        "name": root,
                         "role": response["role"],
                         "error": "Specified role 'roots' doesn't match response '{0}'".format(response["role"])
                     })
             else:
                 result["error"].append({
-                    "name": branch["name"],
+                    "name": root,
                     "role": "roots",
                     "error": "Request failed. Is component secret key valid?"
                 })
 
-        for branch in self.application.settings["air"]:
-            response = self.send_message(branch, {
-                "function": "status_report"
-            })
+        for air in self.application.settings["air"].keys():
+            response = self.send_message(
+                self.application.settings["air"][air],
+                {
+                    "function": "status_report"
+                }
+            )
             if response["result"] == "success":
                 if response["role"] == "air":
                     result["success"].append({
-                        "name": branch["name"],
+                        "name": air,
                         "role": "air"
                     })
                 else:
                     result["error"].append({
-                        "name": branch["name"],
+                        "name": air,
                         "role": response["role"],
                         "error": "Specified role 'air' doesn't match response '{0}'".format(response["role"])
                     })
             else:
                 result["error"].append({
-                    "name": branch["name"],
+                    "name": air,
                     "role": "air",
                     "error": "Request failed. Is component secret key valid?"
                 })
@@ -170,10 +179,10 @@ class Trunk(tornado.web.RequestHandler):
         return "Operation result: {0}".format(json.dumps(response))
 
     def get_root(self):
-        return self.application.settings["roots"][0]
+        return self.application.settings["roots"]["main"]
 
     def get_branch(self):
-        return self.application.settings["branches"][0]
+        return self.application.settings["branches"]["main"]
 
     def get_air(self):
-        return self.application.settings["air"][0]
+        return self.application.settings["air"]["main"]
