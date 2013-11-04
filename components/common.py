@@ -23,3 +23,22 @@ class CommonListener(tornado.web.RequestHandler):
 
         response = self.application.process_message(message)
         self.write(encode(response, self.application.settings["secret"]))
+
+
+class TransparentListener(tornado.web.RequestHandler):
+    def get(self):
+        self.write("")
+
+    def post(self):
+        try:
+            message = json.loads(self.get_argument('message', None))
+        except:
+            self.write(json.dumps({
+                "result": "failure",
+                "message": "failed to decode message"
+            }))
+            return
+        # Далее message - тело запроса
+
+        response = self.application.process_message(message)
+        self.write(response)

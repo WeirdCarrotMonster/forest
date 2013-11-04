@@ -9,18 +9,24 @@ import pymongo
 from components.shadow import encode, decode
 
 
-class Trunk(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello to you from trunk!")
+class Trunk(tornado.web.Application):
+    def __init__(self, settings_dict, **settings):
+        super(Trunk, self).__init__(**settings)
+        self.settings = settings_dict
 
-    def post(self):
-        function = self.get_argument('function', None)
-        response = ""
+    def process_message(self, message):
+        function = message.get('function', None)
         if function == "create_leaf":
-            response = self.add_leaf()
+            response = self.add_leaf(message)
         if function == "status_report":
             response = self.status_report()
-        self.write(response)
+
+        if function is None:
+            response = json.dumps({
+                "result": "failure",
+                "message": "No function or unknown one called"
+            })
+        return response
 
     @staticmethod
     def send_message(receiver, contents):
@@ -43,9 +49,9 @@ class Trunk(tornado.web.RequestHandler):
             "success": [],
             "error": [],
         }
-        for branch in self.application.settings["branches"].keys():
+        for branch in self.settings["branches"].keys():
             response = self.send_message(
-                self.application.settings["branches"][branch],
+                self.settings["branches"][branch],
                 {
                     "function": "status_report"
                 }
@@ -69,9 +75,9 @@ class Trunk(tornado.web.RequestHandler):
                     "error": "Request failed. Is component secret key valid?"
                 })
 
-        for root in self.application.settings["roots"].keys():
+        for root in self.settings["roots"].keys():
             response = self.send_message(
-                self.application.settings["roots"][root],
+                self.settings["roots"][root],
                 {
                     "function": "status_report"
                 }
@@ -95,9 +101,9 @@ class Trunk(tornado.web.RequestHandler):
                     "error": "Request failed. Is component secret key valid?"
                 })
 
-        for air in self.application.settings["air"].keys():
+        for air in self.settings["air"].keys():
             response = self.send_message(
-                self.application.settings["air"][air],
+                self.settings["air"][air],
                 {
                     "function": "status_report"
                 }
@@ -123,12 +129,12 @@ class Trunk(tornado.web.RequestHandler):
 
         return json.dumps(result)
 
-    def call_component_function(self):
+    def call_component_function(self, message):
         # TODO: протестировать
         required_args = ['component', 'name', 'function', 'arguments']
         function_data = {}
         for arg in required_args:
-            value = self.get_argument(arg, None)
+            value = message.get(arg, None)
             if not value:
                 return "Argument is missing: {0}".format(arg)
             else:
@@ -180,11 +186,11 @@ class Trunk(tornado.web.RequestHandler):
             "response": response
         })
 
-    def add_leaf(self):
+    def add_leaf(self, message):
         required_args = ['name', 'address']
         leaf_data = {}
         for arg in required_args:
-            value = self.get_argument(arg, None)
+            value = message.get(arg, None)
             if not value:
                 return "Argument is missing: {0}".format(arg)
             else:
@@ -195,8 +201,8 @@ class Trunk(tornado.web.RequestHandler):
         # =========================================
 
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.trunk.leaves
         # TODO: проверка
@@ -246,10 +252,10 @@ class Trunk(tornado.web.RequestHandler):
         return "Operation result: {0}".format(json.dumps(response))
 
     def get_root(self, name="main"):
-        return self.application.settings["roots"][name]
+        return self.settings["roots"][name]
 
     def get_branch(self, name="main"):
-        return self.application.settings["branches"][name]
+        return self.settings["branches"][name]
 
     def get_air(self, name="main"):
-        return self.application.settings["air"][name]
+        return self.settings["air"][name]

@@ -12,7 +12,7 @@ from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
 from components.air import Air, get_leaves_proxy
-from components.common import CommonListener
+from components.common import CommonListener, TransparentListener
 
 if len(sys.argv) < 2:
     print("Launch error: unknown number of arguments")
@@ -49,9 +49,8 @@ if SETTINGS["role"] == "roots":
 
 if SETTINGS["role"] == "trunk":
     print("Setting role: trunk")
-    listeners.append((r"/", Trunk))
-    application = tornado.web.Application(listeners)
-    application.settings = settings
+    listeners.append((r"/", TransparentListener))
+    application = Trunk(settings, handlers=listeners)
 
 if SETTINGS["role"] == "branch":
     print("Setting role: branch")
