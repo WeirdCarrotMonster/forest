@@ -3,10 +3,10 @@
 # so crypto, wow
 
 def encode(string, key):
-    return string + key
+    return string
 
 
 def decode(string, key):
-    return string[:-len(key)]
+    return string
 
 # much safety

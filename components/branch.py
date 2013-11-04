@@ -54,8 +54,7 @@ class Branch(tornado.web.RequestHandler):
         if function == "create_leaf":
             response = self.add_leaf(message)
 
-        # TODO: зашифровать ответ
-        self.write(response)
+        self.write(encode(response, self.application.settings["secret"]))
 
     def add_leaf(self, message):
         name = message.get("name", None)

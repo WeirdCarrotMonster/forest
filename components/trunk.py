@@ -27,11 +27,12 @@ class Trunk(tornado.web.RequestHandler):
             "message": encode(post_data, receiver["secret"])
         }
         body = urllib.urlencode(post_contents)
-        response = json.loads(http_client.fetch(
+        response = json.loads(
+            decode(http_client.fetch(
             "http://{0}:{1}".format(receiver["address"], receiver["port"]),
             method='POST',
             body=body
-        ).body)
+        ).body, receiver["secret"]))
         return response
 
     def add_leaf(self):

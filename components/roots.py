@@ -31,8 +31,7 @@ class Roots(tornado.web.RequestHandler):
         if function == "prepare_database":
             response = self.prepare_database(message)
 
-        # TODO: зашифровать ответ
-        self.write(response)
+        self.write(encode(response, self.application.settings["secret"]))
 
     @staticmethod
     def string_generator(size=16, chars=string.ascii_uppercase + string.digits):

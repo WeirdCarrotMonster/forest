@@ -28,8 +28,7 @@ class Air(tornado.web.RequestHandler):
         if function == "publish_leaf":
             response = self.publish_leaf(message)
 
-        # TODO: зашифровать ответ
-        self.write(response)
+        self.write(encode(response, self.application.settings["secret"]))
 
     def publish_leaf(self, message):
         required_args = ['name', 'address', 'host', 'port']
