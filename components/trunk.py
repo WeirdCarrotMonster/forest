@@ -123,6 +123,64 @@ class Trunk(tornado.web.RequestHandler):
 
         return json.dumps(result)
 
+    def call_component_function(self):
+        # TODO: протестировать
+        required_args = ['component', 'name', 'function', 'arguments']
+        function_data = {}
+        for arg in required_args:
+            value = self.get_argument(arg, None)
+            if not value:
+                return "Argument is missing: {0}".format(arg)
+            else:
+                function_data[arg] = value
+
+        if not function_data['component'] in ['branch', 'roots', 'air']:
+            return json.dumps({
+                "result": "failure",
+                "message": "unknown component type specified"
+            })
+
+        component = None
+        try:
+            if function_data['component'] == "branch":
+                component = self.get_branch(function_data['name'])
+            if function_data['component'] == "roots":
+                component = self.get_root(function_data['name'])
+            if function_data['component'] == "air":
+                component = self.get_air(function_data['name'])
+        except KeyError:
+            return json.dumps({
+                "result": "failure",
+                "message": "component with specified name not found"
+            })
+
+        if not component:
+            return json.dumps({
+                "result": "failure",
+                "message": "failed to get component: logic error, check code"  # реально не должно выпадать
+            })
+
+        post_data = {
+            "function": function_data['function'],
+        }
+        arguments = json.loads(function_data['arguments'])
+
+        if type(arguments) != dict:
+            return json.dumps({
+                "result": "failure",
+                "message": "function arguments should be provided in json-encoded dict"
+            })
+
+        for arg in arguments.keys():
+            post_data[arg] = arguments[arg]
+
+        response = self.send_message(component, post_data)
+        return json.dumps({
+            "result": response["result"],
+            "response": response
+        })
+
+
     def add_leaf(self):
         required_args = ['name', 'address']
         leaf_data = {}
@@ -188,11 +246,11 @@ class Trunk(tornado.web.RequestHandler):
 
         return "Operation result: {0}".format(json.dumps(response))
 
-    def get_root(self):
-        return self.application.settings["roots"]["main"]
+    def get_root(self, name="main"):
+        return self.application.settings["roots"][name]
 
-    def get_branch(self):
-        return self.application.settings["branches"]["main"]
+    def get_branch(self, name="main"):
+        return self.application.settings["branches"][name]
 
-    def get_air(self):
-        return self.application.settings["air"]["main"]
+    def get_air(self, name="main"):
+        return self.application.settings["air"][name]
