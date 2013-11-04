@@ -180,7 +180,6 @@ class Trunk(tornado.web.RequestHandler):
             "response": response
         })
 
-
     def add_leaf(self):
         required_args = ['name', 'address']
         leaf_data = {}
