@@ -7,6 +7,7 @@
     "role": "air",
     "settings":
     {
+        "secret": "gk9)o24z7!@n@w^k%4ceidaj0n7n1#-ts$mw)2qrf=)e&k&gl%",
         "host": "192.168.0.2",
         "mongo_host": "127.0.0.1",
         "mongo_port": 27017

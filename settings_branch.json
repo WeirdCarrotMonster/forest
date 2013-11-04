@@ -7,6 +7,7 @@
     "role": "branch",
     "settings":
     {
+        "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
         "host": "127.0.0.1",
         "port_range": [8000, 8001, 8002, 8003],
         "executable": "/home/wcm/project/manage.py",

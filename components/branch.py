@@ -6,6 +6,7 @@ import tornado.web
 from components.leaf import Leaf
 import simplejson as json
 import pymongo
+from components.shadow import encode, decode
 
 
 def init_leaves(app):
@@ -37,15 +38,28 @@ class Branch(tornado.web.RequestHandler):
         self.write("Hello to you from branch!")
 
     def post(self):
-        function = self.get_argument('function', None)
         response = ""
+        message = None
+        try:
+            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
+        except:
+            self.write(json.dumps({
+                "result": "failure",
+                "message": "failed to decode message"
+            }))
+            return
+        # Далее message - тело запроса
+
+        function = message.get('function', None)
         if function == "create_leaf":
-            response = self.add_leaf()
+            response = self.add_leaf(message)
+
+        # TODO: зашифровать ответ
         self.write(response)
 
-    def add_leaf(self):
-        name = self.get_argument("name", None)
-        env = self.get_argument("env", None)
+    def add_leaf(self, message):
+        name = message.get("name", None)
+        env = message.get("env", None)
         if not name:
             return json.dumps({
                 "result": "failure",

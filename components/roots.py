@@ -7,6 +7,7 @@ import random
 import simplejson as json
 import tornado.web
 import pymongo
+from components.shadow import encode, decode
 
 
 class Roots(tornado.web.RequestHandler):
@@ -14,10 +15,23 @@ class Roots(tornado.web.RequestHandler):
         self.write("Hello to you from roots!")
 
     def post(self):
-        function = self.get_argument('function', None)
         response = ""
+        message = None
+        try:
+            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
+        except:
+            self.write(json.dumps({
+                "result": "failure",
+                "message": "failed to decode message"
+            }))
+            return
+        # Далее message - тело запроса
+
+        function = message.get('function', None)
         if function == "prepare_database":
-            response = self.prepare_database()
+            response = self.prepare_database(message)
+
+        # TODO: зашифровать ответ
         self.write(response)
 
     @staticmethod
@@ -57,8 +71,8 @@ class Roots(tornado.web.RequestHandler):
         cur.close()
         return bool(result[0][0])
 
-    def prepare_database(self):
-        name = self.get_argument("name", None)
+    def prepare_database(self, message):
+        name = message.get("name", None)
         if not name:
             return json.dumps({
                 "result": "failure",

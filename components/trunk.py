@@ -5,6 +5,7 @@ import tornado.web
 import simplejson as json
 import urllib
 import tornado.httpclient
+from components.shadow import encode, decode
 
 
 class Trunk(tornado.web.RequestHandler):
@@ -17,6 +18,21 @@ class Trunk(tornado.web.RequestHandler):
         if function == "create_leaf":
             response = self.add_leaf()
         self.write(response)
+
+    @staticmethod
+    def send_message(receiver, contents):
+        http_client = tornado.httpclient.HTTPClient()
+        post_data = json.dumps(contents)
+        post_contents = {
+            "message": encode(post_data, receiver["secret"])
+        }
+        body = urllib.urlencode(post_contents)
+        response = json.loads(http_client.fetch(
+            "http://{0}:{1}".format(receiver["address"], receiver["port"]),
+            method='POST',
+            body=body
+        ).body)
+        return response
 
     def add_leaf(self):
         required_args = ['name', 'address']
@@ -38,13 +54,8 @@ class Trunk(tornado.web.RequestHandler):
             "function": "prepare_database",
             "name": leaf_data["name"]
         }
-        body = urllib.urlencode(post_data)
-        response = http_client.fetch(
-            "http://{0}:{1}".format(root["address"], root["port"]),
-            method='POST',
-            body=body
-        )
-        response = json.loads(response.body)
+        response = self.send_message(root, post_data)
+
         if response["result"] != "success":
             return "Failed to get database settings: {0}".format(response["message"])
 
@@ -58,13 +69,11 @@ class Trunk(tornado.web.RequestHandler):
             "name": leaf_data["name"],
             "env": env_for_leaf
         }
-        body = urllib.urlencode(post_data)
-        response = json.loads(http_client.fetch(
-            "http://{0}:{1}".format(branch["address"], branch["port"]),
-            method='POST',
-            body=body
-        ).body)
 
+        response = self.send_message(branch, post_data)
+
+        if response["result"] != "success":
+            return "Failed to create leaf: {0}".format(response["message"])
         # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
@@ -77,14 +86,9 @@ class Trunk(tornado.web.RequestHandler):
             "port": response["port"]
         }
 
-        body = urllib.urlencode(post_data)
-        response = http_client.fetch(
-            "http://{0}:{1}".format(air["address"], air["port"]),
-            method='POST',
-            body=body
-        )
+        response = self.send_message(air, post_data)
 
-        return "Branch created leaf that listens on: {0}".format(response.body)
+        return "Operation result: {0}".format(json.dumps(response))
 
     def get_root(self):
         return self.application.settings["roots"][0]

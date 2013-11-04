@@ -4,6 +4,7 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import pymongo
+from components.shadow import encode, decode
 
 
 class Air(tornado.web.RequestHandler):
@@ -11,17 +12,30 @@ class Air(tornado.web.RequestHandler):
         self.write("Hello to you from trunk!")
 
     def post(self):
-        function = self.get_argument('function', None)
         response = ""
+        message = None
+        try:
+            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
+        except:
+            self.write(json.dumps({
+                "result": "failure",
+                "message": "failed to decode message"
+            }))
+            return
+        # Далее message - тело запроса
+
+        function = message.get('function', None)
         if function == "publish_leaf":
-            response = self.publish_leaf()
+            response = self.publish_leaf(message)
+
+        # TODO: зашифровать ответ
         self.write(response)
 
-    def publish_leaf(self):
+    def publish_leaf(self, message):
         required_args = ['name', 'address', 'host', 'port']
         leaf_data = {}
         for arg in required_args:
-            value = self.get_argument(arg, None)
+            value = message.get(arg, None)
             if not value:
                 return json.dumps({
                     "result": "failure",
@@ -47,7 +61,8 @@ class Air(tornado.web.RequestHandler):
                     "host": leaf_data["host"],
                     "port": leaf_data["port"]
                 },
-                {}
+                upsert=False,
+                multi=False
             )
         else:
             leaves.insert({
