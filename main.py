@@ -10,8 +10,9 @@ import tornado.web
 import simplejson as json
 from components.trunk import Trunk
 from components.roots import Roots
-from components.branch import Branch, CommonListener
+from components.branch import Branch
 from components.air import Air, get_leaves_proxy
+from components.common import CommonListener
 
 if len(sys.argv) < 2:
     print("Launch error: unknown number of arguments")
