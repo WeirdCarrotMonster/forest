@@ -15,7 +15,7 @@ def init_leaves(app):
         app.settings["mongo_port"]
     )
     leaves = client.branch.leaves
-    for leaf in leaves.find():  # TODO: устанавливать флаг активный-неактивный и фильтровать по нему
+    for leaf in leaves.find():
         print("Found leaf {0} in configuration, starting...".format(leaf["name"]))
         new_leaf = Leaf(
             name=leaf["name"],

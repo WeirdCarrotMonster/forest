@@ -62,6 +62,7 @@ application.settings = settings
 
 if SETTINGS["role"] == "branch":
     application.leaves = []
+    application.settings["port_range"] = range(application.settings["port_range_begin"], application.settings["port_range_end"])
     init_leaves(application)
 
 print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))

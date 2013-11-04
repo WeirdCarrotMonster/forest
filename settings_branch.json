@@ -9,7 +9,8 @@
     {
         "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
         "host": "127.0.0.1",
-        "port_range": [8000, 8001, 8002, 8003],
+        "port_range_begin": 8000,
+        "port_range_end": 9000,
         "executable": "/home/wcm/project/manage.py",
         "pid_dir": "/home/wcm/forest/pid",
         "mongo_host": "127.0.0.1",
