@@ -9,36 +9,11 @@ import pymongo
 from components.shadow import encode, decode
 
 
-def init_leaves(app):
-    client = pymongo.MongoClient(
-        app.settings["mongo_host"],
-        app.settings["mongo_port"]
-    )
-    leaves = client.branch.leaves
-    for leaf in leaves.find():
-        print("Found leaf {0} in configuration, starting...".format(leaf["name"]))
-        new_leaf = Leaf(
-            name=leaf["name"],
-            executable=app.settings["executable"],
-            fcgi_host=app.settings["host"],
-            fcgi_port=leaf["port"],
-            pidfile=os.path.join(app.settings["pid_dir"], leaf["name"] + '.pid'),
-            env=leaf["env"]
-        )
-        try:
-            app.settings["port_range"].remove(new_leaf.fcgi_port)
-        except:
-            # Порт не в списке. Стабильности ради делаем НИЧЕГО.
-            pass
-        new_leaf.start()
-
-
-class Branch(tornado.web.RequestHandler):
+class CommonListener(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello to you from branch!")
 
     def post(self):
-        response = ""
         try:
             message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
         except:
@@ -49,6 +24,19 @@ class Branch(tornado.web.RequestHandler):
             return
         # Далее message - тело запроса
 
+        response = self.application.process_message(message)
+        self.write(encode(response, self.application.settings["secret"]))
+
+
+class Branch(tornado.web.Application):
+    def __init__(self, settings_dict, **settings):
+        super(Branch, self).__init__(**settings)
+        self.settings = settings_dict
+        self.leaves = []
+        self.settings["port_range"] = range(self.settings["port_range_begin"], self.settings["port_range_end"])
+        self.init_leaves()
+
+    def process_message(self, message):
         function = message.get('function', None)
         if function == "create_leaf":
             response = self.add_leaf(message)
@@ -62,8 +50,36 @@ class Branch(tornado.web.RequestHandler):
                 "result": "failure",
                 "message": "No function or unknown one called"
             })
+        return response
 
-        self.write(encode(response, self.application.settings["secret"]))
+    def init_leaves(self):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.branch.leaves
+        for leaf in leaves.find():
+            print("Found leaf {0} in configuration, starting...".format(leaf["name"]))
+            new_leaf = Leaf(
+                name=leaf["name"],
+                executable=self.settings["executable"],
+                fcgi_host=self.settings["host"],
+                fcgi_port=leaf["port"],
+                pidfile=os.path.join(self.settings["pid_dir"], leaf["name"] + '.pid'),
+                env=leaf["env"]
+            )
+            try:
+                self.settings["port_range"].remove(new_leaf.fcgi_port)
+            except:
+                # Порт не в списке. Стабильности ради делаем НИЧЕГО.
+                pass
+            new_leaf.start()
+            self.leaves.append(new_leaf)
+
+    def shutdown_leaves(self):
+        print("Shutting down leaves...")
+        for leaf in self.leaves:
+            leaf.stop()
 
     def status_report(self):
         return json.dumps({
@@ -74,8 +90,8 @@ class Branch(tornado.web.RequestHandler):
 
     def known_leaves(self):
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.branch.leaves
         known_leaves = []
@@ -107,8 +123,8 @@ class Branch(tornado.web.RequestHandler):
             })
 
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
@@ -116,7 +132,7 @@ class Branch(tornado.web.RequestHandler):
             print("Found existing leaf")
             return json.dumps({
                 "result": "success",
-                "host": self.application.settings["host"],
+                "host": self.settings["host"],
                 "port": leaf["port"],
                 "comment": "found existing leaf"
             })
@@ -125,10 +141,10 @@ class Branch(tornado.web.RequestHandler):
 
         new_leaf = Leaf(
             name=name,
-            executable=self.application.settings["executable"],
-            fcgi_host=self.application.settings["host"],
-            fcgi_port=self.application.settings["port_range"].pop(),
-            pidfile=os.path.join(self.application.settings["pid_dir"], name + '.pid'),
+            executable=self.settings["executable"],
+            fcgi_host=self.settings["host"],
+            fcgi_port=self.settings["port_range"].pop(),
+            pidfile=os.path.join(self.settings["pid_dir"], name + '.pid'),
             env=env
         )
         leaf = {
@@ -140,10 +156,10 @@ class Branch(tornado.web.RequestHandler):
 
         try:
             new_leaf.start()
-            self.application.leaves.append(new_leaf)
+            self.leaves.append(new_leaf)
             new_leaf.prepare_database()
         except:
-            self.application.settings["port_range"].append(new_leaf.fcgi_port)
+            self.settings["port_range"].append(new_leaf.fcgi_port)
             return json.dumps({
                 "result": "failure",
                 "message": ""
@@ -151,27 +167,27 @@ class Branch(tornado.web.RequestHandler):
         else:
             return json.dumps({
                 "result": "success",
-                "host": self.application.settings["host"],
+                "host": self.settings["host"],
                 "port": new_leaf.fcgi_port,
                 "comment": "created new leaf"
             })
 
-    def del_leaf(self):
-        name = self.get_argument("name", None)
+    def del_leaf(self, message):
+        name = message.get("name", None)
         if not name:
             return json.dumps({
                 "result": "failure",
                 "message": "missing argument: name"
             })
 
-        for leaf in self.application.leaves:
+        for leaf in self.leaves:
             if leaf.name == name:
                 leaf.stop()
-                self.application.leaves.remove(leaf)
+                self.leaves.remove(leaf)
 
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.branch.leaves
         leaves.remove({"name": name})

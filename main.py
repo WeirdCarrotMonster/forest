@@ -10,7 +10,7 @@ import tornado.web
 import simplejson as json
 from components.trunk import Trunk
 from components.roots import Roots
-from components.branch import Branch, init_leaves
+from components.branch import Branch, CommonListener
 from components.air import Air, get_leaves_proxy
 
 if len(sys.argv) < 2:
@@ -33,38 +33,38 @@ if len(sys.argv) == 3 and sys.argv[2] == "shell_config":
 
 # Определяем слушателей по ролям
 listeners = []
+settings = SETTINGS["settings"]
 
 if not SETTINGS["role"] in ["roots", "trunk", "branch", "air"]:
     print("Configuration error: unknown role")
     sys.exit(0)
 
+application = None
+
 if SETTINGS["role"] == "roots":
     print("Setting role: roots")
     listeners.append((r"/", Roots))
+    application = tornado.web.Application(listeners)
+    application.settings = settings
 
 if SETTINGS["role"] == "trunk":
     print("Setting role: trunk")
     listeners.append((r"/", Trunk))
+    application = tornado.web.Application(listeners)
+    application.settings = settings
 
 if SETTINGS["role"] == "branch":
     print("Setting role: branch")
-    listeners.append((r"/", Branch))
+    listeners.append((r"/", CommonListener))
+    application = Branch(settings, handlers=listeners)
+    application.settings = settings
 
 if SETTINGS["role"] == "air":
     print("Setting role: air")
     listeners.append((r"/", Air))
-
-settings = SETTINGS["settings"]
+    application = tornado.web.Application(listeners)
 
 # Создаем и запускаем приложение
-application = tornado.web.Application(listeners)
-application.settings = settings
-
-if SETTINGS["role"] == "branch":
-    application.leaves = []
-    application.settings["port_range"] = range(application.settings["port_range_begin"], application.settings["port_range_end"])
-    init_leaves(application)
-
 print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))
 application.listen(SETTINGS["connections"]["port"], SETTINGS["connections"]["address"])
 
@@ -73,11 +73,7 @@ def cleanup(signum=None, frame=None):
     if signum:
         print("Got signum: {0}".format(signum))
     print("Cleaning up...")
-    try:
-        for leaf in application.leaves:
-            leaf.stop()
-    except:
-        pass
+    application.shutdown_leaves()
     print("Done!")
     sys.exit(0)
 
