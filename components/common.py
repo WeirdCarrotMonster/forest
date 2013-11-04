@@ -8,7 +8,7 @@ from components.shadow import encode, decode
 
 class CommonListener(tornado.web.RequestHandler):
     def get(self):
-        self.write("Hello to you from branch!")
+        self.write("")
 
     def post(self):
         try:

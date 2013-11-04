@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import print_function
 import MySQLdb
 import string
@@ -10,29 +9,24 @@ import pymongo
 from components.shadow import encode, decode
 
 
-class Roots(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello to you from roots!")
+class Roots(tornado.web.Application):
+    def __init__(self, settings_dict, **settings):
+        super(Roots, self).__init__(**settings)
+        self.settings = settings_dict
 
-    def post(self):
-        response = ""
-        try:
-            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
-        except:
-            self.write(json.dumps({
-                "result": "failure",
-                "message": "failed to decode message"
-            }))
-            return
-        # Далее message - тело запроса
-
+    def process_message(self, message):
         function = message.get('function', None)
         if function == "prepare_database":
             response = self.prepare_database(message)
         if function == "status_report":
             response = self.status_report()
 
-        self.write(encode(response, self.application.settings["secret"]))
+        if function is None:
+            response = json.dumps({
+                "result": "failure",
+                "message": "No function or unknown one called"
+            })
+        return response
 
     def status_report(self):
         return json.dumps({
@@ -46,10 +40,10 @@ class Roots(tornado.web.RequestHandler):
 
     def mysql_user_exists(self, username):
         db = MySQLdb.connect(
-            host=self.application.settings["mysql_host"],
-            port=self.application.settings["mysql_port"],
-            user=self.application.settings["mysql_user"],
-            passwd=self.application.settings["mysql_pass"]
+            host=self.settings["mysql_host"],
+            port=self.settings["mysql_port"],
+            user=self.settings["mysql_user"],
+            passwd=self.settings["mysql_pass"]
         )
         cur = db.cursor()
         cur.execute("SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{0}')".format(username))
@@ -65,10 +59,10 @@ class Roots(tornado.web.RequestHandler):
 
     def mysql_db_exists(self, dbname):
         db = MySQLdb.connect(
-            host=self.application.settings["mysql_host"],
-            port=self.application.settings["mysql_port"],
-            user=self.application.settings["mysql_user"],
-            passwd=self.application.settings["mysql_pass"]
+            host=self.settings["mysql_host"],
+            port=self.settings["mysql_port"],
+            user=self.settings["mysql_user"],
+            passwd=self.settings["mysql_pass"]
         )
         cur = db.cursor()
         cur.execute("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE"
@@ -87,8 +81,8 @@ class Roots(tornado.web.RequestHandler):
 
         print("Preparing database for {0}".format(name))
         client = pymongo.MongoClient(
-            self.application.settings["mongo_host"],
-            self.application.settings["mongo_port"]
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
         )
         leaves = client.roots.leaves
         leaf = leaves.find_one({"name": name})
@@ -98,8 +92,8 @@ class Roots(tornado.web.RequestHandler):
                 "result": "success",
                 "env":
                 {
-                    "db_host": self.application.settings["mysql_host"],
-                    "db_port": self.application.settings["mysql_port"],
+                    "db_host": self.settings["mysql_host"],
+                    "db_port": self.settings["mysql_port"],
                     "db_name": leaf["db_name"],
                     "db_user": leaf["db_user"],
                     "db_pass": leaf["db_pass"]
@@ -117,8 +111,8 @@ class Roots(tornado.web.RequestHandler):
             "result": "success",
             "env":
             {
-                "db_host": self.application.settings["mysql_host"],
-                "db_port": self.application.settings["mysql_port"],
+                "db_host": self.settings["mysql_host"],
+                "db_port": self.settings["mysql_port"],
                 "db_name": db_name,
                 "db_user": username,
                 "db_pass": password
@@ -136,10 +130,10 @@ class Roots(tornado.web.RequestHandler):
         print("No existing database; creating new called {0}".format(db_name))
 
         db = MySQLdb.connect(
-            host=self.application.settings["mysql_host"],
-            port=self.application.settings["mysql_port"],
-            user=self.application.settings["mysql_user"],
-            passwd=self.application.settings["mysql_pass"]
+            host=self.settings["mysql_host"],
+            port=self.settings["mysql_port"],
+            user=self.settings["mysql_user"],
+            passwd=self.settings["mysql_pass"]
         )
         cur = db.cursor()
         cur.execute("CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE "
@@ -150,8 +144,8 @@ class Roots(tornado.web.RequestHandler):
         db.close()
         return json.dumps(result)
 
-    def delete_database(self):
-        name = self.get_argument("name", None)
+    def delete_database(self, message):
+        name = message.get("name", None)
         if not name:
             return json.dumps({
                 "result": "failure",

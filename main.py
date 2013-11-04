@@ -44,9 +44,8 @@ application = None
 
 if SETTINGS["role"] == "roots":
     print("Setting role: roots")
-    listeners.append((r"/", Roots))
-    application = tornado.web.Application(listeners)
-    application.settings = settings
+    listeners.append((r"/", CommonListener))
+    application = Roots(settings, handlers=listeners)
 
 if SETTINGS["role"] == "trunk":
     print("Setting role: trunk")
