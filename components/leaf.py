@@ -56,8 +56,8 @@ class Leaf():
             pidfile_result = open(self.pidfile, 'r')
             self.pid = int(pidfile_result.read().strip())
             pidfile_result.close()
-        except:
-            raise Exception("Launch failed")
+        except Exception, e:
+            raise Exception("Launch failed: {0}".format(e))
 
     def stop(self):
         subprocess.call(['kill', str(self.pid)])
