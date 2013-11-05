@@ -135,11 +135,11 @@ class Branch(tornado.web.Application):
             self.leaves.append(new_leaf)
             if initdb:
                 new_leaf.prepare_database()
-        except:
+        except Exception, e:
             self.settings["port_range"].append(new_leaf.fcgi_port)
             return json.dumps({
                 "result": "failure",
-                "message": ""
+                "message": "Start failed with exception: {0}".format(e)
             })
         else:
             leaf = {
