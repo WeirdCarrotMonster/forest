@@ -339,8 +339,7 @@ class Trunk(tornado.web.Application):
             {
                 "address": leaf["address"],
                 "branch": leaf_data["destination"],
-                "port": new_branch_response["port"],
-                "env": new_branch_response["env"],
+                "port": new_branch_response["port"]
             },
             upsert=False,
             multi=False
