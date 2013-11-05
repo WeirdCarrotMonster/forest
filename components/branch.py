@@ -34,7 +34,13 @@ class Branch(tornado.web.Application):
                 "result": "failure",
                 "message": "No function or unknown one called"
             })
-        return response
+        try:
+            return response
+        except:
+            return json.dumps({
+                "result": "failure",
+                "message": "Unknown error occured"
+            })
 
     def init_leaves(self):
         client = pymongo.MongoClient(

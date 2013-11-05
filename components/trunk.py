@@ -22,6 +22,8 @@ class Trunk(tornado.web.Application):
             response = self.status_report()
         if function == "migrate_leaf":
             response = self.migrate_leaf(message)
+        if function == "update_repository":
+            response = self.update_repo()
 
         if function is None:
             response = json.dumps({
@@ -40,10 +42,10 @@ class Trunk(tornado.web.Application):
         body = urllib.urlencode(post_contents)
         response = json.loads(
             decode(http_client.fetch(
-            "http://{0}:{1}".format(receiver["address"], receiver["port"]),
-            method='POST',
-            body=body
-        ).body, receiver["secret"]))
+                "http://{0}:{1}".format(receiver["address"], receiver["port"]),
+                method='POST',
+                body=body
+            ).body, receiver["secret"]))
         return response
 
     def status_report(self):
@@ -129,6 +131,22 @@ class Trunk(tornado.web.Application):
                     "error": "Request failed. Is component secret key valid?"
                 })
 
+        return json.dumps(result)
+
+    def update_repo(self):
+        result = {
+            "success": [],
+            "error": [],
+            "warning": [],
+        }
+        for branch in self.settings["branches"].keys():
+            response = self.send_message(
+                self.settings["branches"][branch],
+                {
+                    "function": "update_repository"
+                }
+            )
+            result[response["result"]].append(response)
         return json.dumps(result)
 
     def call_component_function(self, message):
@@ -241,7 +259,7 @@ class Trunk(tornado.web.Application):
 
         if response["result"] != "success":
             return "Failed to create leaf: {0}".format(response["message"])
-        # =========================================
+            # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
@@ -308,7 +326,7 @@ class Trunk(tornado.web.Application):
         new_branch_response = response
         if new_branch_response["result"] != "success":
             return "Failed to create leaf: {0}".format(response["message"])
-        # =========================================
+            # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
@@ -322,7 +340,7 @@ class Trunk(tornado.web.Application):
         response = self.send_message(air, post_data)
         if response["result"] != "success":
             return "Failed to publish leaf: {0}".format(response["message"])
-        # =========================================
+            # =========================================
         # Обращаемся старому branch'у для отключения листа
         # =========================================
         post_data = {
