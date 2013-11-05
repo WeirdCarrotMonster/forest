@@ -2,6 +2,7 @@
 from __future__ import print_function
 import os
 import tornado.web
+from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
 import simplejson as json
 import pymongo
@@ -25,6 +26,8 @@ class Branch(tornado.web.Application):
             response = self.status_report()
         if function == "known_leaves":
             response = self.known_leaves()
+        if function == "update_repository":
+            response = self.update_repo()
 
         if function is None:
             response = json.dumps({
@@ -182,3 +185,32 @@ class Branch(tornado.web.Application):
             "result": "success",
             "message": "deleted leaf info from server"
         })
+
+    def update_repo(self):
+        try:
+            path = self.settings["repository"]["path"]
+            repo_type = self.settings["repository"]["type"]
+        except KeyError:
+            return json.dumps({
+                "result": "warning",
+                "message": "No repository present"
+            })
+
+        try:
+            if repo_type == "git":
+                output = check_output(["git", "--git-dir={0}/.git".format(path), "--work-tree={0}".format(path), "pull"], stderr=STDOUT)
+                result = json.dumps({
+                    "result": "success",
+                    "message": output
+                })
+            else:
+                result = json.dumps({
+                    "result": "failure",
+                    "message": "configuration error: unknown repository type"
+                })
+        except CalledProcessError as e:
+            result = json.dumps({
+                "result": "success",
+                "message": e.output
+            })
+        return result

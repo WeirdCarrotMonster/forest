@@ -15,5 +15,10 @@
         "pid_dir": "/home/wcm/forest/pid",
         "mongo_host": "127.0.0.1",
         "mongo_port": 27017
+    },
+    "repository":
+    {
+        "type": "git",
+        "path": "/home/wcm/espresso"
     }
 }
