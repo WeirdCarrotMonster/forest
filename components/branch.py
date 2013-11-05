@@ -19,6 +19,8 @@ class Branch(tornado.web.Application):
         function = message.get('function', None)
         if function == "create_leaf":
             response = self.add_leaf(message)
+        if function == "delete_leaf":
+            response = self.delete_leaf(message)
         if function == "status_report":
             response = self.status_report()
         if function == "known_leaves":
@@ -89,6 +91,7 @@ class Branch(tornado.web.Application):
     def add_leaf(self, message):
         name = message.get("name", None)
         env = message.get("env", None)
+        initdb = bool(message.get("initdb", False))
         if not name:
             return json.dumps({
                 "result": "failure",
@@ -136,7 +139,8 @@ class Branch(tornado.web.Application):
         try:
             new_leaf.start()
             self.leaves.append(new_leaf)
-            new_leaf.prepare_database()
+            if initdb:
+                new_leaf.prepare_database()
         except:
             self.settings["port_range"].append(new_leaf.fcgi_port)
             return json.dumps({
@@ -151,7 +155,7 @@ class Branch(tornado.web.Application):
                 "comment": "created new leaf"
             })
 
-    def del_leaf(self, message):
+    def delete_leaf(self, message):
         name = message.get("name", None)
         if not name:
             return json.dumps({

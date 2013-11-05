@@ -205,7 +205,9 @@ class Trunk(tornado.web.Application):
             self.settings["mongo_port"]
         )
         leaves = client.trunk.leaves
-        # TODO: проверка
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if leaf:
+            return "Leaf with name {0} already exists".format(leaf_data["name"])
 
         # =========================================
         # Обращаемся к roots для создания новой базы
@@ -216,6 +218,7 @@ class Trunk(tornado.web.Application):
             "name": leaf_data["name"]
         }
         response = self.send_message(root, post_data)
+        roots_response = response
 
         if response["result"] != "success":
             return "Failed to get database settings: {0}".format(response["message"])
@@ -228,10 +231,11 @@ class Trunk(tornado.web.Application):
         post_data = {
             "function": "create_leaf",
             "name": leaf_data["name"],
-            "env": env_for_leaf
+            "env": env_for_leaf,
+            "initdb": "True"
         }
-
         response = self.send_message(branch, post_data)
+        branch_response = response
 
         if response["result"] != "success":
             return "Failed to create leaf: {0}".format(response["message"])
@@ -246,10 +250,32 @@ class Trunk(tornado.web.Application):
             "host": response["host"],
             "port": response["port"]
         }
-
         response = self.send_message(air, post_data)
 
+        leaf = {
+            "name": leaf_data["name"],
+            "address": leaf_data["address"],
+            "branch": "main",
+            "port": branch_response["port"],
+            "env": roots_response["env"],
+
+        }
+        leaves.insert(leaf)
+
         return "Operation result: {0}".format(json.dumps(response))
+
+    def migrate_leaf(self, message):
+        # TODO: доделать
+        required_args = ['name', 'source', 'destination']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return "Argument is missing: {0}".format(arg)
+            else:
+                leaf_data[arg] = value
+
+        pass
 
     def get_root(self, name="main"):
         return self.settings["roots"][name]
