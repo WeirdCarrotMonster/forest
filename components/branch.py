@@ -129,12 +129,6 @@ class Branch(tornado.web.Application):
             pidfile=os.path.join(self.settings["pid_dir"], name + '.pid'),
             env=env
         )
-        leaf = {
-            "name": new_leaf.name,
-            "port": new_leaf.fcgi_port,
-            "env": new_leaf.launch_env
-        }
-        leaves.insert(leaf)
 
         try:
             new_leaf.start()
@@ -148,6 +142,13 @@ class Branch(tornado.web.Application):
                 "message": ""
             })
         else:
+            leaf = {
+                "name": new_leaf.name,
+                "port": new_leaf.fcgi_port,
+                "env": new_leaf.launch_env
+            }
+            leaves.insert(leaf)
+
             return json.dumps({
                 "result": "success",
                 "host": self.settings["host"],

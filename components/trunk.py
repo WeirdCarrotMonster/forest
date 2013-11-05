@@ -20,6 +20,8 @@ class Trunk(tornado.web.Application):
             response = self.add_leaf(message)
         if function == "status_report":
             response = self.status_report()
+        if function == "migrate_leaf":
+            response = self.migrate_leaf(message)
 
         if function is None:
             response = json.dumps({
@@ -299,7 +301,7 @@ class Trunk(tornado.web.Application):
         post_data = {
             "function": "create_leaf",
             "name": leaf_data["name"],
-            "env": json.dumps(leaf_data["env"]),
+            "env": json.dumps(leaf["env"]),
             "initdb": "False"
         }
         response = self.send_message(new_branch, post_data)
@@ -313,7 +315,7 @@ class Trunk(tornado.web.Application):
         post_data = {
             "function": "publish_leaf",
             "name": leaf_data["name"],
-            "address": leaf_data["address"],
+            "address": leaf["address"],
             "host": new_branch_response["host"],
             "port": new_branch_response["port"]
         }
@@ -331,6 +333,19 @@ class Trunk(tornado.web.Application):
         old_branch_response = response
         if old_branch_response["result"] != "success":
             return "Failed to create leaf: {0}".format(response["message"])
+
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "address": leaf["address"],
+                "branch": leaf_data["destination"],
+                "port": new_branch_response["port"],
+                "env": new_branch_response["env"],
+            },
+            upsert=False,
+            multi=False
+        )
+        return "Moved leaf from {0} to {1}".format(leaf_data["source"], leaf_data["destination"])
 
     def get_root(self, name="main"):
         return self.settings["roots"][name]
