@@ -168,6 +168,8 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
+        print("Deleting leaf '{0}' from server".format(name))
+
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]

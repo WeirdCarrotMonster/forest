@@ -258,7 +258,6 @@ class Trunk(tornado.web.Application):
             "branch": "main",
             "port": branch_response["port"],
             "env": roots_response["env"],
-
         }
         leaves.insert(leaf)
 
@@ -275,7 +274,63 @@ class Trunk(tornado.web.Application):
             else:
                 leaf_data[arg] = value
 
-        pass
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return "Leaf with name {0} not found".format(leaf_data["name"])
+
+        try:
+            new_branch = self.get_branch(leaf_data["destination"])
+        except:
+            return "Destination branch not found"
+
+        try:
+            old_branch = self.get_branch(leaf_data["source"])
+        except:
+            return "Source branch not found"
+
+        # =========================================
+        # Обращаемся к новому branch'у для переноса листа
+        # =========================================
+        post_data = {
+            "function": "create_leaf",
+            "name": leaf_data["name"],
+            "env": json.dumps(leaf_data["env"]),
+            "initdb": "False"
+        }
+        response = self.send_message(new_branch, post_data)
+        new_branch_response = response
+        if new_branch_response["result"] != "success":
+            return "Failed to create leaf: {0}".format(response["message"])
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        post_data = {
+            "function": "publish_leaf",
+            "name": leaf_data["name"],
+            "address": leaf_data["address"],
+            "host": new_branch_response["host"],
+            "port": new_branch_response["port"]
+        }
+        response = self.send_message(air, post_data)
+        if response["result"] != "success":
+            return "Failed to publish leaf: {0}".format(response["message"])
+        # =========================================
+        # Обращаемся старому branch'у для отключения листа
+        # =========================================
+        post_data = {
+            "function": "delete_leaf",
+            "name": leaf_data["name"]
+        }
+        response = self.send_message(old_branch, post_data)
+        old_branch_response = response
+        if old_branch_response["result"] != "success":
+            return "Failed to create leaf: {0}".format(response["message"])
 
     def get_root(self, name="main"):
         return self.settings["roots"][name]
