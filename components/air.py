@@ -16,6 +16,8 @@ class Air(tornado.web.Application):
         function = message.get('function', None)
         if function == "publish_leaf":
             response = self.publish_leaf(message)
+        if function == "unpublish_leaf":
+            response = self.unpublish_leaf(message)
         if function == "status_report":
             response = self.status_report()
 
@@ -78,6 +80,31 @@ class Air(tornado.web.Application):
         return json.dumps({
             "result": "success",
             "message": "Published leaf {0} on address {1}".format(leaf_data["name"], leaf_data["address"])
+        })
+
+    def unpublish_leaf(self, message):
+        required_args = ['name']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return json.dumps({
+                    "result": "failure",
+                    "message": "missing argument: {0}".format(arg)
+                })
+            else:
+                leaf_data[arg] = value
+
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.air.leaves
+        leaves.remove({"name": leaf_data["name"]})
+        self.reload_proxy()
+        return json.dumps({
+            "result": "success",
+            "message": "Removed leaf '{0}' from air server".format(leaf_data["name"])
         })
 
     def reload_proxy(self):
