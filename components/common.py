@@ -12,15 +12,14 @@ class CommonListener(tornado.web.RequestHandler):
 
     def post(self):
         try:
-            message = json.loads(decode(self.get_argument('message', None), self.application.settings["secret"]))
+            message = json.loads(decode(self.request.body, self.application.settings["secret"]))
         except Exception, e:
             self.write(json.dumps({
                 "result": "failure",
-                "message": "failed to decode message",
+                "message": "Failed to decode message",
                 "details": e.message
             }))
             return
-        # Далее message - тело запроса
 
         response = self.application.process_message(message)
         self.write(encode(response, self.application.settings["secret"]))
@@ -41,7 +40,6 @@ class TransparentListener(tornado.web.RequestHandler):
                 "details": e.message
             }))
             return
-        # Далее message - тело запроса
 
         response = self.application.process_message(message)
         self.write(response)

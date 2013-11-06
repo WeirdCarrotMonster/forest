@@ -36,10 +36,7 @@ class Trunk(tornado.web.Application):
     def send_message(receiver, contents):
         http_client = tornado.httpclient.HTTPClient()
         post_data = json.dumps(contents)
-        post_contents = {
-            "message": encode(post_data, receiver["secret"])
-        }
-        body = urllib.urlencode(post_contents)
+        body = encode(post_data, receiver["secret"])
         response = json.loads(
             decode(http_client.fetch(
                 "http://{0}:{1}".format(receiver["address"], receiver["port"]),
@@ -364,11 +361,61 @@ class Trunk(tornado.web.Application):
         )
         return "Moved leaf from {0} to {1}".format(leaf_data["source"], leaf_data["destination"])
 
+    def add_branch(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'address', 'host', 'secret', 'type']
+        branch_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
+            else:
+                branch_data[arg] = value
+        # =========================================
+        # Проверяем, нет ветви с таким именем в базе
+        # =========================================
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        branches = client.trunk.branches
+        branch = branches.find_one({"name": branch_data["name"]})
+        if branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "Branch with name '{0}' already exists".format(branch_data["name"])
+            })
+        # =========================================
+        # Сохраняем ветку в базе
+        # =========================================
+        branch = {
+            "name": branch_data["name"],
+            "type": branch_data["type"],
+            "address": branch_data["address"],
+            "port": branch_data["port"],
+            "secret": branch_data["secret"]
+        }
+        branch.insert(branch)
+        return json.dumps({
+            "result": "success",
+            "message": "Branch '{0}' successfully added".format(branch_data["name"])
+        })
+
     def get_root(self, name="main"):
         return self.settings["roots"][name]
 
-    def get_branch(self, name="main"):
-        return self.settings["branches"][name]
+    def get_branch(self, branch_type):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        branches = client.trunk.branches
+        return branches.find_one({"type": branch_type})
 
     def get_air(self, name="main"):
         return self.settings["air"][name]
