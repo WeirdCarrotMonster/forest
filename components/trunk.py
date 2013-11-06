@@ -26,7 +26,7 @@ class Trunk(tornado.web.Application):
         if function == "migrate_leaf":
             response = self.migrate_leaf(message)
         if function == "update_repository":
-            response = self.update_repo()
+            response = self.update_repo(message)
 
         # Динамическая работа с ветвями
         if function == "add_branch":
@@ -150,10 +150,24 @@ class Trunk(tornado.web.Application):
 
         return json.dumps(result)
 
-    def update_repo(self):
+    def update_repo(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['type']
+        repo_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
+            else:
+                repo_data[arg] = value
         result = {
             "success": [],
-            "error": [],
+            "failure": [],
             "warning": [],
         }
 
@@ -163,13 +177,17 @@ class Trunk(tornado.web.Application):
         )
 
         for branch in client.trunk.branches.find():
-            response = self.send_message(
-                branch,
-                {
-                    "function": "update_repository"
-                }
-            )
-            result[response["result"]].append(response)
+            if branch["type"] == repo_data["type"]:
+                response = self.send_message(
+                    branch,
+                    {
+                        "function": "update_repository"
+                    }
+                )
+            result[response["result"]].append({
+                "branch": branch["name"],
+                "response": response
+            })
         return json.dumps(result)
 
     def call_component_function(self, message):

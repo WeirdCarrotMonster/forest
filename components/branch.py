@@ -204,7 +204,8 @@ class Branch(tornado.web.Application):
 
         try:
             if repo_type == "git":
-                output = check_output(["git", "--git-dir={0}/.git".format(path), "--work-tree={0}".format(path), "pull"], stderr=STDOUT)
+                cmd = ["git", "--git-dir={0}/.git".format(path), "--work-tree={0}".format(path), "pull"]
+                output = check_output(cmd, stderr=STDOUT)
                 result = json.dumps({
                     "result": "success",
                     "message": output
@@ -219,8 +220,7 @@ class Branch(tornado.web.Application):
                 "result": "failure",
                 "message": e.output
             })
-        if result["result"] == "success":
-            for leaf in self.leaves:
-                leaf.stop()
-                leaf.start()
+        for leaf in self.leaves:
+            leaf.stop()
+            leaf.start()
         return result
