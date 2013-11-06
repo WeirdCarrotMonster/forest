@@ -405,6 +405,13 @@ class Trunk(tornado.web.Application):
         branches = client.trunk.branches
         old_branch = branches.find_one({"name": leaf["branch"]})
         new_branch = branches.find_one({"name": leaf_data["destination"]})
+
+        if new_branch["type"] != leaf["type"]
+            return json.dumps({
+                "result": "failure",
+                "message": "Can't move leaf with type '{0}' to branch with type '{1}'".format(leaf["type"], new_branch["type"])
+            })
+
         if not new_branch:
             return json.dumps({
                 "result": "failure",
@@ -474,7 +481,7 @@ class Trunk(tornado.web.Application):
         )
         return json.dumps({
             "result": "success",
-            "message": "Moved leaf from to {0}".format(leaf_data["destination"])
+            "message": "Moved leaf to {0}".format(leaf_data["destination"])
         })
 
     def add_branch(self, message):
