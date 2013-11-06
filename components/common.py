@@ -38,7 +38,6 @@ class TransparentListener(tornado.web.RequestHandler):
 
     def post(self):
         try:
-            print("Got request:\n{0}".format(self.request.body))
             message = json.loads(self.request.body)
         except Exception, e:
             self.write(json.dumps({
