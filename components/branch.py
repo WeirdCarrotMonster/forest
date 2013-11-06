@@ -216,7 +216,11 @@ class Branch(tornado.web.Application):
                 })
         except CalledProcessError as e:
             result = json.dumps({
-                "result": "success",
+                "result": "failure",
                 "message": e.output
             })
+        if result["result"] == "success":
+            for leaf in self.leaves:
+                leaf.stop()
+                leaf.start()
         return result
