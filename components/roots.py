@@ -135,13 +135,22 @@ class Roots(tornado.web.Application):
             user=self.settings["mysql_user"],
             passwd=self.settings["mysql_pass"]
         )
-        cur = db.cursor()
-        cur.execute("CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE "
-                    "utf8_general_ci".format(db_name))
-        cur.execute("CREATE USER '{0}'@'%' IDENTIFIED BY '{1}'".format(username, password))
-        cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' WITH GRANT"
-                    " OPTION".format(db_name, username))
-        db.close()
+        try:
+            cur = db.cursor()
+            cur.execute("CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE "
+                        "utf8_general_ci".format(db_name))
+            cur.execute("CREATE USER '{0}'@'%' IDENTIFIED BY '{1}'".format(username, password))
+            cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' WITH GRANT"
+                        " OPTION".format(db_name, username))
+            cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'localhost' WITH GRANT"
+                        " OPTION".format(db_name, username))
+            cur.execute("FLUSH PRIVILEGES;")
+            db.close()
+        except Exception, e:
+            result = {
+                "result": "failure",
+                "message": e.message
+            }
         return json.dumps(result)
 
     def delete_database(self, message):
