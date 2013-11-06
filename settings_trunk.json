@@ -14,12 +14,6 @@
                 "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
                 "address": "127.0.0.1",
                 "port": 1236
-            },
-            "support":
-            {
-                "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
-                "address": "192.168.0.106",
-                "port": 1236
             }
         },
         "roots":
