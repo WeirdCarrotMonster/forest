@@ -6,6 +6,8 @@ import simplejson as json
 import urllib
 import tornado.httpclient
 import pymongo
+from bson import BSON
+from bson import json_util
 from components.shadow import encode, decode
 
 
@@ -15,6 +17,7 @@ class Trunk(tornado.web.Application):
         self.settings = settings_dict
 
     def process_message(self, message):
+        response = ""
         function = message.get('function', None)
         if function == "create_leaf":
             response = self.add_leaf(message)
@@ -24,6 +27,12 @@ class Trunk(tornado.web.Application):
             response = self.migrate_leaf(message)
         if function == "update_repository":
             response = self.update_repo()
+
+        # Динамическая работа с ветвями
+        if function == "add_branch":
+            response = self.add_branch(message)
+        if function == "get_branches":
+            response = self.get_branches(message)
 
         if function is None:
             response = json.dumps({
@@ -39,7 +48,7 @@ class Trunk(tornado.web.Application):
         body = encode(post_data, receiver["secret"])
         response = json.loads(
             decode(http_client.fetch(
-                "http://{0}:{1}".format(receiver["address"], receiver["port"]),
+                "http://{0}:{1}".format(receiver["host"], receiver["port"]),
                 method='POST',
                 body=body
             ).body, receiver["secret"]))
@@ -50,9 +59,14 @@ class Trunk(tornado.web.Application):
             "success": [],
             "error": [],
         }
-        for branch in self.settings["branches"].keys():
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        for branch in client.trunk.branches.find():
             response = self.send_message(
-                self.settings["branches"][branch],
+                branch,
                 {
                     "function": "status_report"
                 }
@@ -60,18 +74,18 @@ class Trunk(tornado.web.Application):
             if response["result"] == "success":
                 if response["role"] == "branch":
                     result["success"].append({
-                        "name": branch,
+                        "name": branch["name"],
                         "role": "branch"
                     })
                 else:
                     result["error"].append({
-                        "name": branch,
+                        "name": branch["name"],
                         "role": response["role"],
                         "error": "Specified role 'branch' doesn't match response '{0}'".format(response["role"])
                     })
             else:
                 result["error"].append({
-                    "name": branch,
+                    "name": branch["name"],
                     "role": "branch",
                     "error": "Request failed. Is component secret key valid?"
                 })
@@ -136,9 +150,15 @@ class Trunk(tornado.web.Application):
             "error": [],
             "warning": [],
         }
-        for branch in self.settings["branches"].keys():
+
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        for branch in client.trunk.branches.find():
             response = self.send_message(
-                self.settings["branches"][branch],
+                branch,
                 {
                     "function": "update_repository"
                 }
@@ -204,19 +224,23 @@ class Trunk(tornado.web.Application):
         })
 
     def add_leaf(self, message):
-        required_args = ['name', 'address']
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'address', 'type']
         leaf_data = {}
         for arg in required_args:
             value = message.get(arg, None)
             if not value:
-                return "Argument is missing: {0}".format(arg)
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
             else:
                 leaf_data[arg] = value
-
         # =========================================
         # Проверяем, нет ли листа с таким именем в базе
         # =========================================
-
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -224,8 +248,25 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if leaf:
-            return "Leaf with name {0} already exists".format(leaf_data["name"])
-
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name '{0}' already exists".format(leaf_data["name"])
+            })
+        leaf = leaves.find_one({"address": leaf_data["address"]})
+        if leaf:
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with address '{0}' already exists".format(leaf_data["address"])
+            })
+        # =========================================
+        # Дополнительная проверка на наличие подходящей ветви
+        # =========================================
+        branch = self.get_branch(leaf_data["type"])
+        if not branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "No known branches of type '{0}'".format(leaf_data["type"])
+            })
         # =========================================
         # Обращаемся к roots для создания новой базы
         # =========================================
@@ -238,13 +279,15 @@ class Trunk(tornado.web.Application):
         roots_response = response
 
         if response["result"] != "success":
-            return "Failed to get database settings: {0}".format(response["message"])
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to get database settings: {0}".format(response["message"])
+            })
 
         env_for_leaf = json.dumps(response["env"])
         # =========================================
         # Обращаемся к branch для поднятия листа
         # =========================================
-        branch = self.get_branch()
         post_data = {
             "function": "create_leaf",
             "name": leaf_data["name"],
@@ -255,8 +298,11 @@ class Trunk(tornado.web.Application):
         branch_response = response
 
         if response["result"] != "success":
-            return "Failed to create leaf: {0}".format(response["message"])
-            # =========================================
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to create leaf: {0}".format(response["message"])
+            })
+        # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
@@ -271,6 +317,8 @@ class Trunk(tornado.web.Application):
 
         leaf = {
             "name": leaf_data["name"],
+            "active": True,
+            "type": leaf_data["type"],
             "address": leaf_data["address"],
             "branch": "main",
             "port": branch_response["port"],
@@ -279,6 +327,42 @@ class Trunk(tornado.web.Application):
         leaves.insert(leaf)
 
         return "Operation result: {0}".format(json.dumps(response))
+
+    def enable_leaf(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
+            else:
+                leaf_data[arg] = value
+        # =========================================
+        # Проверяем, нет ли листа с таким именем в базе
+        # =========================================
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name '{0}' not found".format(leaf_data["name"])
+            })
+        leaf = leaves.find_one({"address": leaf_data["address"]})
+        if leaf["active"]:
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name '{0}' already enabled".format(leaf_data["address"])
+            })
 
     def migrate_leaf(self, message):
         # TODO: доделать
@@ -365,7 +449,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'address', 'host', 'secret', 'type']
+        required_args = ['name', 'host', 'port', 'secret', 'type']
         branch_data = {}
         for arg in required_args:
             value = message.get(arg, None)
@@ -396,18 +480,26 @@ class Trunk(tornado.web.Application):
         branch = {
             "name": branch_data["name"],
             "type": branch_data["type"],
-            "address": branch_data["address"],
+            "host": branch_data["host"],
             "port": branch_data["port"],
             "secret": branch_data["secret"]
         }
-        branch.insert(branch)
+        branches.insert(branch)
         return json.dumps({
             "result": "success",
             "message": "Branch '{0}' successfully added".format(branch_data["name"])
         })
 
-    def get_root(self, name="main"):
-        return self.settings["roots"][name]
+    def get_branches(self, message):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        return json.dumps({
+            "result": "success",
+            "branches": [branch for branch in client.trunk.branches.find()]
+        }, default=json_util.default)
 
     def get_branch(self, branch_type):
         client = pymongo.MongoClient(
@@ -416,6 +508,9 @@ class Trunk(tornado.web.Application):
         )
         branches = client.trunk.branches
         return branches.find_one({"type": branch_type})
+
+    def get_root(self, name="main"):
+        return self.settings["roots"][name]
 
     def get_air(self, name="main"):
         return self.settings["air"][name]
