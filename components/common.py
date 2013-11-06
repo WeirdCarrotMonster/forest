@@ -21,7 +21,14 @@ class CommonListener(tornado.web.RequestHandler):
             }))
             return
 
-        response = self.application.process_message(message)
+        try:
+            response = self.application.process_message(message)
+        except Exception, e:
+            response = json.dumps({
+                "result": "failure",
+                "message": "Internal server error",
+                "details": e.message
+            })
         self.write(encode(response, self.application.settings["secret"]))
 
 
