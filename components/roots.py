@@ -35,7 +35,7 @@ class Roots(tornado.web.Application):
             "role": "roots"
         })
     @staticmethod
-    def string_generator(size=16, chars=string.ascii_uppercase + string.digits):
+    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
 
     def mysql_user_exists(self, username):
