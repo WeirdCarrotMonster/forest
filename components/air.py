@@ -61,6 +61,7 @@ class Air(tornado.web.Application):
             leaves.update(
                 {"name": leaf_data["name"]},
                 {
+                    "name": leaf_data["name"],
                     "address": leaf_data["address"],
                     "host": leaf_data["host"],
                     "port": leaf_data["port"]

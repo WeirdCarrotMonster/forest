@@ -34,6 +34,12 @@ class Trunk(tornado.web.Application):
         if function == "get_branches":
             response = self.get_branches(message)
 
+        # Включение-выключение листьев
+        if function == "enable_leaf":
+            response = self.enable_leaf(message)
+        if function == "disable_leaf":
+            response = self.disable_leaf(message)
+
         if function is None:
             response = json.dumps({
                 "result": "failure",
@@ -325,8 +331,10 @@ class Trunk(tornado.web.Application):
             "env": roots_response["env"],
         }
         leaves.insert(leaf)
-
-        return "Operation result: {0}".format(json.dumps(response))
+        return json.dumps({
+            "result": "success",
+            "message": "Successfully added leaf '{0}'".format(leaf["name"])
+        })
 
     def enable_leaf(self, message):
         # =========================================
@@ -357,12 +365,149 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": "Leaf with name '{0}' not found".format(leaf_data["name"])
             })
-        leaf = leaves.find_one({"address": leaf_data["address"]})
         if leaf["active"]:
             return json.dumps({
                 "result": "failure",
                 "message": "Leaf with name '{0}' already enabled".format(leaf_data["address"])
             })
+        # =========================================
+        # Ищем подходящую ветку для листа
+        # =========================================
+        messages = []
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+        if not branch:
+            branch = get_branch(leaf["type"])
+            messages.append("Original branch not found; moving to new branch")
+        if not branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "No available branches of type '{0}'".format(leaf["type"])
+            })
+        # =========================================
+        # Обращаемся к branch для поднятия листа
+        # =========================================
+        post_data = {
+            "function": "create_leaf",
+            "name": leaf["name"],
+            "env": leaf["env"]
+        }
+        response = self.send_message(branch, post_data)
+        branch_response = response
+        if response["result"] != "success":
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to create leaf: {0}".format(response["message"])
+            })
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        post_data = {
+            "function": "publish_leaf",
+            "name": leaf["name"],
+            "address": leaf["address"],
+            "host": response["host"],
+            "port": response["port"]
+        }
+        response = self.send_message(air, post_data)
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "name": leaf["name"],
+                "active": True,
+                "type": leaf["type"],
+                "address": leaf["address"],
+                "branch": leaf["branch"],
+                "port": branch_response["port"],
+                "env": leaf["env"]
+            },
+            upsert=False,
+            multi=False
+        )
+        return json.dumps({
+            "result": "success",
+            "message": "Re-enabled leaf '{0}'".format(leaf["name"])
+        })
+
+    def disable_leaf(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
+            else:
+                leaf_data[arg] = value
+
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name '{0}' not found".format(leaf_data["name"])
+            })
+        if not leaf["active"]:
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name '{0}' already disabled".format(leaf_data["name"])
+            })
+        # =========================================
+        # Обращаемся к branch для удаления листа
+        # =========================================
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+        if not branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "Internal server error: leaf '{0}' running on unknown branch".format(leaf_data["name"])
+            })
+        post_data = {
+            "function": "delete_leaf",
+            "name": leaf["name"]
+        }
+        response = self.send_message(branch, post_data)
+        branch_response = response
+        if response["result"] != "success":
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to delete leaf: {0}".format(response["message"])
+            })
+        # =========================================
+        # Обращаемся к air для де-публикации листа
+        # =========================================
+        air = self.get_air()
+        post_data = {
+            "function": "unpublish_leaf",
+            "name": leaf["name"]
+        }
+        response = self.send_message(air, post_data)
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "name": leaf["name"],
+                "active": False,
+                "type": leaf["type"],
+                "address": leaf["address"],
+                "branch": leaf["branch"],
+                "port": leaf["port"],
+                "env": leaf["env"]
+            },
+            upsert=False,
+            multi=False
+        )
+        return json.dumps({
+            "result": "success",
+            "message": "Disabled leaf '{0}'".format(leaf["name"])
+        })
 
     def migrate_leaf(self, message):
         # =========================================
@@ -397,7 +542,7 @@ class Trunk(tornado.web.Application):
         if leaf["branch"] == leaf_data["destination"]:
             return json.dumps({
                 "result": "warning",
-                "message": "Leaf is already on branch '{0}'".format(Leaf["branch"])
+                "message": "Leaf is already on branch '{0}'".format(leaf["branch"])
             })
         # =========================================
         # Ищем ветви, старую и новую
@@ -406,7 +551,7 @@ class Trunk(tornado.web.Application):
         old_branch = branches.find_one({"name": leaf["branch"]})
         new_branch = branches.find_one({"name": leaf_data["destination"]})
 
-        if new_branch["type"] != leaf["type"]
+        if new_branch["type"] != leaf["type"]:
             return json.dumps({
                 "result": "failure",
                 "message": "Can't move leaf with type '{0}' to branch with type '{1}'".format(leaf["type"], new_branch["type"])
@@ -473,8 +618,13 @@ class Trunk(tornado.web.Application):
         leaves.update(
             {"name": leaf_data["name"]},
             {
+                "name": leaf["name"],
+                "active": True,
+                "type": leaf["type"],
+                "address": leaf["address"],
                 "branch": leaf_data["destination"],
-                "port": new_branch_response["port"]
+                "port": new_branch_response["port"],
+                "env": leaf["env"]
             },
             upsert=False,
             multi=False
