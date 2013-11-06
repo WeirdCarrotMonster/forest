@@ -142,8 +142,6 @@ class Roots(tornado.web.Application):
             cur.execute("CREATE USER '{0}'@'%' IDENTIFIED BY '{1}'".format(username, password))
             cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' WITH GRANT"
                         " OPTION".format(db_name, username))
-            cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'localhost' WITH GRANT"
-                        " OPTION".format(db_name, username))
             cur.execute("FLUSH PRIVILEGES;")
             db.close()
         except Exception, e:
