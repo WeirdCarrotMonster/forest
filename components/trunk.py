@@ -320,7 +320,7 @@ class Trunk(tornado.web.Application):
             "active": True,
             "type": leaf_data["type"],
             "address": leaf_data["address"],
-            "branch": "main",
+            "branch": branch["name"],
             "port": branch_response["port"],
             "env": roots_response["env"],
         }
@@ -365,16 +365,23 @@ class Trunk(tornado.web.Application):
             })
 
     def migrate_leaf(self, message):
-        # TODO: доделать
-        required_args = ['name', 'source', 'destination']
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'destination']
         leaf_data = {}
         for arg in required_args:
             value = message.get(arg, None)
             if not value:
-                return "Argument is missing: {0}".format(arg)
+                return json.dumps({
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                })
             else:
                 leaf_data[arg] = value
-
+        # =========================================
+        # Ищем лист в базе
+        # =========================================
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -382,18 +389,32 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return "Leaf with name {0} not found".format(leaf_data["name"])
+            return json.dumps({
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
+            })
 
-        try:
-            new_branch = self.get_branch(leaf_data["destination"])
-        except:
-            return "Destination branch not found"
-
-        try:
-            old_branch = self.get_branch(leaf_data["source"])
-        except:
-            return "Source branch not found"
-
+        if leaf["branch"] == leaf_data["destination"]:
+            return json.dumps({
+                "result": "warning",
+                "message": "Leaf is already on branch '{0}'".format(Leaf["branch"])
+            })
+        # =========================================
+        # Ищем ветви, старую и новую
+        # =========================================
+        branches = client.trunk.branches
+        old_branch = branches.find_one({"name": leaf["branch"]})
+        new_branch = branches.find_one({"name": leaf_data["destination"]})
+        if not new_branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "Destination branch not found"
+            })
+        if not old_branch:
+            return json.dumps({
+                "result": "failure",
+                "message": "Internal server error: source branch '{0}'' not found".format(leaf["branch"])
+            })
         # =========================================
         # Обращаемся к новому branch'у для переноса листа
         # =========================================
@@ -406,8 +427,11 @@ class Trunk(tornado.web.Application):
         response = self.send_message(new_branch, post_data)
         new_branch_response = response
         if new_branch_response["result"] != "success":
-            return "Failed to create leaf: {0}".format(response["message"])
-            # =========================================
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to create leaf: {0}".format(response["message"])
+            })
+        # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
@@ -420,8 +444,11 @@ class Trunk(tornado.web.Application):
         }
         response = self.send_message(air, post_data)
         if response["result"] != "success":
-            return "Failed to publish leaf: {0}".format(response["message"])
-            # =========================================
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to publish leaf: {0}".format(response["message"])
+            })
+        # =========================================
         # Обращаемся старому branch'у для отключения листа
         # =========================================
         post_data = {
@@ -431,19 +458,24 @@ class Trunk(tornado.web.Application):
         response = self.send_message(old_branch, post_data)
         old_branch_response = response
         if old_branch_response["result"] != "success":
-            return "Failed to create leaf: {0}".format(response["message"])
+            return json.dumps({
+                "result": "failure",
+                "message": "Failed to delete leaf: {0}".format(response["message"])
+            })
 
         leaves.update(
             {"name": leaf_data["name"]},
             {
-                "address": leaf["address"],
                 "branch": leaf_data["destination"],
                 "port": new_branch_response["port"]
             },
             upsert=False,
             multi=False
         )
-        return "Moved leaf from {0} to {1}".format(leaf_data["source"], leaf_data["destination"])
+        return json.dumps({
+            "result": "success",
+            "message": "Moved leaf from to {0}".format(leaf_data["destination"])
+        })
 
     def add_branch(self, message):
         # =========================================
