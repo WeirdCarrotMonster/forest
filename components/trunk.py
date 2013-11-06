@@ -49,16 +49,22 @@ class Trunk(tornado.web.Application):
 
     @staticmethod
     def send_message(receiver, contents):
-        http_client = tornado.httpclient.HTTPClient()
-        post_data = json.dumps(contents)
-        body = encode(post_data, receiver["secret"])
-        response = json.loads(
-            decode(http_client.fetch(
-                "http://{0}:{1}".format(receiver["host"], receiver["port"]),
-                method='POST',
-                body=body
-            ).body, receiver["secret"]))
-        return response
+        try:
+            http_client = tornado.httpclient.HTTPClient()
+            post_data = json.dumps(contents)
+            body = encode(post_data, receiver["secret"])
+            response = json.loads(
+                decode(http_client.fetch(
+                    "http://{0}:{1}".format(receiver["host"], receiver["port"]),
+                    method='POST',
+                    body=body
+                ).body, receiver["secret"]))
+            return response
+        except Exception, e:
+            return {
+                "result": "failure",
+                "message": e.message
+            }
 
     def status_report(self):
         result = {
