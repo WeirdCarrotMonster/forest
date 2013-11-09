@@ -12,12 +12,16 @@ from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
 from components.air import Air, get_leaves_proxy
-from components.common import CommonListener, TransparentListener
+from components.common import CommonListener, TransparentListener, log_message
 
 if len(sys.argv) < 2:
-    print("Launch error: unknown number of arguments")
-    print("Specify settings filename /and shell_config")
-    print("To get working lighttpd include_shell config")
+    log_message(
+        """
+        Launch error: unknown number of arguments
+        Specify settings filename /and shell_config
+        To get working lighttpd include_shell config
+        """
+    )
     sys.exit(0)
 
 file = sys.argv[1]
@@ -37,42 +41,46 @@ listeners = []
 settings = SETTINGS["settings"]
 
 if not SETTINGS["role"] in ["roots", "trunk", "branch", "air"]:
-    print("Configuration error: unknown role")
+    log_message("Configuration error: unknown role '{0}'".format(SETTINGS["role"]))
     sys.exit(0)
 
 application = None
+log_message("Setting role: {0}".format(SETTINGS["role"]))
 
 if SETTINGS["role"] == "roots":
-    print("Setting role: roots")
     listeners.append((r"/", CommonListener))
     application = Roots(settings, handlers=listeners)
 
 if SETTINGS["role"] == "trunk":
-    print("Setting role: trunk")
     listeners.append((r"/", TransparentListener))
     application = Trunk(settings, handlers=listeners)
 
 if SETTINGS["role"] == "branch":
-    print("Setting role: branch")
     listeners.append((r"/", CommonListener))
     application = Branch(settings, handlers=listeners)
 
 if SETTINGS["role"] == "air":
-    print("Setting role: air")
     listeners.append((r"/", CommonListener))
     application = Air(settings, handlers=listeners)
 
 # Создаем и запускаем приложение
-print("Listening on: {0}:{1}".format(SETTINGS["connections"]["address"], SETTINGS["connections"]["port"]))
+log_message("Listening on: {0}:{1}".format(
+    SETTINGS["connections"]["address"], 
+    SETTINGS["connections"]["port"])
+)
 application.listen(SETTINGS["connections"]["port"], SETTINGS["connections"]["address"])
 
 
 def cleanup(signum=None, frame=None):
     if signum:
-        print("Got signum: {0}".format(signum))
-    print("Cleaning up...")
-    application.shutdown_leaves()
-    print("Done!")
+        log_message("Got signum: {0}".format(signum))
+    try:
+        log_message("Cleaning up...")
+        application.shutdown_leaves()
+    except:
+        pass
+    finally:
+        log_message("Done!")
     sys.exit(0)
 
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:

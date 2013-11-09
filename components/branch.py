@@ -4,6 +4,7 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
+from components.common import log_message
 import simplejson as json
 import pymongo
 
@@ -49,7 +50,7 @@ class Branch(tornado.web.Application):
         )
         leaves = client.branch.leaves
         for leaf in leaves.find():
-            print("Found leaf {0} in configuration, starting...".format(leaf["name"]))
+            log_message("Found leaf {0} in configuration".format(leaf["name"]))
             new_leaf = Leaf(
                 name=leaf["name"],
                 executable=self.settings["executable"],
@@ -67,7 +68,7 @@ class Branch(tornado.web.Application):
             self.leaves.append(new_leaf)
 
     def shutdown_leaves(self):
-        print("Shutting down leaves...")
+        log_message("Shutting down leaves...")
         for leaf in self.leaves:
             leaf.stop()
 
@@ -120,7 +121,7 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            print("Found existing leaf")
+            log_message("Found existing leaf: {0}".format(name))
             return json.dumps({
                 "result": "success",
                 "host": self.settings["host"],
@@ -128,7 +129,7 @@ class Branch(tornado.web.Application):
                 "comment": "found existing leaf"
             })
 
-        print("Creating new leaf")
+        log_message("Creating new leaf: {0}".format(name))
 
         new_leaf = Leaf(
             name=name,
@@ -178,7 +179,7 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        print("Deleting leaf '{0}' from server".format(name))
+        log_message("Deleting leaf '{0}' from server".format(name))
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],

@@ -7,6 +7,7 @@ import simplejson as json
 import tornado.web
 import pymongo
 from components.shadow import encode, decode
+from components.common import log_message
 
 
 class Roots(tornado.web.Application):
@@ -79,7 +80,7 @@ class Roots(tornado.web.Application):
                 "message": "missing argument: name"
             })
 
-        print("Preparing database for {0}".format(name))
+        log_message("Preparing database for {0}".format(name))
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -87,7 +88,7 @@ class Roots(tornado.web.Application):
         leaves = client.roots.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            print("Found existing database")
+            log_message("Found existing database {0} for leaf {1}".format(leaf["db_name"], name))
             result = {
                 "result": "success",
                 "env":
@@ -127,7 +128,7 @@ class Roots(tornado.web.Application):
         }
         leaves.insert(leaf)
 
-        print("No existing database; creating new called {0}".format(db_name))
+        log_message("No existing database; creating new called {0}".format(db_name))
 
         db = MySQLdb.connect(
             host=self.settings["mysql_host"],

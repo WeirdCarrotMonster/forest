@@ -4,6 +4,7 @@ from __future__ import print_function
 import tornado.web
 import simplejson as json
 from components.shadow import encode, decode
+from datetime import datetime
 
 
 class CommonListener(tornado.web.RequestHandler):
@@ -49,3 +50,7 @@ class TransparentListener(tornado.web.RequestHandler):
 
         response = self.application.process_message(message)
         self.write(response)
+
+
+def log_message(message, component="Forest"):
+    print("[{0}][{1}]{2}".format(datetime.now(), component, message))
