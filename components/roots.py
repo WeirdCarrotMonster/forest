@@ -80,7 +80,7 @@ class Roots(tornado.web.Application):
                 "message": "missing argument: name"
             })
 
-        log_message("Preparing database for {0}".format(name))
+        log_message("Preparing database for {0}".format(name), component="Roots")
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -88,7 +88,7 @@ class Roots(tornado.web.Application):
         leaves = client.roots.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing database {0} for leaf {1}".format(leaf["db_name"], name))
+            log_message("Found existing database {0} for leaf {1}".format(leaf["db_name"], name), component="Roots")
             result = {
                 "result": "success",
                 "env":
