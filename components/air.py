@@ -4,7 +4,6 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import pymongo
-from components.shadow import encode, decode
 
 
 class Air(tornado.web.Application):
@@ -48,7 +47,10 @@ class Air(tornado.web.Application):
             else:
                 leaf_data[arg] = value
 
-        print("Publishing leaf {0} on address {1}".format(leaf_data["name"], leaf_data["address"]))
+        print("Publishing leaf {0} on address {1}".format(
+            leaf_data["name"], 
+            leaf_data["address"])
+        )
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -80,7 +82,10 @@ class Air(tornado.web.Application):
         self.reload_proxy()
         return json.dumps({
             "result": "success",
-            "message": "Published leaf {0} on address {1}".format(leaf_data["name"], leaf_data["address"])
+            "message": "Published leaf {0} on address {1}".format(
+                leaf_data["name"], 
+                leaf_data["address"]
+                )
         })
 
     def unpublish_leaf(self, message):
@@ -105,7 +110,8 @@ class Air(tornado.web.Application):
         self.reload_proxy()
         return json.dumps({
             "result": "success",
-            "message": "Removed leaf '{0}' from air server".format(leaf_data["name"])
+            "message": "Removed leaf '{0}' from air server".format(
+                leaf_data["name"])
         })
 
     def reload_proxy(self):

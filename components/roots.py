@@ -6,7 +6,6 @@ import random
 import simplejson as json
 import tornado.web
 import pymongo
-from components.shadow import encode, decode
 from components.common import log_message
 
 

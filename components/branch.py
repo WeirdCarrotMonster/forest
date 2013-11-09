@@ -3,8 +3,8 @@ from __future__ import print_function
 import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
-from components.leaf import Leaf
-from components.common import log_message
+from leaf import Leaf
+from common import log_message
 import simplejson as json
 import pymongo
 
@@ -14,10 +14,13 @@ class Branch(tornado.web.Application):
         super(Branch, self).__init__(**settings)
         self.settings = settings_dict
         self.leaves = []
-        self.settings["port_range"] = range(self.settings["port_range_begin"], self.settings["port_range_end"])
+        self.settings["port_range"] = range(
+            self.settings["port_range_begin"], 
+            self.settings["port_range_end"])
         self.init_leaves()
 
     def process_message(self, message):
+        response = None
         function = message.get('function', None)
         if function == "create_leaf":
             response = self.add_leaf(message)
@@ -35,9 +38,10 @@ class Branch(tornado.web.Application):
                 "result": "failure",
                 "message": "No function or unknown one called"
             })
-        try:
+
+        if response:
             return response
-        except:
+        else:
             return json.dumps({
                 "result": "failure",
                 "message": "Unknown error occured"
@@ -50,13 +54,17 @@ class Branch(tornado.web.Application):
         )
         leaves = client.branch.leaves
         for leaf in leaves.find():
-            log_message("Found leaf {0} in configuration".format(leaf["name"]), component="Branch")
+            log_message("Found leaf {0} in configuration".format(
+                leaf["name"]), 
+                component="Branch"
+                )
             new_leaf = Leaf(
                 name=leaf["name"],
                 executable=self.settings["executable"],
                 fcgi_host=self.settings["host"],
                 fcgi_port=leaf["port"],
-                pidfile=os.path.join(self.settings["pid_dir"], leaf["name"] + '.pid'),
+                pidfile=os.path.join(self.settings["pid_dir"], 
+                    leaf["name"] + '.pid'),
                 env=leaf["env"]
             )
             try:
@@ -121,7 +129,8 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing leaf: {0}".format(name), component="Branch")
+            log_message("Found existing leaf: {0}".format(name), 
+                component="Branch")
             return json.dumps({
                 "result": "success",
                 "host": self.settings["host"],
@@ -179,7 +188,8 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        log_message("Deleting leaf '{0}' from server".format(name), component="Branch")
+        log_message("Deleting leaf '{0}' from server".format(name), 
+            component="Branch")
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -205,7 +215,12 @@ class Branch(tornado.web.Application):
 
         try:
             if repo_type == "git":
-                cmd = ["git", "--git-dir={0}/.git".format(path), "--work-tree={0}".format(path), "pull"]
+                cmd = [
+                    "git", 
+                    "--git-dir={0}/.git".format(path), 
+                    "--work-tree={0}".format(path), 
+                    "pull"
+                ]
                 output = check_output(cmd, stderr=STDOUT)
                 result = json.dumps({
                     "result": "success",

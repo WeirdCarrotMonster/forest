@@ -3,7 +3,7 @@
 from __future__ import print_function
 import tornado.web
 import simplejson as json
-from components.shadow import encode, decode
+from shadow import encode, decode
 from datetime import datetime
 
 
@@ -13,7 +13,10 @@ class CommonListener(tornado.web.RequestHandler):
 
     def post(self):
         try:
-            message = json.loads(decode(self.request.body, self.application.settings["secret"]))
+            message = json.loads(
+                decode(self.request.body, 
+                self.application.settings["secret"])
+            )
         except Exception, e:
             self.write(json.dumps({
                 "result": "failure",
