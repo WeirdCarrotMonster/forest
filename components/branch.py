@@ -50,7 +50,7 @@ class Branch(tornado.web.Application):
         )
         leaves = client.branch.leaves
         for leaf in leaves.find():
-            log_message("Found leaf {0} in configuration".format(leaf["name"]))
+            log_message("Found leaf {0} in configuration".format(leaf["name"]), component="Branch")
             new_leaf = Leaf(
                 name=leaf["name"],
                 executable=self.settings["executable"],
@@ -68,7 +68,7 @@ class Branch(tornado.web.Application):
             self.leaves.append(new_leaf)
 
     def shutdown_leaves(self):
-        log_message("Shutting down leaves...")
+        log_message("Shutting down leaves...", component="Branch")
         for leaf in self.leaves:
             leaf.stop()
 
@@ -121,7 +121,7 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing leaf: {0}".format(name))
+            log_message("Found existing leaf: {0}".format(name), component="Branch")
             return json.dumps({
                 "result": "success",
                 "host": self.settings["host"],
@@ -129,7 +129,7 @@ class Branch(tornado.web.Application):
                 "comment": "found existing leaf"
             })
 
-        log_message("Creating new leaf: {0}".format(name))
+        log_message("Creating new leaf: {0}".format(name), component="Branch")
 
         new_leaf = Leaf(
             name=name,
@@ -179,7 +179,7 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        log_message("Deleting leaf '{0}' from server".format(name))
+        log_message("Deleting leaf '{0}' from server".format(name), component="Branch")
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],

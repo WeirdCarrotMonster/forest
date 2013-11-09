@@ -50,9 +50,9 @@ class Leaf():
         ]
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
-        log_message("Starting leaf {0}".format(self.name))
+        log_message("Starting leaf {0}".format(self.name), component="Leaf")
         subprocess.call(cmd, env=my_env)
-        log_message("Started leaf {0}".format(self.name))
+        log_message("Started leaf {0}".format(self.name), component="Leaf")
         try:
             pidfile_result = open(self.pidfile, 'r')
             self.pid = int(pidfile_result.read().strip())
@@ -61,7 +61,7 @@ class Leaf():
             raise Exception("Launch failed: {0}".format(e))
 
     def stop(self):
-        log_message("Stopping leaf {0}".format(self.name))
+        log_message("Stopping leaf {0}".format(self.name), component="Leaf")
         subprocess.call(['kill', str(self.pid)])
         os.remove(self.pidfile)
         self.pid = 0

@@ -128,7 +128,7 @@ class Roots(tornado.web.Application):
         }
         leaves.insert(leaf)
 
-        log_message("No existing database; creating new called {0}".format(db_name))
+        log_message("No existing database; creating new called {0}".format(db_name), component="Roots")
 
         db = MySQLdb.connect(
             host=self.settings["mysql_host"],
