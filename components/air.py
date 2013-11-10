@@ -21,18 +21,18 @@ class Air(tornado.web.Application):
             response = self.status_report()
 
         if function is None:
-            response = json.dumps({
+            response = {
                 "result": "failure",
                 "message": "No function or unknown one called"
-            })
+            }
         return response
 
     def status_report(self):
-        return json.dumps({
+        return {
             "result": "success",
             "message": "Working well",
             "role": "air"
-        })
+        }
 
     def publish_leaf(self, message):
         required_args = ['name', 'address', 'host', 'port']
@@ -40,10 +40,10 @@ class Air(tornado.web.Application):
         for arg in required_args:
             value = message.get(arg, None)
             if not value:
-                return json.dumps({
+                return {
                     "result": "failure",
                     "message": "missing argument: {0}".format(arg)
-                })
+                }
             else:
                 leaf_data[arg] = value
 
@@ -80,13 +80,13 @@ class Air(tornado.web.Application):
             })
 
         self.reload_proxy()
-        return json.dumps({
+        return {
             "result": "success",
             "message": "Published leaf {0} on address {1}".format(
                 leaf_data["name"], 
                 leaf_data["address"]
                 )
-        })
+        }
 
     def unpublish_leaf(self, message):
         required_args = ['name']
@@ -94,10 +94,10 @@ class Air(tornado.web.Application):
         for arg in required_args:
             value = message.get(arg, None)
             if not value:
-                return json.dumps({
+                return {
                     "result": "failure",
                     "message": "missing argument: {0}".format(arg)
-                })
+                }
             else:
                 leaf_data[arg] = value
 
@@ -108,11 +108,11 @@ class Air(tornado.web.Application):
         leaves = client.air.leaves
         leaves.remove({"name": leaf_data["name"]})
         self.reload_proxy()
-        return json.dumps({
+        return {
             "result": "success",
             "message": "Removed leaf '{0}' from air server".format(
                 leaf_data["name"])
-        })
+        }
 
     def reload_proxy(self):
         cmd = self.settings["proxy_restart_command"].split()

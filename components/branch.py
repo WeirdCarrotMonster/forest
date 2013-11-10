@@ -34,18 +34,18 @@ class Branch(tornado.web.Application):
             response = self.update_repo()
 
         if function is None:
-            response = json.dumps({
+            response = {
                 "result": "failure",
                 "message": "No function or unknown one called"
-            })
+            }
 
         if response:
             return response
         else:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "Unknown error occured"
-            })
+            }
 
     def init_leaves(self):
         client = pymongo.MongoClient(
@@ -81,11 +81,11 @@ class Branch(tornado.web.Application):
             leaf.stop()
 
     def status_report(self):
-        return json.dumps({
+        return {
             "result": "success",
             "message": "Working well",
             "role": "branch"
-        })
+        }
 
     def known_leaves(self):
         client = pymongo.MongoClient(
@@ -104,23 +104,23 @@ class Branch(tornado.web.Application):
             "result": "success",
             "leaves": known_leaves
         }
-        return json.dumps(result)
+        return result
 
     def add_leaf(self, message):
         name = message.get("name", None)
         env = message.get("env", None)
         initdb = bool(message.get("initdb", False))
         if not name:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "missing argument: name"
-            })
+            }
 
         if not name:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "missing argument: env"
-            })
+            }
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -131,12 +131,12 @@ class Branch(tornado.web.Application):
         if leaf:
             log_message("Found existing leaf: {0}".format(name), 
                 component="Branch")
-            return json.dumps({
+            return {
                 "result": "success",
                 "host": self.settings["host"],
                 "port": leaf["port"],
                 "comment": "found existing leaf"
-            })
+            }
 
         log_message("Creating new leaf: {0}".format(name), component="Branch")
 
@@ -156,10 +156,10 @@ class Branch(tornado.web.Application):
                 new_leaf.prepare_database()
         except Exception, e:
             self.settings["port_range"].append(new_leaf.fcgi_port)
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "Start failed with exception: {0}".format(e)
-            })
+            }
         else:
             leaf = {
                 "name": new_leaf.name,
@@ -168,20 +168,20 @@ class Branch(tornado.web.Application):
             }
             leaves.insert(leaf)
 
-            return json.dumps({
+            return {
                 "result": "success",
                 "host": self.settings["host"],
                 "port": new_leaf.fcgi_port,
                 "comment": "created new leaf"
-            })
+            }
 
     def delete_leaf(self, message):
         name = message.get("name", None)
         if not name:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "missing argument: name"
-            })
+            }
 
         for leaf in self.leaves:
             if leaf.name == name:
@@ -198,20 +198,20 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaves.remove({"name": name})
 
-        return json.dumps({
+        return {
             "result": "success",
             "message": "deleted leaf info from server"
-        })
+        }
 
     def update_repo(self):
         try:
             path = self.settings["repository"]["path"]
             repo_type = self.settings["repository"]["type"]
         except KeyError:
-            return json.dumps({
+            return {
                 "result": "warning",
                 "message": "No repository present"
-            })
+            }
 
         try:
             if repo_type == "git":
@@ -222,20 +222,20 @@ class Branch(tornado.web.Application):
                     "pull"
                 ]
                 output = check_output(cmd, stderr=STDOUT)
-                result = json.dumps({
+                result = {
                     "result": "success",
                     "message": output
-                })
+                }
             else:
-                result = json.dumps({
+                result = {
                     "result": "failure",
                     "message": "configuration error: unknown repository type"
-                })
+                }
         except CalledProcessError as e:
-            result = json.dumps({
+            result = {
                 "result": "failure",
                 "message": e.output
-            })
+            }
         for leaf in self.leaves:
             leaf.stop()
             leaf.start()

@@ -5,7 +5,8 @@ import tornado.web
 import simplejson as json
 from shadow import encode, decode
 from datetime import datetime
-
+from bson import BSON
+from bson import json_util
 
 class CommonListener(tornado.web.RequestHandler):
     def get(self):
@@ -22,18 +23,18 @@ class CommonListener(tornado.web.RequestHandler):
                 "result": "failure",
                 "message": "Failed to decode message",
                 "details": e.message
-            }))
+            }, default=json_util.default))
             return
 
         try:
             response = self.application.process_message(message)
         except Exception, e:
-            response = json.dumps({
+            response = {
                 "result": "failure",
                 "message": "Internal server error",
-                "details": e.message
-            })
-        self.write(encode(response, self.application.settings["secret"]))
+                "details": str(e)
+            }
+        self.write(encode(json.dumps(response, default=json_util.default), self.application.settings["secret"]))
 
 
 class TransparentListener(tornado.web.RequestHandler):
@@ -48,11 +49,11 @@ class TransparentListener(tornado.web.RequestHandler):
                 "result": "failure",
                 "message": "Failed to decode message",
                 "details": e.message
-            }))
+            }, default=json_util.default))
             return
 
         response = self.application.process_message(message)
-        self.write(response)
+        self.write(json.dumps(response, default=json_util.default))
 
 
 def log_message(message, component="Forest"):

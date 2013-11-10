@@ -22,18 +22,18 @@ class Roots(tornado.web.Application):
             response = self.status_report()
 
         if function is None:
-            response = json.dumps({
+            response = {
                 "result": "failure",
                 "message": "No function or unknown one called"
-            })
+            }
         return response
 
     def status_report(self):
-        return json.dumps({
+        return {
             "result": "success",
             "message": "Working well",
             "role": "roots"
-        })
+        }
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
@@ -74,10 +74,10 @@ class Roots(tornado.web.Application):
     def prepare_database(self, message):
         name = message.get("name", None)
         if not name:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "missing argument: name"
-            })
+            }
 
         log_message("Preparing database for {0}".format(name), component="Roots")
         client = pymongo.MongoClient(
@@ -99,7 +99,7 @@ class Roots(tornado.web.Application):
                     "db_pass": leaf["db_pass"]
                 }
             }
-            return json.dumps(result)
+            return result
 
         db_name = name
         if self.mysql_db_exists(db_name):
@@ -125,7 +125,6 @@ class Roots(tornado.web.Application):
             "db_user": username,
             "db_pass": password
         }
-        leaves.insert(leaf)
 
         log_message("No existing database; creating new called {0}".format(db_name), component="Roots")
 
@@ -137,26 +136,28 @@ class Roots(tornado.web.Application):
         )
         try:
             cur = db.cursor()
-            cur.execute("CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE "
-                        "utf8_general_ci".format(db_name))
-            cur.execute("CREATE USER '{0}'@'%' IDENTIFIED BY '{1}'".format(username, password))
-            cur.execute("GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' WITH GRANT"
-                        " OPTION".format(db_name, username))
-            cur.execute("FLUSH PRIVILEGES;")
+            cur.execute(
+                """
+                CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE utf8_general_ci;
+                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' IDENTIFIED BY '{2}' WITH GRANT OPTION;
+                FLUSH PRIVILEGES;
+                """.format(db_name, username, password)
+                )
             db.close()
         except Exception, e:
             result = {
                 "result": "failure",
                 "message": e.message
             }
-        return json.dumps(result)
+        leaves.insert(leaf)
+        return result
 
     def delete_database(self, message):
         name = message.get("name", None)
         if not name:
-            return json.dumps({
+            return {
                 "result": "failure",
                 "message": "missing argument: name"
-            })
+            }
         # TODO: Удаление самой базы и инстанса по имени из сохраненных
         pass
