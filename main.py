@@ -12,7 +12,7 @@ from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
 from components.air import Air, get_leaves_proxy
-from components.common import CommonListener, TransparentListener, log_message
+from components.common import CommonListener, TransparentListener, WebSocketListener, log_message
 
 if len(sys.argv) < 2:
     log_message(
@@ -53,6 +53,7 @@ if SETTINGS["role"] == "roots":
 
 if SETTINGS["role"] == "trunk":
     listeners.append((r"/", TransparentListener))
+    listeners.append((r"/websocket", WebSocketListener))
     application = Trunk(settings, handlers=listeners)
 
 if SETTINGS["role"] == "branch":

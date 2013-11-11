@@ -7,21 +7,12 @@
     "role": "trunk",
     "settings":
     {
-        "branches":
-        {
-            "main":
-            {
-                "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
-                "address": "127.0.0.1",
-                "port": 1236
-            }
-        },
         "roots":
         {
             "main":
             {
                 "secret": "6*lx78@2%+58-gca5eehtc1qq-uq(4xf%$n6@c3cqy%uly8=-j",
-                "address": "127.0.0.1",
+                "host": "127.0.0.1",
                 "port": 1235
             }
         },
@@ -30,7 +21,7 @@
             "main":
             {
                 "secret": "gk9)o24z7!@n@w^k%4ceidaj0n7n1#-ts$mw)2qrf=)e&k&gl%",
-                "address": "127.0.0.1",
+                "host": "127.0.0.1",
                 "port": 1237
             }
         },

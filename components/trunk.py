@@ -14,13 +14,13 @@ class Trunk(tornado.web.Application):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
 
-    def process_message(self, message):
+    def process_message(self, message, socket=None):
         response = ""
         function = message.get('function', None)
         if function == "create_leaf":
             response = self.add_leaf(message)
         if function == "status_report":
-            response = self.status_report()
+            response = self.status_report(socket=socket)
         if function == "migrate_leaf":
             response = self.migrate_leaf(message)
         if function == "update_repository":
@@ -65,10 +65,9 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
-    def status_report(self):
+    def status_report(self, socket=None):
         result = {
-            "success": [],
-            "error": [],
+            "responses": []
         }
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -82,24 +81,35 @@ class Trunk(tornado.web.Application):
                     "function": "status_report"
                 }
             )
+
             if response["result"] == "success":
                 if response["role"] == "branch":
-                    result["success"].append({
+                    branch_result = {
+                        "result": "success",
                         "name": branch["name"],
                         "role": "branch"
-                    })
+                    }
                 else:
-                    result["error"].append({
+                    branch_result = {
+                        "result": "warning",
                         "name": branch["name"],
                         "role": response["role"],
                         "error": "Specified role 'branch' doesn't match response '{0}'".format(response["role"])
-                    })
+                    }
             else:
-                result["error"].append({
+                branch_result = {
+                    "result": "failure",
                     "name": branch["name"],
                     "role": "branch",
-                    "error": "Request failed. Is component secret key valid?"
-                })
+                    "error": "Request failed. Is component secret key valid?",
+                    "message": response["message"]
+                }
+
+            if socket:
+                branch_result["status"] = "info"
+                socket.send_message(branch_result)
+            else:
+                result["responses"].append(branch_result)
 
         for root in self.settings["roots"].keys():
             response = self.send_message(
@@ -108,24 +118,35 @@ class Trunk(tornado.web.Application):
                     "function": "status_report"
                 }
             )
+
             if response["result"] == "success":
                 if response["role"] == "roots":
-                    result["success"].append({
+                    root_result = {
+                        "result": "success",
                         "name": root,
                         "role": "roots"
-                    })
+                    }
                 else:
-                    result["error"].append({
+                    root_result = {
+                        "result": "warning",
                         "name": root,
                         "role": response["role"],
                         "error": "Specified role 'roots' doesn't match response '{0}'".format(response["role"])
-                    })
+                    }
             else:
-                result["error"].append({
+                root_result = {
+                    "result": "failure",
                     "name": root,
                     "role": "roots",
-                    "error": "Request failed. Is component secret key valid?"
-                })
+                    "error": "Request failed. Is component secret key valid?",
+                    "message": response["message"]
+                }
+
+            if socket:
+                root_result["status"] = "info"
+                socket.send_message(root_result)
+            else:
+                result["responses"].append(root_result)
 
         for air in self.settings["air"].keys():
             response = self.send_message(
@@ -134,26 +155,40 @@ class Trunk(tornado.web.Application):
                     "function": "status_report"
                 }
             )
+
             if response["result"] == "success":
                 if response["role"] == "air":
-                    result["success"].append({
+                    air_result = {
+                        "result": "success",
                         "name": air,
                         "role": "air"
-                    })
+                    }
                 else:
-                    result["error"].append({
+                    air_result = {
+                        "result": "warning",
                         "name": air,
                         "role": response["role"],
                         "error": "Specified role 'air' doesn't match response '{0}'".format(response["role"])
-                    })
+                    }
             else:
-                result["error"].append({
+                air_result = {
+                    "result": "failure",
                     "name": air,
                     "role": "air",
-                    "error": "Request failed. Is component secret key valid?"
-                })
+                    "error": "Request failed. Is component secret key valid?",
+                    "message": response["message"]
+                }
 
-        return result
+            if socket:
+                air_result["status"] = "info"
+                socket.send_message(air_result)
+            else:
+                result["responses"].append(air_result)
+
+        if not socket:
+            return result
+        else:
+            return {"result": "success", "message": "Done"}
 
     def update_repo(self, message):
         # =========================================
