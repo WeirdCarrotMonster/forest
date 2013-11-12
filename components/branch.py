@@ -5,7 +5,6 @@ import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from leaf import Leaf
 from common import log_message
-import simplejson as json
 import pymongo
 
 
@@ -65,7 +64,8 @@ class Branch(tornado.web.Application):
                 fcgi_port=leaf["port"],
                 pidfile=os.path.join(self.settings["pid_dir"], 
                     leaf["name"] + '.pid'),
-                env=leaf["env"]
+                env=leaf.get("env", ""),
+                settings=leaf.get("settings", "")
             )
             try:
                 self.settings["port_range"].remove(new_leaf.fcgi_port)
@@ -88,17 +88,14 @@ class Branch(tornado.web.Application):
         }
 
     def known_leaves(self):
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
-        )
-        leaves = client.branch.leaves
         known_leaves = []
-        for leaf in leaves.find():
+        for leaf in self.leaves:
             known_leaves.append({
-                "name": leaf["name"],
-                "port": leaf["port"],
-                "env": leaf["env"],
+                "name": leaf.name,
+                "port": leaf.port,
+                "env": leaf.env,
+                "settings": leaf.settings,
+                "mem": leaf.mem_usage()
             })
         result = {
             "result": "success",
@@ -109,6 +106,7 @@ class Branch(tornado.web.Application):
     def add_leaf(self, message):
         name = message.get("name", None)
         env = message.get("env", None)
+        settings = message.get("env", None)
         initdb = bool(message.get("initdb", False))
         if not name:
             return {
@@ -146,7 +144,8 @@ class Branch(tornado.web.Application):
             fcgi_host=self.settings["host"],
             fcgi_port=self.settings["port_range"].pop(),
             pidfile=os.path.join(self.settings["pid_dir"], name + '.pid'),
-            env=env
+            env=env,
+            settings=settings
         )
 
         try:
@@ -164,7 +163,8 @@ class Branch(tornado.web.Application):
             leaf = {
                 "name": new_leaf.name,
                 "port": new_leaf.fcgi_port,
-                "env": new_leaf.launch_env
+                "env": new_leaf.launch_env,
+                "settings": new_leaf.settings
             }
             leaves.insert(leaf)
 

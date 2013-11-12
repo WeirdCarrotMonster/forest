@@ -13,7 +13,8 @@ class Leaf():
                  fcgi_port=3000,
                  pidfile=None,
                  executable=None,
-                 env=""
+                 env="",
+                 settings=""
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -23,6 +24,7 @@ class Leaf():
         self.pidfile = pidfile
         self.executable = executable
         self.launch_env = env
+        self.settings = settings
         self.pid = 0
 
     def prepare_database(self):
@@ -34,7 +36,15 @@ class Leaf():
         ]
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
+        my_env["APPLICATION_SETTINGS"] = self.settings
         subprocess.Popen(cmd, env=my_env, shell=False)
+
+    def mem_usage(self):
+        try:
+            mem = int(subprocess.check_output(['pmap', '-x', str(self.pid)]).strip().split("\n")[-1].split()[2])
+        except:
+            mem = 0
+        return mem
 
     def start(self):
         # TODO: кидать exception, если присутствуют не все настройки
@@ -50,6 +60,7 @@ class Leaf():
         ]
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
+        my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
         subprocess.call(cmd, env=my_env)
         log_message("Started leaf {0}".format(self.name), component="Leaf")
