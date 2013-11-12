@@ -32,25 +32,25 @@ class Trunk(tornado.web.Application):
 
         # Обработка состояний сервера
         if function == "status_report":
-            response = self.status_report(message, socket=socket)
+            response = self.status_report(message)
         if function == "update_repository":
-            response = self.update_repo(message, socket=socket)
+            response = self.update_repo(message)
 
         # Работа с ветвями
         if function == "add_branch":
-            response = self.add_branch(message, socket=socket)
+            response = self.add_branch(message)
         if function == "get_branches":
-            response = self.get_branches(message, socket=socket)
+            response = self.get_branches(message)
 
         # Работа с листьями
         if function == "enable_leaf":
-            response = self.enable_leaf(message, socket=socket)
+            response = self.enable_leaf(message)
         if function == "disable_leaf":
-            response = self.disable_leaf(message, socket=socket)
+            response = self.disable_leaf(message)
         if function == "migrate_leaf":
-            response = self.migrate_leaf(message, socket=socket)
+            response = self.migrate_leaf(message)
         if function == "create_leaf":
-            response = self.add_leaf(message, socket=socket)
+            response = self.add_leaf(message)
 
         if function is None:
             response = {
@@ -83,10 +83,10 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
-    def status_report(self, message, socket=None):
-        result = {
-            "responses": []
-        }
+    def check_leaves(self, message):
+        pass
+
+    def status_report(self, message):
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -123,11 +123,7 @@ class Trunk(tornado.web.Application):
                     "message": response["message"]
                 }
 
-            if socket:
-                branch_result["status"] = "info"
-                socket.send_message(branch_result)
-            else:
-                result["responses"].append(branch_result)
+            self.log_event(branch_result)
 
         for root in self.settings["roots"].keys():
             response = self.send_message(
@@ -160,11 +156,7 @@ class Trunk(tornado.web.Application):
                     "message": response["message"]
                 }
 
-            if socket:
-                root_result["status"] = "info"
-                socket.send_message(root_result)
-            else:
-                result["responses"].append(root_result)
+            self.log_event(root_result)
 
         for air in self.settings["air"].keys():
             response = self.send_message(
@@ -197,18 +189,11 @@ class Trunk(tornado.web.Application):
                     "message": response["message"]
                 }
 
-            if socket:
-                air_result["status"] = "info"
-                socket.send_message(air_result)
-            else:
-                result["responses"].append(air_result)
+            self.log_event(air_result)
 
-        if not socket:
-            return result
-        else:
-            return {"result": "success", "message": "Done"}
+        return {"result": "success", "message": "Done"}
 
-    def update_repo(self, message, socket=None):
+    def update_repo(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -248,7 +233,7 @@ class Trunk(tornado.web.Application):
             })
         return result
 
-    def call_component_function(self, message, socket=None):
+    def call_component_function(self, message):
         # TODO: протестировать
         required_args = ['component', 'name', 'function', 'arguments']
         function_data = {}
@@ -305,7 +290,7 @@ class Trunk(tornado.web.Application):
             "response": response
         }
 
-    def add_leaf(self, message, socket=None):
+    def add_leaf(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -465,7 +450,7 @@ class Trunk(tornado.web.Application):
         }
         return response
 
-    def enable_leaf(self, message, socket=None):
+    def enable_leaf(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -559,7 +544,7 @@ class Trunk(tornado.web.Application):
             "message": "Re-enabled leaf '{0}'".format(leaf["name"])
         }
 
-    def disable_leaf(self, message, socket=None):
+    def disable_leaf(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -605,7 +590,7 @@ class Trunk(tornado.web.Application):
             "name": leaf["name"]
         }
         response = self.send_message(branch, post_data)
-        
+
         if response["result"] != "success":
             return {
                 "result": "failure",
@@ -639,7 +624,7 @@ class Trunk(tornado.web.Application):
             "message": "Disabled leaf '{0}'".format(leaf["name"])
         }
 
-    def migrate_leaf(self, message, socket=None):
+    def migrate_leaf(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -764,7 +749,7 @@ class Trunk(tornado.web.Application):
             "message": "Moved leaf to {0}".format(leaf_data["destination"])
         }
 
-    def add_branch(self, message, socket=None):
+    def add_branch(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -809,7 +794,7 @@ class Trunk(tornado.web.Application):
             "message": "Branch '{0}' successfully added".format(branch_data["name"])
         }
 
-    def get_branches(self, message, socket=None):
+    def get_branches(self, message):
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
