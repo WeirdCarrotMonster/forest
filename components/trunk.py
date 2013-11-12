@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*- 
-import subprocess
-import os
 import tornado.web
 import simplejson as json
-import urllib
 import tornado.httpclient
 import pymongo
 from components.shadow import encode, decode
@@ -15,34 +12,42 @@ class Trunk(tornado.web.Application):
         self.settings = settings_dict
 
     def process_message(self, message, socket=None):
-        response = ""
+        response = None
         function = message.get('function', None)
-        if function == "create_leaf":
-            response = self.add_leaf(message, socket=socket)
-        if function == "status_report":
-            response = self.status_report(socket=socket)
-        if function == "migrate_leaf":
-            response = self.migrate_leaf(message)
-        if function == "update_repository":
-            response = self.update_repo(message)
-
-        # Динамическая работа с ветвями
-        if function == "add_branch":
-            response = self.add_branch(message)
-        if function == "get_branches":
-            response = self.get_branches(message)
-
-        # Включение-выключение листьев
-        if function == "enable_leaf":
-            response = self.enable_leaf(message)
-        if function == "disable_leaf":
-            response = self.disable_leaf(message)
-
         if function is None:
             response = {
                 "result": "failure",
                 "message": "No function or unknown one called"
             }
+
+        # Обработка состояний сервера
+        if function == "status_report":
+            response = self.status_report(message, socket=socket)
+        if function == "update_repository":
+            response = self.update_repo(message, socket=socket)
+
+        # Работа с ветвями
+        if function == "add_branch":
+            response = self.add_branch(message, socket=socket)
+        if function == "get_branches":
+            response = self.get_branches(message, socket=socket)
+
+        # Работа с листьями
+        if function == "enable_leaf":
+            response = self.enable_leaf(message, socket=socket)
+        if function == "disable_leaf":
+            response = self.disable_leaf(message, socket=socket)
+        if function == "migrate_leaf":
+            response = self.migrate_leaf(message, socket=socket)
+        if function == "create_leaf":
+            response = self.add_leaf(message, socket=socket)
+
+        if function is None:
+            response = {
+                "result": "failure",
+                "message": "Unknown function"
+            }
+
         return response
 
     @staticmethod
@@ -65,7 +70,7 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
-    def status_report(self, socket=None):
+    def status_report(self, message, socket=None):
         result = {
             "responses": []
         }
@@ -190,7 +195,7 @@ class Trunk(tornado.web.Application):
         else:
             return {"result": "success", "message": "Done"}
 
-    def update_repo(self, message):
+    def update_repo(self, message, socket=None):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -230,7 +235,7 @@ class Trunk(tornado.web.Application):
             })
         return result
 
-    def call_component_function(self, message):
+    def call_component_function(self, message, socket=None):
         # TODO: протестировать
         required_args = ['component', 'name', 'function', 'arguments']
         function_data = {}
@@ -473,7 +478,7 @@ class Trunk(tornado.web.Application):
             response["logs"] = logs
         return response
 
-    def enable_leaf(self, message):
+    def enable_leaf(self, message, socket=None):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -566,7 +571,7 @@ class Trunk(tornado.web.Application):
             "message": "Re-enabled leaf '{0}'".format(leaf["name"])
         }
 
-    def disable_leaf(self, message):
+    def disable_leaf(self, message, socket=None):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -646,7 +651,7 @@ class Trunk(tornado.web.Application):
             "message": "Disabled leaf '{0}'".format(leaf["name"])
         }
 
-    def migrate_leaf(self, message):
+    def migrate_leaf(self, message, socket=None):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -771,7 +776,7 @@ class Trunk(tornado.web.Application):
             "message": "Moved leaf to {0}".format(leaf_data["destination"])
         }
 
-    def add_branch(self, message):
+    def add_branch(self, message, socket=None):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
@@ -816,7 +821,7 @@ class Trunk(tornado.web.Application):
             "message": "Branch '{0}' successfully added".format(branch_data["name"])
         }
 
-    def get_branches(self, message):
+    def get_branches(self, message, socket=None):
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
