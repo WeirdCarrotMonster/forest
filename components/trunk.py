@@ -10,8 +10,18 @@ class Trunk(tornado.web.Application):
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
+        self.socket = None
+        self.logs = []
+
+    def log_event(self, event):
+        if self.socket:
+            event["type": "info"]
+            self.socket.send_message(event)
+        else:
+            self.logs.append(event)
 
     def process_message(self, message, socket=None):
+        self.socket = socket
         response = None
         function = message.get('function', None)
         if function is None:
@@ -48,6 +58,9 @@ class Trunk(tornado.web.Application):
                 "message": "Unknown function"
             }
 
+        if len(self.logs) > 0:
+            response["logs"] = self.logs
+            self.logs = []
         return response
 
     @staticmethod
@@ -307,6 +320,7 @@ class Trunk(tornado.web.Application):
                 }
             else:
                 leaf_data[arg] = value
+        leaf_settings = message.get("settings", "")
         # =========================================
         # Проверяем, нет ли листа с таким именем в базе
         # =========================================
@@ -346,29 +360,22 @@ class Trunk(tornado.web.Application):
             "name": leaf_data["name"]
         }
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "roots",
             "name": root["name"],
             "message": "Asking root to prepare database"
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
+
         response = self.send_message(root, post_data)
         roots_response = response
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "roots",
             "name": root["name"],
             "response": roots_response
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
 
         if response["result"] != "success":
             result = {
@@ -376,8 +383,6 @@ class Trunk(tornado.web.Application):
                 "message": "Failed to get database settings",
                 "details": response,
             }
-            if not socket:
-                result["logs"] = logs
             return logs
 
         env_for_leaf = json.dumps(response["env"])
@@ -388,42 +393,33 @@ class Trunk(tornado.web.Application):
             "function": "create_leaf",
             "name": leaf_data["name"],
             "env": env_for_leaf,
+            "settings": leaf_settings,
             "initdb": "True"
         }
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "branch",
             "name": branch["name"],
             "message": "Asking branch to start leaf"
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
 
         response = self.send_message(branch, post_data)
         branch_response = response
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "branch",
             "name": branch["name"],
             "response": branch_response
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
 
         if response["result"] != "success":
             result = {
                 "result": "failure",
                 "message": "Failed to create leaf: {0}".format(response["message"])
             }
-            if not socket:
-                result["logs"] = logs
-            return logs
+            return result
         # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
@@ -436,29 +432,21 @@ class Trunk(tornado.web.Application):
             "port": response["port"]
         }
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "air",
             "name": air["name"],
             "message": "Asking air to publish leaf"
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
 
         response = self.send_message(air, post_data)
 
-        info = {
+        self.log_event({
             "status": "info",
             "component": "air",
             "name": air["name"],
             "response": response
-        }
-        if socket:
-            socket.send_message(info)
-        else:
-            logs.append(info)
+        })
 
         leaf = {
             "name": leaf_data["name"],
@@ -468,14 +456,13 @@ class Trunk(tornado.web.Application):
             "branch": branch["name"],
             "port": branch_response["port"],
             "env": roots_response["env"],
+            "settings": leaf_settings
         }
         leaves.insert(leaf)
         response = {
             "result": "success",
             "message": "Successfully added leaf '{0}'".format(leaf["name"])
         }
-        if not socket:
-            response["logs"] = logs
         return response
 
     def enable_leaf(self, message, socket=None):
@@ -494,7 +481,7 @@ class Trunk(tornado.web.Application):
             else:
                 leaf_data[arg] = value
         # =========================================
-        # Проверяем, нет ли листа с таким именем в базе
+        # Проверяем, есть ли лист с таким именем в базе
         # =========================================
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -518,7 +505,7 @@ class Trunk(tornado.web.Application):
         messages = []
         branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if not branch:
-            branch = get_branch(leaf["type"])
+            branch = self.get_branch(leaf["type"])
             messages.append("Original branch not found; moving to new branch")
         if not branch:
             return {
@@ -531,7 +518,8 @@ class Trunk(tornado.web.Application):
         post_data = {
             "function": "create_leaf",
             "name": leaf["name"],
-            "env": leaf["env"]
+            "env": leaf["env"],
+            "settings": leaf["settings"]
         }
         response = self.send_message(branch, post_data)
         branch_response = response
@@ -617,7 +605,7 @@ class Trunk(tornado.web.Application):
             "name": leaf["name"]
         }
         response = self.send_message(branch, post_data)
-        branch_response = response
+        
         if response["result"] != "success":
             return {
                 "result": "failure",
