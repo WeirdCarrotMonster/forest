@@ -33,6 +33,10 @@ function Connection($scope, $http) {
         var fdata = {
             "function": $scope.function.name
         };
+        $(".one_arg").each(function(){
+           fdata[$(this).attr("data-arg")] = $(this).find(".input").val()
+        });
+        console.log(JSON.stringify(fdata));
         $scope.webSocket.send(JSON.stringify(fdata));
         $scope.messageText = "";
     };
