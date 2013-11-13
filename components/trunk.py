@@ -15,7 +15,7 @@ class Trunk(tornado.web.Application):
 
     def log_event(self, event):
         if self.socket:
-            event["type": "info"]
+            event["type"] = "info"
             self.socket.send_message(event)
         else:
             self.logs.append(event)
@@ -35,12 +35,16 @@ class Trunk(tornado.web.Application):
             response = self.status_report(message)
         if function == "update_repository":
             response = self.update_repo(message)
+        if function == "check_leaves":
+            response = self.check_leaves(message)
 
         # Работа с ветвями
         if function == "add_branch":
             response = self.add_branch(message)
         if function == "get_branches":
             response = self.get_branches(message)
+        if function == "modify_branch":
+            response = self.modify_branch(message)
 
         # Работа с листьями
         if function == "enable_leaf":
@@ -52,7 +56,7 @@ class Trunk(tornado.web.Application):
         if function == "create_leaf":
             response = self.add_leaf(message)
 
-        if function is None:
+        if response is None:
             response = {
                 "result": "failure",
                 "message": "Unknown function"
@@ -84,7 +88,76 @@ class Trunk(tornado.web.Application):
             }
 
     def check_leaves(self, message):
-        pass
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        leaf_names = []
+        leaf_names_all = []
+        for leaf in client.trunk.leaves.find({"active":True}):
+            leaf_names.append(leaf["name"])
+            leaf_names_all.append(leaf["name"])
+
+        for branch in client.trunk.branches.find():
+            self.log_event({
+                "component": "branch",
+                "message": "Asking branch {0}".format(branch["name"])
+            })
+            response = self.send_message(
+                branch,
+                {
+                    "function": "known_leaves"
+                }
+            )
+
+            success = False
+            failure = False
+
+            if response["result"] == "success":
+                for leaf in response["leaves"]:
+                    # Лист есть в списке активных и в списке необработанных
+                    if leaf["name"] in leaf_names_all and leaf["name"] in leaf_names:
+                        success = success or True
+                        self.log_event(leaf)
+                        leaf_names.remove(leaf["name"])
+                    # Лист есть в списке активных, но его уже обработали
+                    elif leaf["name"] in leaf_names_all and leaf["name"] not in leaf_names:
+                        self.log_event({
+                            "warning": "Duplicate leaf found",
+                            "component": "leaf",
+                            "response": leaf
+                        })
+                    # Листа нет в списке активных, но он активен на ветви
+                    else:
+                        self.log_event({
+                            "warning": "This leaf shouldn't be active",
+                            "component": "leaf",
+                            "response": leaf
+                        })
+            else:
+                failure = failure or True
+                self.log_event({
+                    "error": "Failed to communicate with branch",
+                    "component": "branch",
+                    "response": response
+                })
+
+            if success and not failure:
+                return {
+                    "result": "success",
+                    "message": "All leaves responded"
+                }
+            elif success and failure:
+                return {
+                    "result": "warning",
+                    "message": "Some leaves failed to respond"
+                }
+            else:
+                return {
+                    "result": "failure",
+                    "message": "No response from leaves"
+                }
 
     def status_report(self, message):
         client = pymongo.MongoClient(
@@ -536,7 +609,7 @@ class Trunk(tornado.web.Application):
                 "port": branch_response["port"],
                 "env": leaf["env"]
             },
-            upsert=False,
+            upsert=True,
             multi=False
         )
         return {
@@ -803,6 +876,50 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "branches": [branch for branch in client.trunk.branches.find()]
+        }
+
+    def modify_branch(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', "args"]
+        branch_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                branch_data[arg] = value
+        # =========================================
+        # Проверка на наличие ветви с таким именем
+        # =========================================
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        if not client.trunk.branches.find_one({"name": branch_data["name"]}):
+            return {
+                "result": "failure",
+                "component": "branch",
+                "message": "Branch with specified name not found"
+            }
+        # =========================================
+        # Гордо переписываем все, что сказано
+        # =========================================
+        client.trunk.branches.update(
+            {"name": branch_data["name"]},
+            {
+                "$set": branch_data["args"],
+            },
+            upsert=False,
+            multi=False
+        )
+        return {
+            "result": "success",
+            "message": "Successfully updated branch"
         }
 
     def get_branch(self, branch_type):
