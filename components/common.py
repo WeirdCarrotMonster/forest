@@ -8,6 +8,7 @@ from shadow import encode, decode
 from datetime import datetime
 from bson import BSON
 from bson import json_util
+import traceback
 
 
 class WebSocketListener(tornado.websocket.WebSocketHandler):
@@ -33,7 +34,7 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
             response = {
                 "result": "failure",
                 "message": "Internal server error",
-                "details": str(e)
+                "details": traceback.format_exc()
             }
         self.write_message(json.dumps(response, default=json_util.default))
 
