@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import tornado.web
-import simplejson as json
 import tornado.httpclient
 import pymongo
 

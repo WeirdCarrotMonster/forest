@@ -2,6 +2,7 @@
 import subprocess
 import os
 from components.common import log_message
+import traceback
 
 
 class Leaf():
@@ -41,7 +42,14 @@ class Leaf():
 
     def mem_usage(self):
         try:
-            mem = int(subprocess.check_output(['ps', '-p', str(self.pid), '-o', 'rss=']))
+            mem = int(subprocess.check_output(
+                [
+                    'ps', 
+                    '-p', 
+                    str(self.pid), 
+                    '-o', 
+                    'rss='])
+            )
         except:
             mem = 0
         return mem/1024
@@ -68,8 +76,8 @@ class Leaf():
             pidfile_result = open(self.pidfile, 'r')
             self.pid = int(pidfile_result.read().strip())
             pidfile_result.close()
-        except Exception, e:
-            raise Exception("Launch failed: {0}".format(e))
+        except Exception:
+            raise Exception("Launch failed: {0}".format(traceback.format_exc()))
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")

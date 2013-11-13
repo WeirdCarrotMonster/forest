@@ -3,9 +3,10 @@ from __future__ import print_function
 import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
-from leaf import Leaf
-from common import log_message
+from components.leaf import Leaf
+from components.common import log_message
 import pymongo
+import traceback
 
 
 class Branch(tornado.web.Application):
@@ -69,7 +70,7 @@ class Branch(tornado.web.Application):
             )
             try:
                 self.settings["port_range"].remove(new_leaf.fcgi_port)
-            except:
+            except ValueError:
                 # Порт не в списке. Стабильности ради делаем НИЧЕГО.
                 pass
             new_leaf.start()
@@ -153,11 +154,11 @@ class Branch(tornado.web.Application):
             self.leaves.append(new_leaf)
             if initdb:
                 new_leaf.prepare_database()
-        except Exception, e:
+        except Exception:
             self.settings["port_range"].append(new_leaf.fcgi_port)
             return {
                 "result": "failure",
-                "message": "Start failed with exception: {0}".format(e)
+                "message": "Start failed: {0}".format(traceback.format_exc())
             }
         else:
             leaf = {
@@ -231,10 +232,10 @@ class Branch(tornado.web.Application):
                     "result": "failure",
                     "message": "configuration error: unknown repository type"
                 }
-        except CalledProcessError as e:
+        except CalledProcessError:
             result = {
                 "result": "failure",
-                "message": e.output
+                "message": traceback.format_exc()
             }
         for leaf in self.leaves:
             leaf.stop()

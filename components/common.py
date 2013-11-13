@@ -4,9 +4,8 @@ from __future__ import print_function
 import tornado.web
 import tornado.websocket
 import simplejson as json
-from shadow import encode, decode
+from components.shadow import encode, decode
 from datetime import datetime
-from bson import BSON
 from bson import json_util
 import traceback
 
@@ -20,17 +19,17 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
             message = json.loads(
                 socket_message
             )
-        except Exception, e:
+        except ValueError:
             self.write_message(json.dumps({
                 "result": "failure",
                 "message": "Failed to decode message",
-                "details": e.message
+                "details": traceback.format_exc()
             }, default=json_util.default))
             return
 
         try:
             response = self.application.process_message(message, socket=self)
-        except Exception, e:
+        except Exception:
             response = {
                 "result": "failure",
                 "message": "Internal server error",
@@ -58,23 +57,26 @@ class CommonListener(tornado.web.RequestHandler):
                 decode(self.request.body, 
                 self.application.settings["secret"])
             )
-        except Exception, e:
+        except ValueError:
             self.write(json.dumps({
                 "result": "failure",
                 "message": "Failed to decode message",
-                "details": e.message
+                "details": traceback.format_exc()
             }, default=json_util.default))
             return
 
         try:
             response = self.application.process_message(message)
-        except Exception, e:
+        except ValueError:
             response = {
                 "result": "failure",
                 "message": "Internal server error",
-                "details": str(e)
+                "details": traceback.format_exc()
             }
-        self.write(encode(json.dumps(response, default=json_util.default), self.application.settings["secret"]))
+        self.write(encode(
+            json.dumps(response, default=json_util.default), 
+            self.application.settings["secret"])
+        )
 
 
 class TransparentListener(tornado.web.RequestHandler):
@@ -84,11 +86,11 @@ class TransparentListener(tornado.web.RequestHandler):
     def post(self):
         try:
             message = json.loads(self.request.body)
-        except Exception, e:
+        except ValueError:
             self.write(json.dumps({
                 "result": "failure",
                 "message": "Failed to decode message",
-                "details": e.message
+                "details": traceback.format_exc()
             }, default=json_util.default))
             return
 

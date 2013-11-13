@@ -46,7 +46,9 @@ class Roots(tornado.web.Application):
             passwd=self.settings["mysql_pass"]
         )
         cur = db.cursor()
-        cur.execute("SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{0}')".format(username))
+        cur.execute(
+            "SELECT EXISTS(SELECT 1 FROM mysql.user \
+                WHERE user = '{0}')".format(username))
         result = cur.fetchall()
         cur.close()
         return bool(result[0][0])
@@ -65,8 +67,8 @@ class Roots(tornado.web.Application):
             passwd=self.settings["mysql_pass"]
         )
         cur = db.cursor()
-        cur.execute("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE"
-                    " SCHEMA_NAME = '{0}')".format(dbname))
+        cur.execute("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA "
+                    "WHERE SCHEMA_NAME = '{0}')".format(dbname))
         result = cur.fetchall()
         cur.close()
         return bool(result[0][0])
@@ -79,7 +81,10 @@ class Roots(tornado.web.Application):
                 "message": "missing argument: name"
             }
 
-        log_message("Preparing database for {0}".format(name), component="Roots")
+        log_message(
+            "Preparing database for {0}".format(name), 
+            component="Roots"
+            )
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -87,7 +92,12 @@ class Roots(tornado.web.Application):
         leaves = client.roots.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing database {0} for leaf {1}".format(leaf["db_name"], name), component="Roots")
+            log_message(
+                "Found existing database {0} for leaf {1}".format(
+                    leaf["db_name"], 
+                    name), 
+                component="Roots"
+                )
             result = {
                 "result": "success",
                 "env":
@@ -126,7 +136,10 @@ class Roots(tornado.web.Application):
             "db_pass": password
         }
 
-        log_message("No existing database; creating new called {0}".format(db_name), component="Roots")
+        log_message(
+            "No existing database; creating new called {0}".format(db_name), 
+            component="Roots"
+            )
 
         db = MySQLdb.connect(
             host=self.settings["mysql_host"],
@@ -138,8 +151,10 @@ class Roots(tornado.web.Application):
             cur = db.cursor()
             cur.execute(
                 """
-                CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE utf8_general_ci;
-                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' IDENTIFIED BY '{2}' WITH GRANT OPTION;
+                CREATE DATABASE `{0}` CHARACTER SET utf8 
+                COLLATE utf8_general_ci;
+                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' 
+                IDENTIFIED BY '{2}' WITH GRANT OPTION;
                 FLUSH PRIVILEGES;
                 """.format(db_name, username, password)
                 )
