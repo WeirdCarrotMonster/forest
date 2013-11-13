@@ -41,10 +41,10 @@ class Leaf():
 
     def mem_usage(self):
         try:
-            mem = int(subprocess.check_output(['pmap', '-x', str(self.pid)]).strip().split("\n")[-1].split()[2])
+            mem = int(subprocess.check_output(['ps', '-p', str(self.pid), '-o', 'rss=']))
         except:
             mem = 0
-        return mem
+        return mem/1024
 
     def start(self):
         # TODO: кидать exception, если присутствуют не все настройки
