@@ -3,7 +3,6 @@
   <head>
     <script src="/static/angular.min.js"></script>
     <script src="/static/druid.js"></script>
-    <script src="/static/angular-websocket.js"></script>
     <link rel="stylesheet" href="/static/druid.css">
   </head>
   <body>
@@ -11,22 +10,25 @@
     <div ng-controller="Connection">
       <div class="ws-connected-{{ws_connected}}"></div>
 
+      <select ng-model="function" ng-options="f.description for f in known_functions"></select>
+
       <form ng-submit="sendMessage()">
-        <input type="text" ng-model="messageText"  size="30">
+        <div class="one_arg" ng-repeat="arg in function.args" data-arg="{{ arg }}">
+          <label>{{ arg }}</label><input class="input" type="text"/>
+        </div>
         <input class="btn-primary" type="submit" value="add">
       </form>
 
       <div class="events">
 
       	<div ng-repeat="log in logs">
-      	  <div class="log {{log.type}}">
+      	  <div class="log type type-{{log.type}} status-{{log.result}}">
       	  	<h2>{{ log.name }}</h2>
       	  	{{log}}
       	  </div>
         </div>
 
       </div>
-
     </div>
   </body>
 </html>

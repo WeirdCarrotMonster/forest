@@ -31,6 +31,9 @@ class Trunk(tornado.web.Application):
                 "message": "No function or unknown one called"
             }
 
+        if function == "known_functions":
+            response = self.known_functions(message)
+
         # Обработка состояний сервера
         if function == "status_report":
             response = self.status_report(message)
@@ -88,6 +91,24 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": e.message
             }
+
+    @staticmethod
+    def known_functions(message):
+        return {
+            "result": "functions",
+            "functions": [
+                {
+                    "name": "status_report",
+                    "description": "Получить информацию о состоянии компонентов системы",
+                    "args": []
+                },
+                {
+                    "name": "create_leaf",
+                    "description": "Создать новый лист указанного типа",
+                    "args": ["name", "type", "address"]
+                },
+            ]
+        }
 
     def check_leaves(self, message):
         client = pymongo.MongoClient(
@@ -202,7 +223,7 @@ class Trunk(tornado.web.Application):
                     "message": response["message"]
                 }
 
-            self.log_event(branch_result, type=branch_result["result"])
+            self.log_event(branch_result)
 
         for root in self.settings["roots"].keys():
             response = self.send_message(
@@ -235,7 +256,7 @@ class Trunk(tornado.web.Application):
                     "message": response["message"]
                 }
 
-            self.log_event(root_result, type=root_result["result"])
+            self.log_event(root_result)
 
         for air in self.settings["air"].keys():
             response = self.send_message(
@@ -261,7 +282,7 @@ class Trunk(tornado.web.Application):
                     }
             else:
                 air_result = {
-                    "result": "failure",
+                    "result": "error",
                     "name": air,
                     "role": "air",
                     "error": "Request failed. Is component secret key valid?",

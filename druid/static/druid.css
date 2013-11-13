@@ -15,19 +15,27 @@
 	margin-top: 10px;
 }
 
-.result {
-	border-width: 5px;
+.type {
+    border-width: 5px;
 	border-style: solid;
 }
 
-.info {
-	background-color: lightblue;
+.type-result {
+    border-color: black;
 }
 
-.warning {
+.type-info {
+    border-color: lightblue;
+}
+
+.status-warning {
 	background-color: yellow;
 }
 
-.error {
+.status-error {
 	background-color: red;
+}
+
+.status-success {
+    background-color: lightgreen;
 }

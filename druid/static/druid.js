@@ -1,28 +1,43 @@
-function Connection($scope) {
-  $scope.logs = [
-  ];
-  
-  $scope.ws_connected = true;
-
-  $scope.webSocket = new WebSocket('ws://127.0.0.1:1234/websocket');
-  $scope.webSocket.onopen = function(event) {
-    $scope.ws_connected = true;
-    $scope.$apply();
-  };
-  $scope.webSocket.onmessage = function(event) {
-    var data = JSON.parse(event.data);
-    $scope.logs.push(data);
-    $scope.$apply();
-  };
-  $scope.webSocket.onclose = function(event) {
-    $scope.ws_connected = false;
-    $scope.$apply();
-  };
-
-  $scope.sendMessage = function() {
+function Connection($scope, $http) {
     $scope.logs = [];
-    console.log($scope.messageText);
-    $scope.webSocket.send($scope.messageText);
-    $scope.messageText = "";
-  };
+    $scope.known_functions = [];
+    $scope.function = {};
+
+    $scope.ws_connected = false;
+
+    $scope.webSocket = new WebSocket('ws://127.0.0.1:1234/websocket');
+    $scope.webSocket.onopen = function(event) {
+        $scope.ws_connected = true;
+        $scope.webSocket.send('{"function": "known_functions"}');
+        $scope.$apply();
+    };
+    $scope.webSocket.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        if (data["result"] == "functions")
+        {
+            $scope.known_functions = data["functions"];
+        }
+        else
+        {
+            $scope.logs.push(data);
+        }
+        $scope.$apply();
+    };
+    $scope.webSocket.onclose = function(event) {
+        $scope.ws_connected = false;
+        $scope.$apply();
+    };
+
+    $scope.sendMessage = function() {
+        $scope.logs = [];
+        var fdata = {
+            "function": $scope.function.name
+        };
+        $scope.webSocket.send(JSON.stringify(fdata));
+        $scope.messageText = "";
+    };
+
+    $scope.functionChanged = function() {
+        console.log("fc")
+    };
 }
