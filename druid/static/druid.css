@@ -1,0 +1,33 @@
+.ws-connected-false {
+  background-color: red;
+  width: 30px;
+  height: 30px;
+}
+
+.ws-connected-true {
+  background-color: green;
+  width: 30px;
+  height: 30px;
+}
+
+.log {
+	min-height: 100px;
+	margin-top: 10px;
+}
+
+.result {
+	border-width: 5px;
+	border-style: solid;
+}
+
+.info {
+	background-color: lightblue;
+}
+
+.warning {
+	background-color: yellow;
+}
+
+.error {
+	background-color: red;
+}

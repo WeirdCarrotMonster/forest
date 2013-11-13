@@ -1,0 +1,32 @@
+<!doctype html>
+<html ng-app>
+  <head>
+    <script src="/static/angular.min.js"></script>
+    <script src="/static/druid.js"></script>
+    <script src="/static/angular-websocket.js"></script>
+    <link rel="stylesheet" href="/static/druid.css">
+  </head>
+  <body>
+    <h2>Druid</h2>
+    <div ng-controller="Connection">
+      <div class="ws-connected-{{ws_connected}}"></div>
+
+      <form ng-submit="sendMessage()">
+        <input type="text" ng-model="messageText"  size="30">
+        <input class="btn-primary" type="submit" value="add">
+      </form>
+
+      <div class="events">
+
+      	<div ng-repeat="log in logs">
+      	  <div class="log {{log.type}}">
+      	  	<h2>{{ log.name }}</h2>
+      	  	{{log}}
+      	  </div>
+        </div>
+
+      </div>
+
+    </div>
+  </body>
+</html>

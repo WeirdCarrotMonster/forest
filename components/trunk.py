@@ -2,6 +2,7 @@
 import tornado.web
 import simplejson as json
 import tornado.httpclient
+import tornado.template
 import pymongo
 from components.shadow import encode, decode
 
@@ -13,9 +14,9 @@ class Trunk(tornado.web.Application):
         self.socket = None
         self.logs = []
 
-    def log_event(self, event):
+    def log_event(self, event, type="info"):
         if self.socket:
-            event["type"] = "info"
+            event["type"] = type
             self.socket.send_message(event)
         else:
             self.logs.append(event)
@@ -65,6 +66,7 @@ class Trunk(tornado.web.Application):
         if len(self.logs) > 0:
             response["logs"] = self.logs
             self.logs = []
+        response["type"] = "result"
         return response
 
     @staticmethod
@@ -102,7 +104,8 @@ class Trunk(tornado.web.Application):
         for branch in client.trunk.branches.find():
             self.log_event({
                 "component": "branch",
-                "message": "Asking branch {0}".format(branch["name"])
+                "name": branch["name"],
+                "message": "Asking branch..."
             })
             response = self.send_message(
                 branch,
@@ -126,22 +129,25 @@ class Trunk(tornado.web.Application):
                         self.log_event({
                             "warning": "Duplicate leaf found",
                             "component": "leaf",
+                            "name": leaf["name"],
                             "response": leaf
-                        })
+                        }, type="warning")
                     # Листа нет в списке активных, но он активен на ветви
                     else:
                         self.log_event({
                             "warning": "This leaf shouldn't be active",
                             "component": "leaf",
+                            "name": leaf["name"],
                             "response": leaf
-                        })
+                        }, type="warning")
             else:
                 failure = failure or True
                 self.log_event({
                     "error": "Failed to communicate with branch",
                     "component": "branch",
+                    "name": branch["name"],
                     "response": response
-                })
+                }, type="error")
 
             if success and not failure:
                 return {
@@ -189,14 +195,14 @@ class Trunk(tornado.web.Application):
                     }
             else:
                 branch_result = {
-                    "result": "failure",
+                    "result": "error",
                     "name": branch["name"],
                     "role": "branch",
                     "error": "Request failed. Is component secret key valid?",
                     "message": response["message"]
                 }
 
-            self.log_event(branch_result)
+            self.log_event(branch_result, type=branch_result["result"])
 
         for root in self.settings["roots"].keys():
             response = self.send_message(
@@ -222,14 +228,14 @@ class Trunk(tornado.web.Application):
                     }
             else:
                 root_result = {
-                    "result": "failure",
+                    "result": "error",
                     "name": root,
                     "role": "roots",
                     "error": "Request failed. Is component secret key valid?",
                     "message": response["message"]
                 }
 
-            self.log_event(root_result)
+            self.log_event(root_result, type=root_result["result"])
 
         for air in self.settings["air"].keys():
             response = self.send_message(

@@ -54,6 +54,10 @@ if SETTINGS["role"] == "roots":
     APPLICATION = Roots(SETTINGS["settings"], handlers=LISTENERS)
 
 if SETTINGS["role"] == "trunk":
+    LISTENERS.append((r'/static/(.*)', tornado.web.StaticFileHandler, 
+        {'path': 'druid/static/'}))
+    LISTENERS.append((r'/druid/(.*)', tornado.web.StaticFileHandler, 
+        {'path': 'druid/html/'}))
     LISTENERS.append((r"/", TransparentListener))
     LISTENERS.append((r"/websocket", WebSocketListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
