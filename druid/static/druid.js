@@ -1,4 +1,4 @@
-function Connection($scope, $http) {
+function Connection($scope, $http, $timeout) {
     $scope.logs = [];
     $scope.known_functions = [];
     $scope.function = {};
@@ -52,7 +52,15 @@ function Connection($scope, $http) {
         $scope.webSocket.onclose = function(event) {
             $scope.ws_connected = false;
             $scope.$apply();
+            $timeout($scope.reconnectSocket,2000);
         };
+    };
+
+    $scope.reconnectSocket = function() {
+        if ($scope.ws_connected == false){
+            $scope.setSocket();
+            $timeout($scope.reconnectSocket,2000);
+        }
     };
 
     $scope.sendMessage = function() {

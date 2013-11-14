@@ -17,8 +17,11 @@
         <input class="btn-primary" type="submit" value="add">
       </form>
 
-      <div class="visible-{{ ws_connected }}">
+      <div class="visible-{{ authenticated == true }}">
           <div class="ws-connected-{{ws_connected}}"></div>
+      </div>
+
+      <div class="visible-{{ ws_connected }}">
           <label for="function">Выполняемое действие</label>
           <select id="function" ng-model="function" ng-options="f.description for f in known_functions"></select>
 
