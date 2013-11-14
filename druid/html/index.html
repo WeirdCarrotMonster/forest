@@ -11,10 +11,18 @@
     <h2>Druid</h2>
     <div ng-controller="Connection">
 
-      <form ng-submit="loginUser()" class="visible-{{ authenticated == false }}">
-        <label>username</label><input id="username" type="text"/>
-        <label>password</label><input id="password" type="text"/>
-        <input class="btn-primary" type="submit" value="add">
+      <form ng-submit="loginUser()" class="auth auth-{{ authenticated }}">
+        <div class="bottom center">
+          <div>
+            <input class="input-center" id="username" style="margin-bottom: 0px;" type="text" placeholder="username"/>
+          </div>
+          <div>
+            <input class="input-center" id="password" style="margin-bottom: 0px;" type="password" placeholder="password"/>
+          </div>
+          <div>
+            <input style="margin-bottom: 0px;" type="submit" value="login">
+          </div>
+        </div>
       </form>
 
       <div class="visible-{{ authenticated == true }}">

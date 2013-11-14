@@ -10,6 +10,70 @@
   height: 30px;
 }
 
+.auth {
+    z-index:100;
+    position:fixed;
+    top: 0;
+    left: 35%;
+    margin: 0 auto;
+    background-color: #8FBC8F;
+    width: 30%;
+    min-width: 600px;
+    height: 150px;
+    overflow: hidden;
+}
+
+.bottom {
+  text-align: center;
+  position: absolute; 
+  bottom: 45px;
+}
+
+.center {
+  width: 30%;
+  left: 35%;
+}
+
+.input-center {
+  text-align:center;
+}
+
+.auth-false {
+    height: 150px;
+    animation:expand 1s;
+    -webkit-animation:expand 1s;
+}
+
+.auth-true {
+    height: 0px;
+    animation:squeeze 1s;
+    -webkit-animation:squeeze 1s;
+}
+
+@keyframes expand
+{
+from {height: 0px;}
+to {height: 150px;}
+}
+
+@-webkit-keyframes expand
+{
+from {height: 0px;}
+to {height: 150px;}
+}
+
+@keyframes squeeze
+{
+from {height: 150px;}
+to {height: 0px;}
+}
+
+@-webkit-keyframes squeeze
+{
+from {height: 150px;}
+to {height: 0px;}
+}
+
 .visible-false {
     display: none;
 }
