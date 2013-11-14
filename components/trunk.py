@@ -120,6 +120,16 @@ class Trunk(tornado.web.Application):
                     "name": "create_leaf",
                     "description": "Создать новый лист указанного типа",
                     "args": ["name", "type", "address"]
+                },
+                {
+                    "name": "update_repository",
+                    "description": "Обновить репозиторий",
+                    "args": ["type"]
+                },
+                {
+                    "name": "check_leaves",
+                    "description": "Опросить все работающие листья",
+                    "args": []
                 }
             ]
         }
