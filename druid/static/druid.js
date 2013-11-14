@@ -75,8 +75,4 @@ function Connection($scope, $http, $timeout) {
         $scope.webSocket.send(JSON.stringify(fdata));
         $scope.messageText = "";
     };
-
-    $scope.functionChanged = function() {
-        console.log("fc")
-    };
 }
