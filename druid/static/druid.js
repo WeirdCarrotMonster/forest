@@ -4,6 +4,33 @@ function Connection($scope, $http, $timeout) {
     $scope.function = {};
     $scope.authenticated = false;
     $scope.ws_connected = false;
+    $scope.width = 0;
+    $scope.height = 0;
+    $scope.atStart = true;
+
+    $scope.sidebarClass = function() {
+        if ($scope.atStart){
+            return "sidebar-notready-start";
+        }
+        else if ($scope.ws_connected && $scope.authenticated){
+            return "sidebar-ready";
+        }
+        else{
+            return "sidebar-notready";
+        }
+    }
+
+    $scope.contentClass = function() {
+        if ($scope.atStart){
+            return "content-full-start";
+        }
+        else if ($scope.ws_connected && $scope.authenticated){
+            return "content-with-sidebar";
+        }
+        else{
+            return "content-full";
+        }
+    }
 
     $scope.loginUser = function() {
         var username = $("#username").val();
@@ -20,6 +47,7 @@ function Connection($scope, $http, $timeout) {
         }).
         success(function(data, status) {
             if (data["result"] == "success"){
+                $scope.atStart = false;
                 $scope.authenticated = true;
                 $scope.setSocket();
             }
@@ -76,3 +104,16 @@ function Connection($scope, $http, $timeout) {
         $scope.messageText = "";
     };
 }
+
+function tellAngular() {
+    var domElt = document.getElementById('loginForm');
+    scope = angular.element(domElt).scope();
+    scope.$apply(function() {
+        scope.width = window.innerWidth;
+        scope.height = window.innerHeight;
+    });
+}
+
+document.addEventListener("DOMContentLoaded", tellAngular, false);
+
+window.onresize = tellAngular;

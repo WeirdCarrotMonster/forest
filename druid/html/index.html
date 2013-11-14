@@ -6,12 +6,12 @@
     <script src="/static/angular.min.js"></script>
     <script src="/static/druid.js"></script>
     <link rel="stylesheet" href="/static/druid.css">
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet' type='text/css'>
   </head>
   <body>
-    <h2>Druid</h2>
     <div ng-controller="Connection">
 
-      <form ng-submit="loginUser()" class="auth auth-{{ authenticated }}">
+      <form ng-submit="loginUser()" id="loginForm" class="auth auth-{{ authenticated }}">
         <div class="bottom center">
           <div>
             <input class="input-center" id="username" style="margin-bottom: 0px;" type="text" placeholder="username"/>
@@ -25,31 +25,55 @@
         </div>
       </form>
 
-      <div class="visible-{{ authenticated == true }}">
-          <div class="ws-connected-{{ws_connected}}"></div>
-      </div>
-
-      <div class="visible-{{ ws_connected }}">
-          <label for="function">Выполняемое действие</label>
-          <select id="function" ng-model="function" ng-options="f.description for f in known_functions"></select>
-
-          <form ng-submit="sendMessage()">
-            <div class="one_arg" ng-repeat="arg in function.args" data-arg="{{ arg }}">
-              <label>{{ arg }}</label><input class="input" type="text"/>
-            </div>
-            <input class="btn-primary" type="submit" value="add">
-          </form>
-
-          <div class="events">
-
-            <div ng-repeat="log in logs">
-              <div class="log type type-{{log.type}} status-{{log.result}}">
-                <h2>{{ log.name }}</h2>
-                {{log}}
-              </div>
-            </div>
-
+      <div id="page"> 
+        <header id="sidebar" class="{{ sidebarClass() }}" style="height: {{ height }}px;">
+          <div class="sidebar-logo">
+            Here goes awesome logo
           </div>
+          <div class="sidebar-item">
+            Воздух
+          </div>
+          <div class="sidebar-item">
+            Листья
+          </div>
+          <div class="sidebar-item">
+            Ветви
+          </div>
+          <div class="sidebar-item">
+            Корни
+          </div>
+        </header> 
+
+        <div id="contentWrapper"> 
+          <section id="content" style="height: {{ height }}px;" class="{{ contentClass() }}"> 
+            <div class="visible-{{ authenticated == true }}">
+                <div class="ws-connected-{{ws_connected}}"></div>
+            </div>
+
+            <div class="visible-{{ ws_connected }}">
+                <label for="function">Выполняемое действие</label>
+                <select id="function" ng-model="function" ng-options="f.description for f in known_functions"></select>
+
+                <form ng-submit="sendMessage()">
+                  <div class="one_arg" ng-repeat="arg in function.args" data-arg="{{ arg }}">
+                    <label>{{ arg }}</label><input class="input" type="text"/>
+                  </div>
+                  <input class="btn-primary" type="submit" value="add">
+                </form>
+
+                <div class="events">
+
+                  <div ng-repeat="log in logs">
+                    <div class="log type type-{{log.type}} status-{{log.result}}">
+                      <h2>{{ log.name }}</h2>
+                      {{log}}
+                    </div>
+                  </div>
+
+                </div>
+            </div>
+          </section> 
+        </div> 
       </div>
     </div>
   </body>
