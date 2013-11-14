@@ -10,6 +10,14 @@
   height: 30px;
 }
 
+.visible-false {
+    display: none;
+}
+
+.visible-true {
+    display: block;
+}
+
 .log {
 	min-height: 50px;
 	margin-top: 10px;

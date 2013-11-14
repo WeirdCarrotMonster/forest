@@ -3,7 +3,6 @@ from __future__ import print_function
 import MySQLdb
 import string
 import random
-import simplejson as json
 import tornado.web
 import pymongo
 from components.common import log_message

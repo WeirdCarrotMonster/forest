@@ -14,6 +14,9 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
     def open(self):
         log_message("Socket opened")
 
+    def get_current_user(self):
+        return self.get_secure_cookie("user")
+
     def on_message(self, socket_message):
         try:
             message = json.loads(
@@ -28,7 +31,7 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
             return
 
         try:
-            response = self.application.process_message(message, socket=self)
+            response = self.application.process_message(message, socket=self, user=self.get_current_user())
         except Exception:
             response = {
                 "result": "failure",
@@ -83,6 +86,9 @@ class TransparentListener(tornado.web.RequestHandler):
     def get(self):
         self.write("")
 
+    def get_current_user(self):
+        return self.get_secure_cookie("user")
+
     def post(self):
         try:
             message = json.loads(self.request.body)
@@ -94,7 +100,7 @@ class TransparentListener(tornado.web.RequestHandler):
             }, default=json_util.default))
             return
 
-        response = self.application.process_message(message)
+        response = self.application.process_message(message, handler=self, user=self.get_current_user())
         self.write(json.dumps(response, default=json_util.default))
 
 

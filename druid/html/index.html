@@ -1,6 +1,7 @@
 <!doctype html>
 <html ng-app>
   <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <script src="/static/jquery.min.js"></script>
     <script src="/static/angular.min.js"></script>
     <script src="/static/druid.js"></script>
@@ -9,26 +10,35 @@
   <body>
     <h2>Druid</h2>
     <div ng-controller="Connection">
-      <div class="ws-connected-{{ws_connected}}"></div>
 
-      <select ng-model="function" ng-options="f.description for f in known_functions"></select>
-
-      <form ng-submit="sendMessage()">
-        <div class="one_arg" ng-repeat="arg in function.args" data-arg="{{ arg }}">
-          <label>{{ arg }}</label><input class="input" type="text"/>
-        </div>
+      <form ng-submit="loginUser()" class="visible-{{ authenticated == false }}">
+        <label>username</label><input id="username" type="text"/>
+        <label>password</label><input id="password" type="text"/>
         <input class="btn-primary" type="submit" value="add">
       </form>
 
-      <div class="events">
+      <div class="visible-{{ ws_connected }}">
+          <div class="ws-connected-{{ws_connected}}"></div>
+          <label for="function">Выполняемое действие</label>
+          <select id="function" ng-model="function" ng-options="f.description for f in known_functions"></select>
 
-      	<div ng-repeat="log in logs">
-      	  <div class="log type type-{{log.type}} status-{{log.result}}">
-      	  	<h2>{{ log.name }}</h2>
-      	  	{{log}}
-      	  </div>
-        </div>
+          <form ng-submit="sendMessage()">
+            <div class="one_arg" ng-repeat="arg in function.args" data-arg="{{ arg }}">
+              <label>{{ arg }}</label><input class="input" type="text"/>
+            </div>
+            <input class="btn-primary" type="submit" value="add">
+          </form>
 
+          <div class="events">
+
+            <div ng-repeat="log in logs">
+              <div class="log type type-{{log.type}} status-{{log.result}}">
+                <h2>{{ log.name }}</h2>
+                {{log}}
+              </div>
+            </div>
+
+          </div>
       </div>
     </div>
   </body>

@@ -5,13 +5,16 @@ import tornado.httpclient
 import tornado.template
 import pymongo
 from components.shadow import encode, decode
+import hashlib
 
 
 class Trunk(tornado.web.Application):
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
+        self.settings["cookie_secret"] = 'asdfasdf'
         self.socket = None
+        self.handler = None
         self.logs = []
 
     def log_event(self, event, type="info"):
@@ -21,8 +24,9 @@ class Trunk(tornado.web.Application):
         else:
             self.logs.append(event)
 
-    def process_message(self, message, socket=None):
+    def process_message(self, message, socket=None, handler=None, user=None):
         self.socket = socket
+        self.handler = handler
         response = None
         function = message.get('function', None)
         if function is None:
@@ -33,6 +37,16 @@ class Trunk(tornado.web.Application):
 
         if function == "known_functions":
             response = self.known_functions(message)
+        if function == "login_user":
+            response = self.login_user(message, user=user)
+
+        # Далее - функции только для залогиненых
+        if not response and not user:
+            return {
+                "result": "failure",
+                "type": "result",
+                "message": "Not authenticated"
+            }
 
         # Обработка состояний сервера
         if function == "status_report":
@@ -106,8 +120,64 @@ class Trunk(tornado.web.Application):
                     "name": "create_leaf",
                     "description": "Создать новый лист указанного типа",
                     "args": ["name", "type", "address"]
-                },
+                }
             ]
+        }
+
+    def login_user(self, message, user=None):
+        if user:
+            return {
+                "type": "login",
+                "result": "success",
+                "message": "Already authenticated"
+            }
+
+        required_args = ['username', 'password']
+        user_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                user_data[arg] = value
+
+        if self.handler:
+            client = pymongo.MongoClient(
+                self.settings["mongo_host"],
+                self.settings["mongo_port"]
+            )
+            user = client.trunk.users.find_one(
+                {
+                    "username": user_data["username"],
+                    "password": hashlib.md5(user_data["password"]).hexdigest()
+                })
+            if user:
+                self.handler.set_secure_cookie("user", user["username"])
+                return {
+                    "type": "login",
+                    "result": "success",
+                    "message": "Successfully logged in",
+                    "name": user["username"]
+                }
+            else:
+                return {
+                    "type": "login",
+                    "result": "error",
+                    "message": "Wrong credentials"
+                }
+        elif self.socket:
+            return {
+                "type": "login",
+                "result": "error",
+                "message": "Websocket authentication is not supported"
+            }
+        return {
+            "type": "result",
+            "result": "error",
+            "message": "Failed to authenticate"
         }
 
     def check_leaves(self, message):
