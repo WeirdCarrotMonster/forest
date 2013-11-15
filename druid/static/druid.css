@@ -21,6 +21,16 @@
     min-width: 600px;
     height: 150px;
     overflow: hidden;
+    background-image: url(/static/login-bg.jpg);
+    background-position: left bottom;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+input {
+  outline:none;
+  border: none;
+  border-color: transparent;
 }
 
 .bottom {
