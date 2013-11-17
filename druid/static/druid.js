@@ -59,7 +59,11 @@ function Connection($scope, $http, $timeout) {
 
     $scope.setSocket = function() {
         $scope.ws_connected = false;
-        $scope.webSocket = new WebSocket('ws://127.0.0.1:1234/websocket');
+        var loc = window.location, socket_uri;
+        socket_uri = "ws:";
+        socket_uri += "//" + loc.host;
+        socket_uri += "/websocket";
+        $scope.webSocket = new WebSocket(socket_uri);
         $scope.webSocket.onopen = function(event) {
             $scope.ws_connected = true;
             $scope.webSocket.send('{"function": "known_functions"}');
