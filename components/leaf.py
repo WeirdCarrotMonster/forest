@@ -68,8 +68,8 @@ class Leaf():
             "pidfile=" + self.pidfile
         ]
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
-        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
+        my_env["DATABASE_SETTINGS"] = self.launch_env
+        my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
         subprocess.call(cmd, env=my_env)
         log_message("Started leaf {0}".format(self.name), component="Leaf")
