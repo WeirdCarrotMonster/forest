@@ -130,6 +130,11 @@ class Trunk(tornado.web.Application):
                     "name": "check_leaves",
                     "description": "Опросить все работающие листья",
                     "args": []
+                },
+                {
+                    "name": "add_branch",
+                    "description": "Добавить новую ветвь",
+                    "args": ['name', 'host', 'port', 'secret', 'type']
                 }
             ]
         }
