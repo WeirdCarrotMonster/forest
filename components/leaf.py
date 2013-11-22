@@ -70,7 +70,8 @@ class Leaf():
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
-        subprocess.call(cmd, env=my_env)
+        output = subprocess.check_output(cmd, env=my_env)
+        log_message(output, component="Leaf")
         log_message("Started leaf {0}".format(self.name), component="Leaf")
         try:
             pidfile_result = open(self.pidfile, 'r')
