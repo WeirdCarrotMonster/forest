@@ -107,8 +107,8 @@ class Branch(tornado.web.Application):
 
     def add_leaf(self, message):
         name = message.get("name", None)
-        env = json.dumps(message.get("env", None))
-        settings = json.dumps(message.get("env", None))
+        env = message.get("env", None)
+        settings = message.get("env", None)
         initdb = bool(message.get("initdb", False))
         if not name:
             return {
