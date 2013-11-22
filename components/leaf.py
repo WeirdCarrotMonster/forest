@@ -3,7 +3,6 @@ import subprocess
 import os
 from components.common import log_message
 import traceback
-import simplejson as json
 
 
 class Leaf():

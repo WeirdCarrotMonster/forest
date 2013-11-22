@@ -7,6 +7,7 @@ from components.leaf import Leaf
 from components.common import log_message
 import pymongo
 import traceback
+import simplejson as json
 
 
 class Branch(tornado.web.Application):
@@ -106,8 +107,8 @@ class Branch(tornado.web.Application):
 
     def add_leaf(self, message):
         name = message.get("name", None)
-        env = message.get("env", None)
-        settings = message.get("env", None)
+        env = json.dumps(message.get("env", None))
+        settings = json.dumps(message.get("env", None))
         initdb = bool(message.get("initdb", False))
         if not name:
             return {
