@@ -12,7 +12,7 @@ function Connection($scope, $http, $timeout) {
         if ($scope.atStart){
             return "sidebar-notready-start";
         }
-        else if ($scope.ws_connected && $scope.authenticated){
+        else if ($scope.authenticated){
             return "sidebar-ready";
         }
         else{
@@ -24,11 +24,28 @@ function Connection($scope, $http, $timeout) {
         if ($scope.atStart){
             return "content-full-start";
         }
-        else if ($scope.ws_connected && $scope.authenticated){
+        else if ($scope.authenticated){
             return "content-with-sidebar";
         }
         else{
             return "content-full";
+        }
+    }
+
+    $scope.websocketClass = function() {
+        if ($scope.ws_connected){
+            return "websocket-connected";
+        }
+        else {
+            return "websocket-disconnected";
+        }
+    }
+    $scope.websocketText = function() {
+        if ($scope.ws_connected){
+            return "Сокет подключен";
+        }
+        else {
+            return "Нет соединения с сервером";
         }
     }
 
@@ -80,7 +97,7 @@ function Connection($scope, $http, $timeout) {
         $scope.webSocket.onclose = function(event) {
             $scope.ws_connected = false;
             $scope.$apply();
-            $timeout($scope.reconnectSocket,2000);
+            $timeout($scope.reconnectSocket,5000);
         };
     };
 

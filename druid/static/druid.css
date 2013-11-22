@@ -15,7 +15,9 @@
     position:fixed;
     top: 0;
     left: 35%;
-    margin: 0 auto;
+    margin-top: 0;
+    margin-left: auto;
+    margin-right: auto;
     background-color: #8FBC8F;
     width: 30%;
     min-width: 600px;
@@ -94,6 +96,9 @@ html {
   height: 100%;
   overflow: hidden;
   background-image: url(/static/sidebar-bg.jpg);
+  text-align: center;
+  vertical-align: middle;
+  font-family: 'Roboto Condensed', sans-serif;
 }
 .sidebar-ready {
   left: 300px;
@@ -170,18 +175,24 @@ html {
   width: 300px;
   min-height: 300px;
   color: white;
-  text-align: center;
-  vertical-align: middle;
-  font-family: 'Roboto Condensed', sans-serif;
   line-height: 300px;
+}
+.sidebar-socket {
+  width: 300px;
+  min-height: 50px;
+  color: white;
+  line-height: 50px;
+}
+.websocket-connected {
+  color: #90EE90;
+}
+.websocket-disconnected {
+  color: #B22222;
 }
 .sidebar-item {
   width: 300px;
   min-height: 50px;
   color: white;
-  text-align: center;
-  vertical-align: middle;
-  font-family: 'Roboto Condensed', sans-serif;
   line-height: 50px;
 }
 .sidebar-item:hover {
