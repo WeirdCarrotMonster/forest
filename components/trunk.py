@@ -704,7 +704,7 @@ class Trunk(tornado.web.Application):
             "function": "create_leaf",
             "name": leaf["name"],
             "env": leaf["env"],
-            "settings": leaf.get("settings", '""')
+            "settings": leaf.get("settings", {})
         }
         response = self.send_message(branch, post_data)
         branch_response = response
