@@ -125,8 +125,11 @@ def get_leaves_proxy(settings):
     )
     leaves = client.air.leaves
     for leaf in leaves.find():
+        host = leaf["address"]
+        if ":" in host:
+            host = "[" + host + "]"
         conf = '''
-$HTTP["host"] == "''' + leaf["address"] + '''" {
+$HTTP["host"] == "''' + host + '''" {
     fastcgi.server = ("/" => ((
         "host" => "''' + leaf["host"] + '''",
         "port" => ''' + str(leaf["port"]) + ''',
