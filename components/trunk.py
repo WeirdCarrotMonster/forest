@@ -135,7 +135,22 @@ class Trunk(tornado.web.Application):
                     "name": "add_branch",
                     "description": "Добавить новую ветвь",
                     "args": ['name', 'host', 'port', 'secret', 'type']
-                }
+                },
+                {
+                    "name": "enable_leaf",
+                    "description": "Включить лист",
+                    "args": ['name']
+                },
+                {
+                    "name": "disable_leaf",
+                    "description": "Отключить лист",
+                    "args": ['name']
+                },
+                {
+                    "name": "migrate_leaf",
+                    "description": "Переместить лист на другую ветвь",
+                    "args": ['name', 'destination']
+                },
             ]
         }
 
