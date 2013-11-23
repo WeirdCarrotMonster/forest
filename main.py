@@ -12,6 +12,7 @@ from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
 from components.air import Air, get_leaves_proxy
+from components.owl import Owl
 from components.common import CommonListener, TransparentListener, \
     WebSocketListener, log_message
 
@@ -40,7 +41,7 @@ if len(sys.argv) == 3 and sys.argv[2] == "shell_config":
 # Определяем слушателей по ролям
 LISTENERS = []
 
-if not SETTINGS["role"] in ["roots", "trunk", "branch", "air"]:
+if not SETTINGS["role"] in ["roots", "trunk", "branch", "air", "owl"]:
     log_message(
         "Configuration error: unknown role '{0}'".format(SETTINGS["role"])
         )
@@ -69,6 +70,10 @@ if SETTINGS["role"] == "branch":
 if SETTINGS["role"] == "air":
     LISTENERS.append((r"/", CommonListener))
     APPLICATION = Air(SETTINGS["settings"], handlers=LISTENERS)
+
+if SETTINGS["role"] == "owl":
+    LISTENERS.append((r"/", CommonListener))
+    APPLICATION = Owl(SETTINGS["settings"], handlers=LISTENERS)
 
 # Создаем и запускаем приложение
 log_message("Listening on: {0}:{1}".format(

@@ -1,0 +1,12 @@
+{
+    "connections":
+    {
+        "address": "127.0.0.1",
+        "port": 4444
+    },
+    "role": "owl",
+    "settings":
+    {
+        "secret": "6*lx78@2%+58-gca5eehtc1qq-uq(4xf%$n6@c3cqy%uly8=-j"
+    }
+}

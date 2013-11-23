@@ -63,6 +63,8 @@ class Trunk(tornado.web.Application):
             response = self.get_branches(message)
         if function == "modify_branch":
             response = self.modify_branch(message)
+        if function == "add_owl":
+            response = self.add_owl(message)
 
         # Работа с листьями
         if function == "enable_leaf":
@@ -150,6 +152,11 @@ class Trunk(tornado.web.Application):
                     "name": "migrate_leaf",
                     "description": "Переместить лист на другую ветвь",
                     "args": ['name', 'destination']
+                },
+                {
+                    "name": "add_owl",
+                    "description": "Добавить филина",
+                    "args": ['name', 'verbose_name', 'host', 'port', 'secret']
                 },
             ]
         }
@@ -292,6 +299,26 @@ class Trunk(tornado.web.Application):
             self.settings["mongo_port"]
         )
 
+        loads = []
+        for owl in client.trunk.owls.find():
+            response = self.send_message(
+                owl,
+                {
+                    "function": "status_report"
+                }
+            )
+            if response["result"] == "success":
+                one_load = response["mesaurements"]
+                one_load["name"] = owl["name"]
+                one_load["verbose_name"] = owl["verbose_name"]
+                one_load["result"] = "success"
+                loads.append(one_load)
+            else:
+                loads.append({
+                    "name": owl["name"],
+                    "result": "error"
+                })
+
         for branch in client.trunk.branches.find():
             response = self.send_message(
                 branch,
@@ -391,7 +418,11 @@ class Trunk(tornado.web.Application):
 
             self.log_event(air_result)
 
-        return {"result": "success", "message": "Done"}
+        return {
+            "result": "success", 
+            "message": "Done",
+            "loads": loads
+        }
 
     def update_repo(self, message):
         # =========================================
@@ -993,6 +1024,43 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "message": "Branch '{0}' successfully added".format(branch_data["name"])
+        }
+
+    def add_owl(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'verbose_name', 'host', 'port', 'secret']
+        owl = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                owl[arg] = value
+        # =========================================
+        # Проверяем, нет ли филина с таким именем в базе
+        # =========================================
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        owls = client.trunk.owls
+        if owls.find_one({"name": owl["name"]}):
+            return {
+                "result": "failure",
+                "message": "Owl with name '{0}' already exists".format(owl["name"])
+            }
+        # =========================================
+        # Сохраняем филина в базе
+        # =========================================
+        owls.insert(owl)
+        return {
+            "result": "success",
+            "message": "Owl '{0}' successfully added".format(owl["name"])
         }
 
     def get_branches(self, message):
