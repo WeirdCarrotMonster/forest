@@ -270,21 +270,21 @@ class Trunk(tornado.web.Application):
                     "response": response
                 }, type="error")
 
-            if success and not failure:
-                return {
-                    "result": "success",
-                    "message": "All leaves responded"
-                }
-            elif success and failure:
-                return {
-                    "result": "warning",
-                    "message": "Some leaves failed to respond"
-                }
-            else:
-                return {
-                    "result": "failure",
-                    "message": "No response from leaves"
-                }
+        if success and not failure:
+            return {
+                "result": "success",
+                "message": "All leaves responded"
+            }
+        elif success and failure:
+            return {
+                "result": "warning",
+                "message": "Some leaves failed to respond"
+            }
+        else:
+            return {
+                "result": "failure",
+                "message": "No response from leaves"
+            }
 
     def status_report(self, message):
         client = pymongo.MongoClient(
