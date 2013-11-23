@@ -570,7 +570,7 @@ class Trunk(tornado.web.Application):
             }
             return logs
 
-        env_for_leaf = json.dumps(response["env"])
+        env_for_leaf = response["env"]
         # =========================================
         # Обращаемся к branch для поднятия листа
         # =========================================
