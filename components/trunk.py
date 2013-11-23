@@ -703,7 +703,7 @@ class Trunk(tornado.web.Application):
         post_data = {
             "function": "create_leaf",
             "name": leaf["name"],
-            "env": leaf["env"],
+            "env": leaf.get("env", {}),
             "settings": leaf.get("settings", {})
         }
         response = self.send_message(branch, post_data)
@@ -887,9 +887,10 @@ class Trunk(tornado.web.Application):
         # =========================================
         post_data = {
             "function": "create_leaf",
-            "name": leaf_data["name"],
-            "env": json.dumps(leaf["env"]),
-            "initdb": "False"
+            "name": leaf["name"],
+            "env": leaf.get("env", {}),
+            "settings": leaf.get("settings", {}),
+            "initdb": False
         }
         response = self.send_message(new_branch, post_data)
         new_branch_response = response
