@@ -158,6 +158,11 @@ class Trunk(tornado.web.Application):
                     "description": "Добавить филина",
                     "args": ['name', 'verbose_name', 'host', 'port', 'secret']
                 },
+                {
+                    "name": "rehost_leaf",
+                    "description": "Переместить лист на новый адрес",
+                    "args": ['name', 'address']
+                }
             ]
         }
 
@@ -979,6 +984,73 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "message": "Moved leaf to {0}".format(leaf_data["destination"])
+        }
+
+    def rehost_leaf(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'address']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                leaf_data[arg] = value
+        # =========================================
+        # Ищем лист в базе
+        # =========================================
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return {
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
+            }
+
+        if leaf["address"] == leaf_data["address"]:
+            return {
+                "result": "warning",
+                "message": "Leaf is already on address '{0}'".format(leaf["address"])
+            }
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        post_data = {
+            "function": "publish_leaf",
+            "name": leaf["name"],
+            "address": leaf_data["address"],
+            "host": leaf["host"],
+            "port": leaf["port"]
+        }
+        response = self.send_message(air, post_data)
+        if response["result"] != "success":
+            return {
+                "result": "failure",
+                "message": "Failed to publish leaf: {0}".format(response["message"])
+            }
+
+        client.trunk.leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "$set": leaf_data["args"],
+            },
+            upsert=False,
+            multi=False
+        )
+
+        return {
+            "result": "success",
+            "message": "Successfully published leaf on {0}".format(leaf_data["address"])
         }
 
     def add_branch(self, message):
