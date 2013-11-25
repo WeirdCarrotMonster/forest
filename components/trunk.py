@@ -1052,7 +1052,9 @@ class Trunk(tornado.web.Application):
         client.trunk.leaves.update(
             {"name": leaf_data["name"]},
             {
-                "$set": leaf_data["args"],
+                "$set": {
+                    "address": leaf_data["address"]
+                }
             },
             upsert=False,
             multi=False
