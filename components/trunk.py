@@ -75,6 +75,8 @@ class Trunk(tornado.web.Application):
             response = self.migrate_leaf(message)
         if function == "create_leaf":
             response = self.add_leaf(message)
+        if function == "rehost_leaf":
+            response = self.rehost_leaf(self)
 
         if response is None:
             response = {
