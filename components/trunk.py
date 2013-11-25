@@ -1027,11 +1027,19 @@ class Trunk(tornado.web.Application):
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
+
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+        if not branch:
+            return {
+                "result": "failure",
+                "message": "Internal error: leaf hosted on unknown branch"
+            }
+
         post_data = {
             "function": "publish_leaf",
             "name": leaf["name"],
             "address": leaf_data["address"],
-            "host": leaf["host"],
+            "host": branch["host"],
             "port": leaf["port"]
         }
         response = self.send_message(air, post_data)
