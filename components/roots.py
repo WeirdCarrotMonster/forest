@@ -39,7 +39,7 @@ class Roots(tornado.web.Application):
 
     def mysql_user_exists(self, username):
         db = MySQLdb.connect(
-            host=self.settings["mysql_host"],
+            host=self.settings.get("mysql_inner", "127.0.0.1"),
             port=self.settings["mysql_port"],
             user=self.settings["mysql_user"],
             passwd=self.settings["mysql_pass"]
@@ -60,7 +60,7 @@ class Roots(tornado.web.Application):
 
     def mysql_db_exists(self, dbname):
         db = MySQLdb.connect(
-            host=self.settings["mysql_host"],
+            host=self.settings.get("mysql_inner", "127.0.0.1"),
             port=self.settings["mysql_port"],
             user=self.settings["mysql_user"],
             passwd=self.settings["mysql_pass"]
@@ -141,7 +141,7 @@ class Roots(tornado.web.Application):
             )
 
         db = MySQLdb.connect(
-            host=self.settings["mysql_host"],
+            host=self.settings.get("mysql_inner", "127.0.0.1"),
             port=self.settings["mysql_port"],
             user=self.settings["mysql_user"],
             passwd=self.settings["mysql_pass"]
