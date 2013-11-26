@@ -601,12 +601,11 @@ class Trunk(tornado.web.Application):
         })
 
         if response["result"] != "success":
-            result = {
+            return {
                 "result": "failure",
                 "message": "Failed to get database settings",
                 "details": response,
             }
-            return logs
 
         env_for_leaf = response["env"]
         # =========================================
