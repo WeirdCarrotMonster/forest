@@ -15,8 +15,8 @@ class Leaf():
                  fcgi_port=3000,
                  pidfile=None,
                  executable=None,
-                 env="",
-                 settings=""
+                 env={},
+                 settings={}
                  ):
         self.name = name
         self.python_executable = python_executable

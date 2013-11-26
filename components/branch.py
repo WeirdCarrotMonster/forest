@@ -66,8 +66,8 @@ class Branch(tornado.web.Application):
                 fcgi_port=leaf["port"],
                 pidfile=os.path.join(self.settings["pid_dir"], 
                     leaf["name"] + '.pid'),
-                env=leaf.get("env", ""),
-                settings=leaf.get("settings", "")
+                env=leaf.get("env", {}),
+                settings=leaf.get("settings", {})
             )
             try:
                 self.settings["port_range"].remove(new_leaf.fcgi_port)
@@ -108,7 +108,7 @@ class Branch(tornado.web.Application):
     def add_leaf(self, message):
         name = message.get("name", None)
         env = message.get("env", None)
-        settings = message.get("env", None)
+        settings = message.get("settings", None)
         initdb = bool(message.get("initdb", False))
         if not name:
             return {
@@ -120,6 +120,18 @@ class Branch(tornado.web.Application):
             return {
                 "result": "failure",
                 "message": "missing argument: env"
+            }
+
+        if type(env) != dict:
+            return {
+                "result": "failure",
+                "message": "Environment should be dict"
+            }
+
+        if type(settings) != dict:
+            return {
+                "result": "failure",
+                "message": "Settings should be dict"
             }
 
         client = pymongo.MongoClient(
@@ -165,8 +177,8 @@ class Branch(tornado.web.Application):
             leaf = {
                 "name": new_leaf.name,
                 "port": new_leaf.fcgi_port,
-                "env": new_leaf.launch_env,
-                "settings": new_leaf.settings
+                "env": env,
+                "settings": settings
             }
             leaves.insert(leaf)
 
