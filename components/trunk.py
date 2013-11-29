@@ -543,7 +543,7 @@ class Trunk(tornado.web.Application):
                 }
             else:
                 leaf_data[arg] = value
-        leaf_settings = message.get("settings", "")
+        leaf_settings = message.get("settings", {})
         # =========================================
         # Проверяем, нет ли листа с таким именем в базе
         # =========================================
