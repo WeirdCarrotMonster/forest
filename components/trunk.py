@@ -765,13 +765,9 @@ class Trunk(tornado.web.Application):
         leaves.update(
             {"name": leaf_data["name"]},
             {
-                "name": leaf["name"],
-                "active": True,
-                "type": leaf["type"],
-                "address": leaf["address"],
-                "branch": leaf["branch"],
-                "port": branch_response["port"],
-                "env": leaf["env"]
+                "$set": {
+                    "active": True
+                }
             },
             upsert=True,
             multi=False
@@ -845,13 +841,9 @@ class Trunk(tornado.web.Application):
         leaves.update(
             {"name": leaf_data["name"]},
             {
-                "name": leaf["name"],
-                "active": False,
-                "type": leaf["type"],
-                "address": leaf["address"],
-                "branch": leaf["branch"],
-                "port": leaf["port"],
-                "env": leaf["env"]
+                "$set": {
+                    "active": False
+                }
             },
             upsert=False,
             multi=False
