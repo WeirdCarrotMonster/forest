@@ -20,7 +20,7 @@ class Trunk(tornado.web.Application):
             "login": "login.html",
         }
         self.auth_urls = {
-            "dashboard": "druid_new/dashboard.html"
+            "dashboard": "html/dashboard.html"
         }
 
     def log_event(self, event, type="info"):
