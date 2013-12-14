@@ -56,6 +56,8 @@ if SETTINGS["role"] == "roots":
 
 if SETTINGS["role"] == "trunk":
     LISTENERS.append((r'/static/(.*)', tornado.web.StaticFileHandler,
+        {'path': os.path.join(FOREST_DIR, 'druid/static')}))
+    LISTENERS.append((r'/static_new/(.*)', tornado.web.StaticFileHandler,
         {'path': os.path.join(FOREST_DIR, 'static')}))
     LISTENERS.append((r'/druid/(.*)', tornado.web.StaticFileHandler,
         {'path': os.path.join(FOREST_DIR, 'druid/html')}))
