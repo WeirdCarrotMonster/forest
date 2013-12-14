@@ -32,23 +32,23 @@
                 <div id="monitor">
                     <div class="units-row units-row-end one-server" ng-repeat="server in servers">
                         <div class="unit-20">
-                            <h3>VPS Hetzner <br />«The wise one»</h3>
+                            <h3>VPS Hetzner <br />«{{ server.verbose_name }}»</h3>
                             <p class="ip-address green">87.89.199.176</p>
                         </div>
                         <div class="unit-20">
                             <h4>Занятая память</h4>
-                            <p class="number-big red">90%</p>
+                            <p class="number-big red">{{ getNiceLookingPercent(server.mem_used,server.mem_total) }}%</p>
                         </div>
                         <div class="unit-20">
                             <h4>Подкачка</h4>
-                            <p class="number-big green">17%</p>
+                            <p class="number-big green">{{ (server.swap_used/server.swap_total)*100 }}%</p>
                         </div>
                         <div class="unit-20">
                             <h4>Нагрузка</h4>
-                            <p class="number-big green">2%</p>
+                            <p class="number-big green">{{ server.load_5 }}%</p>
                         </div>
                         <div class="unit-20">
-                            <p class="text-info">На этом сервере крутится 42 инстанса. Аптайм составляет 30 дней.</p>
+                            <p class="text-info">Аптайм составляет {{ server.uptime_days }} дней {{ server.uptime_hours }} часов.</p>
                         </div>
                     </div>
                 </div>
