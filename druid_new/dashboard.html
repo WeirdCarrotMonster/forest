@@ -37,11 +37,11 @@
                         </div>
                         <div class="unit-20">
                             <h4>Занятая память</h4>
-                            <p class="number-big red">{{ getNiceLookingPercent(server.mem_used,server.mem_total) }}%</p>
+                            <p class="number-big {{ getLoadClass(server.mem_used,server.mem_total) }}">{{ getNiceLookingPercent(server.mem_used,server.mem_total) }}%</p>
                         </div>
                         <div class="unit-20">
                             <h4>Подкачка</h4>
-                            <p class="number-big green">{{ (server.swap_used/server.swap_total)*100 }}%</p>
+                            <p class="number-big {{ getLoadClass(server.swap_used,server.swap_total) }}">{{ getNiceLookingPercent(server.swap_used,server.swap_total) }}%</p>
                         </div>
                         <div class="unit-20">
                             <h4>Нагрузка</h4>

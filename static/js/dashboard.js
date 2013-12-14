@@ -8,6 +8,18 @@ function Dashboard($scope, $http, $timeout) {
         return ((part/all)*100).toFixed(0);
     };
 
+    $scope.getLoadClass = function(part, all){
+        if (all == 0){
+            all = 100;
+        }
+        if ((part/all)*100 > 75){
+            return "red";
+        }
+        else{
+            return "green"
+        }
+    };
+
     $scope.getDashboardData = function() {
         $http({
             method: 'POST',
