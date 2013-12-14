@@ -1,0 +1,169 @@
+/* =Typography
+-----------------------------------------------------------------------------*/
+body {
+    background: #e6e6e7;
+    color: #000;
+    font-size: 14px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+p.text-info {
+    font-size: 12px;
+    color: #6d6d6d;
+    font-weight: normal;
+    line-height: 1.65em;
+}
+
+/* =Links
+-----------------------------------------------------------------------------*/
+
+a.link {
+    color: #23a866;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(35, 168, 102, 0.3);
+}
+
+a.link:hover {
+    color: #f47a36;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(244, 122, 54, 0.3);
+}
+
+a.pseudo {
+    color: #23a866;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(35, 168, 102, 0.3);
+}
+
+a.pseudo:hover {
+    color: #f47a36;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(244, 122, 54, 0.3);
+}
+
+a.add-new-client {
+    font-size: 12px;
+    margin: 0 10px;
+}
+
+
+/* =Layout
+-----------------------------------------------------------------------------*/
+
+.page {
+    max-width: 1140px;
+    margin: 20px auto;
+}
+
+.inside {
+    padding: 20px;
+}
+
+.inside-small {
+    padding: 10px;
+}
+
+.content {
+    background: #fff;
+}
+
+.one-server {
+    padding: 40px 20px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight: bold;
+    font-size: 17px;
+    border-bottom: 1px solid #e6e6e7;
+}
+
+.one-server p {
+    margin: 0;
+    line-height: 1em;
+}
+
+.one-server p.text-info {
+    margin: 5px 0 0 0;
+    line-height: 1.65em;
+}
+
+.one-server h3 {
+    color: #0e0e0e;
+    font-size: 17px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+}
+
+.one-server h4 {
+    color: #6d6d6d;
+    font-size: 18px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+}
+
+
+/* =Header
+-----------------------------------------------------------------------------*/
+
+#header {
+    background: url(images/forest.jpg) center center no-repeat;
+    height: 170px;
+    text-align: center;
+}
+
+.logo {
+    margin-top: 75px;
+}
+
+/* =Nav
+-----------------------------------------------------------------------------*/
+
+.main-menu {
+    background: #111;
+    padding: 10px 0;
+}
+
+.main-menu ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: center;
+}
+
+.main-menu ul li {
+    display: inline;
+    margin: 0 20px;
+}
+
+.main-menu ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    font-family: 'Philosopher', sans-serif;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.main-menu ul li a:hover {
+    border: 0;
+    opacity: 0.6;
+}
+
+
+/* =Misc
+-----------------------------------------------------------------------------*/
+
+.green {
+    color: #23a866;
+}
+
+.red {
+    color: #ff4848;
+}
+
+.number-big {
+    font-size: 50px;
+}
+
+
+/* =Footer
+-----------------------------------------------------------------------------*/

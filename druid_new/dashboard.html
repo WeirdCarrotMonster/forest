@@ -11,9 +11,10 @@
         <script type="text/javascript" src="/static_new/js/jquery-1.10.2.min.js"></script>
         <script type="text/javascript" src="/static_new/js/angular.min.js"></script>
         <script type="text/javascript" src="/static_new/js/main.js"></script>
+        <script type="text/javascript" src="/static_new/js/dashboard.js"></script>
     </head>
 
-    <body>
+    <body ng-controller="Dashboard">
 
         <div class="page">
             <div class="content">
@@ -29,49 +30,7 @@
                     </ul>
                 </div>
                 <div id="monitor">
-                    <div class="units-row units-row-end one-server">
-                        <div class="unit-20">
-                            <h3>VPS Hetzner <br />«The wise one»</h3>
-                            <p class="ip-address green">87.89.199.176</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Занятая память</h4>
-                            <p class="number-big red">90%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Подкачка</h4>
-                            <p class="number-big green">17%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Нагрузка</h4>
-                            <p class="number-big green">2%</p>
-                        </div>
-                        <div class="unit-20">
-                            <p class="text-info">На этом сервере крутится 42 инстанса. Аптайм составляет 30 дней.</p>
-                        </div>
-                    </div>
-                    <div class="units-row units-row-end one-server">
-                        <div class="unit-20">
-                            <h3>VPS Hetzner <br />«The wise one»</h3>
-                            <p class="ip-address green">87.89.199.176</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Занятая память</h4>
-                            <p class="number-big red">90%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Подкачка</h4>
-                            <p class="number-big green">17%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Нагрузка</h4>
-                            <p class="number-big green">2%</p>
-                        </div>
-                        <div class="unit-20">
-                            <p class="text-info">На этом сервере крутится 42 инстанса. Аптайм составляет 30 дней.</p>
-                        </div>
-                    </div>
-                    <div class="units-row units-row-end one-server">
+                    <div class="units-row units-row-end one-server" ng-repeat="server in servers">
                         <div class="unit-20">
                             <h3>VPS Hetzner <br />«The wise one»</h3>
                             <p class="ip-address green">87.89.199.176</p>

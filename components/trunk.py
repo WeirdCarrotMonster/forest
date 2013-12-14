@@ -67,6 +67,8 @@ class Trunk(tornado.web.Application):
             }
 
         # Обработка состояний сервера
+        if function == "dashboard_stats":
+            response = self.dashboard_stats(message)
         if function == "status_report":
             response = self.status_report(message)
         if function == "update_repository":
@@ -317,6 +319,38 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": "No response from leaves"
             }
+
+    def dashboard_stats(self, message):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        loads = []
+        for owl in client.trunk.owls.find():
+            response = self.send_message(
+                owl,
+                {
+                    "function": "status_report"
+                }
+            )
+            if response["result"] == "success":
+                one_load = response["mesaurements"]
+                one_load["name"] = owl["name"]
+                one_load["verbose_name"] = owl["verbose_name"]
+                one_load["result"] = "success"
+                loads.append(one_load)
+            else:
+                loads.append({
+                    "name": owl["name"],
+                    "result": "error"
+                })
+
+        return {
+            "result": "success",
+            "message": "Done",
+            "servers": loads
+        }
 
     def status_report(self, message):
         client = pymongo.MongoClient(
