@@ -33,7 +33,7 @@
                     <div class="units-row units-row-end one-server" ng-repeat="server in servers">
                         <div class="unit-20">
                             <h3>VPS Hetzner <br />«{{ server.verbose_name }}»</h3>
-                            <p class="ip-address green">87.89.199.176</p>
+                            <p class="ip-address green">{{ server.ip }}</p>
                         </div>
                         <div class="unit-20">
                             <h4>Занятая память</h4>

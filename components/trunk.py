@@ -339,11 +339,13 @@ class Trunk(tornado.web.Application):
                 one_load["name"] = owl["name"]
                 one_load["verbose_name"] = owl["verbose_name"]
                 one_load["result"] = "success"
+                one_load["ip"] = owl["host"]
                 loads.append(one_load)
             else:
                 loads.append({
                     "name": owl["name"],
-                    "result": "error"
+                    "result": "error",
+                    "ip": owl["host"]
                 })
 
         return {
