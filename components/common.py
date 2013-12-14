@@ -83,13 +83,24 @@ class CommonListener(tornado.web.RequestHandler):
 
 
 class TransparentListener(tornado.web.RequestHandler):
-    def get(self):
-        self.write("")
-
     def get_current_user(self):
         return self.get_secure_cookie("user")
 
-    def post(self):
+    def get(self, page):
+        # Вот тут выдаются страницы
+        # Все те, что не статика
+        # Потому что мне так велел велоцираптор иисус
+        try:
+            response = self.application.process_page(page, self.get_current_user())
+            with open(response, 'r') as file:
+                self.write(file.read())
+        except Exception as e:
+            self.write(e.message)
+
+    def post(self, stuff):
+        # Вот тут обрабатывается API
+        # Строго через POST
+        # Потому что мне так велел летающий макаронный монстр с фрикадельками
         try:
             message = json.loads(self.request.body)
         except ValueError:
@@ -101,6 +112,7 @@ class TransparentListener(tornado.web.RequestHandler):
             return
 
         response = self.application.process_message(message, handler=self, user=self.get_current_user())
+        self.set_header("Content-Type", "application/json")
         self.write(json.dumps(response, default=json_util.default))
 
 

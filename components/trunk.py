@@ -16,6 +16,12 @@ class Trunk(tornado.web.Application):
         self.socket = None
         self.handler = None
         self.logs = []
+        self.safe_urls = {
+            "login": "login.html",
+        }
+        self.auth_urls = {
+            "dashboard": "druid_new/dashboard.html"
+        }
 
     def log_event(self, event, type="info"):
         if self.socket:
@@ -23,6 +29,18 @@ class Trunk(tornado.web.Application):
             self.socket.send_message(event)
         else:
             self.logs.append(event)
+
+    def process_page(self, page, user):
+        if page in self.safe_urls.keys():
+            return self.safe_urls[page]
+
+        if page in self.auth_urls.keys() and user:
+            return self.auth_urls[page]
+
+        if page in self.auth_urls.keys() and not user:
+            raise Exception("Who's there?")
+
+        raise Exception("I'm sorry, Dave. I'm afraid I can't do that.")
 
     def process_message(self, message, socket=None, handler=None, user=None):
         self.socket = socket
