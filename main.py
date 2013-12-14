@@ -32,6 +32,7 @@ PID_DIR = os.path.join(FOREST_DIR, 'pid')
 
 JSON_DATA = open(os.path.join(FOREST_DIR, FILENAME))
 SETTINGS = json.load(JSON_DATA)
+SETTINGS["settings"]["REALPATH"] = FOREST_DIR
 JSON_DATA.close()
 
 if len(sys.argv) == 3 and sys.argv[2] == "shell_config":

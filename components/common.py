@@ -8,6 +8,7 @@ from components.shadow import encode, decode
 from datetime import datetime
 from bson import json_util
 import traceback
+import os
 
 
 class WebSocketListener(tornado.websocket.WebSocketHandler):
@@ -92,7 +93,7 @@ class TransparentListener(tornado.web.RequestHandler):
         # Потому что мне так велел велоцираптор иисус
         try:
             response = self.application.process_page(page, self.get_current_user())
-            with open(response, 'r') as file:
+            with open(os.path.join(self.application.settings["REALPATH"], response), 'r') as file:
                 self.write(file.read())
         except Exception as e:
             self.write(e.message)
