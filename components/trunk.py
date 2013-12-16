@@ -17,7 +17,7 @@ class Trunk(tornado.web.Application):
         self.handler = None
         self.logs = []
         self.safe_urls = {
-            "login": "login.html",
+            "login": "html/login.html",
         }
         self.auth_urls = {
             "dashboard": "html/dashboard.html"

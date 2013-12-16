@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html ng-app>
+<head>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+    <script src="/static_new/js/angular.min.js"></script>
+    <script src="/static_new/js/login.js"></script>
+    <link href="/static_new/css/signin.css" rel="stylesheet">
+    <title></title>
+</head>
+<body ng-controller="Login">
+    <div class="container">
+        <form class="form-signin" role="form" ng-submit="loginUser()">
+            <h2 class="form-signin-heading">Please sign in</h2>
+            <input ng-model="username" type="text" class="form-control" placeholder="Username" required autofocus>
+            <input ng-model="password" type="password" class="form-control" placeholder="Password" required>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+        </form>
+    </div>
+</body>
+</html>
