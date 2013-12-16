@@ -20,7 +20,8 @@ class Trunk(tornado.web.Application):
             "login": "html/login.html",
         }
         self.auth_urls = {
-            "dashboard": "html/dashboard.html"
+            "dashboard": "html/dashboard.html",
+            "leaves": "html/leaves.html"
         }
 
     def log_event(self, event, type="info"):
@@ -252,9 +253,13 @@ class Trunk(tornado.web.Application):
 
         leaf_names = []
         leaf_names_all = []
-        for leaf in client.trunk.leaves.find({"active":True}):
+        leaves = []
+        for leaf in client.trunk.leaves.find({"active": True}):
             leaf_names.append(leaf["name"])
             leaf_names_all.append(leaf["name"])
+
+        success = False
+        failure = False
 
         for branch in client.trunk.branches.find():
             self.log_event({
@@ -269,15 +274,12 @@ class Trunk(tornado.web.Application):
                 }
             )
 
-            success = False
-            failure = False
-
             if response["result"] == "success":
                 for leaf in response["leaves"]:
                     # Лист есть в списке активных и в списке необработанных
                     if leaf["name"] in leaf_names_all and leaf["name"] in leaf_names:
                         success = success or True
-                        self.log_event(leaf)
+                        leaves.append(leaf)
                         leaf_names.remove(leaf["name"])
                     # Лист есть в списке активных, но его уже обработали
                     elif leaf["name"] in leaf_names_all and leaf["name"] not in leaf_names:
@@ -307,17 +309,20 @@ class Trunk(tornado.web.Application):
         if success and not failure:
             return {
                 "result": "success",
-                "message": "All leaves responded"
+                "message": "All leaves responded",
+                "leaves": leaves
             }
         elif success and failure:
             return {
                 "result": "warning",
-                "message": "Some leaves failed to respond"
+                "message": "Some leaves failed to respond",
+                "leaves": leaves
             }
         else:
             return {
                 "result": "failure",
-                "message": "No response from leaves"
+                "message": "No response from leaves",
+                "leaves": leaves
             }
 
     def dashboard_stats(self, message):
