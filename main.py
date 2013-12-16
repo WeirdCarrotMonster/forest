@@ -41,6 +41,7 @@ if len(sys.argv) == 3 and sys.argv[2] == "shell_config":
 
 # Определяем слушателей по ролям
 LISTENERS = []
+loop = tornado.ioloop.IOLoop.instance()
 
 if not SETTINGS["role"] in ["roots", "trunk", "branch", "air", "owl"]:
     log_message(
@@ -65,6 +66,13 @@ if SETTINGS["role"] == "trunk":
     LISTENERS.append((r"/websocket", WebSocketListener))
     LISTENERS.append((r"/(.*)", TransparentListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
+
+    # Частота обновления логов - одна минута
+    # TODO: брать из настроек
+    PERIOD = 1
+    period_cbk = tornado.ioloop.PeriodicCallback(APPLICATION.log_stats, 1000*60*PERIOD, loop)
+    period_cbk.start()
+
 
 if SETTINGS["role"] == "branch":
     LISTENERS.append((r"/", CommonListener))
@@ -104,4 +112,4 @@ def cleanup(signum=None, frame=None):
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
     signal.signal(sig, cleanup)
 
-tornado.ioloop.IOLoop.instance().start()
+loop.start()

@@ -189,6 +189,46 @@ class Trunk(tornado.web.Application):
             ]
         }
 
+    def log_stats(self):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+
+        leaves_list = client.trunk.leaves.find()
+        leaves = {}
+        for leaf in leaves_list:
+            leaves[leaf["name"]] = leaf
+
+        log = {}
+
+        for branch in client.trunk.branches.find():
+            response = self.send_message(
+                branch,
+                {
+                    "function": "known_leaves"
+                }
+            )
+
+            if response["result"] == "success":
+                for leaf in response["leaves"]:
+                    log[leaf["name"]] = leaf["mem"]
+            else:
+                pass
+
+        logs_document = client.trunk.logs.find_one({"type": "memory"})
+        if not logs_document:
+            client.trunk.logs.insert({"type": "memory", "values": []})
+            logs = []
+        else:
+            logs = logs_document["values"]
+
+        if len(logs) > 12 * 60:
+            logs.pop(0)
+
+        logs.append(log)
+        client.trunk.logs.update({"type": "memory"}, {"$set": {"values": logs}})
+
     def login_user(self, message, user=None):
         if user:
             return {
