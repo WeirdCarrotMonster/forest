@@ -251,12 +251,10 @@ class Trunk(tornado.web.Application):
             self.settings["mongo_port"]
         )
 
-        leaf_names = []
-        leaf_names_all = []
-        leaves = []
-        for leaf in client.trunk.leaves.find({"active": True}):
-            leaf_names.append(leaf["name"])
-            leaf_names_all.append(leaf["name"])
+        leaves_list = sorted(client.trunk.leaves.find(), key=lambda k: k.get('branch', ""))
+        leaves = {}
+        for leaf in leaves_list:
+            leaves[leaf["name"]] = leaf
 
         success = False
         failure = False
@@ -277,13 +275,12 @@ class Trunk(tornado.web.Application):
             if response["result"] == "success":
                 for leaf in response["leaves"]:
                     # Лист есть в списке активных и в списке необработанных
-                    if leaf["name"] in leaf_names_all and leaf["name"] in leaf_names:
+                    if leaves[leaf["name"]].get("active", False) and not leaves[leaf["name"]].get("processed", False):
                         success = success or True
-                        leaf["branch"] = branch
-                        leaves.append(leaf)
-                        leaf_names.remove(leaf["name"])
+                        leaves[leaf["name"]]["mem"] = leaf["mem"]
+                        leaves[leaf["name"]]["processed"] = True
                     # Лист есть в списке активных, но его уже обработали
-                    elif leaf["name"] in leaf_names_all and leaf["name"] not in leaf_names:
+                    elif leaves[leaf["name"]].get("active", False) and leaves[leaf["name"]].get("processed", False):
                         self.log_event({
                             "warning": "Duplicate leaf found",
                             "component": "leaf",
