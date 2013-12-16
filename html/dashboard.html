@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app>
+<html ng-app="forest">
 
     <head>
         <meta charset="utf-8">
@@ -10,6 +10,8 @@
         <link rel="stylesheet" type="text/css" href="/static_new/style.css" />
         <script type="text/javascript" src="/static_new/js/jquery-1.10.2.min.js"></script>
         <script type="text/javascript" src="/static_new/js/angular.min.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <script src="/static_new/js/line-chart.min.js"></script>
         <script type="text/javascript" src="/static_new/js/main.js"></script>
         <script type="text/javascript" src="/static_new/js/dashboard.js"></script>
     </head>
@@ -53,6 +55,7 @@
                     </div>
                 </div>
             </div>
+            <linechart data="data" options="options"></linechart>
         </div>
 
     </body>

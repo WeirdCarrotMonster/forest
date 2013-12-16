@@ -76,6 +76,8 @@ class Trunk(tornado.web.Application):
             response = self.update_repo(message)
         if function == "check_leaves":
             response = self.check_leaves(message)
+        if function == "get_memory_logs":
+            response = self.get_memory_logs(message)
 
         # Работа с ветвями
         if function == "add_branch":
@@ -228,6 +230,21 @@ class Trunk(tornado.web.Application):
 
         logs.append(log)
         client.trunk.logs.update({"type": "memory"}, {"$set": {"values": logs}})
+
+    def get_memory_logs(self, message):
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        values = client.trunk.logs.find_one({"type": "memory"}).get("values")
+        keys = [leaf["name"] for leaf in client.trunk.leaves.find()]
+
+        return {
+            "type": "result",
+            "result": "success",
+            "values": values,
+            "keys": keys
+        }
 
     def login_user(self, message, user=None):
         if user:
