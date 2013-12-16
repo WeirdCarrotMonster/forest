@@ -69,7 +69,7 @@ if SETTINGS["role"] == "trunk":
 
     # Частота обновления логов - одна минута
     # TODO: брать из настроек
-    PERIOD = 1
+    PERIOD = 10
     period_cbk = tornado.ioloop.PeriodicCallback(APPLICATION.log_stats, 1000*60*PERIOD, loop)
     period_cbk.start()
 
