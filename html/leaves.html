@@ -32,7 +32,7 @@
                 <div id="monitor">
                     <div class="units-row units-row-end one-server" ng-repeat="leaf in leaves">
                         <div class="unit-20">
-                            <h3>VPS Hetzner <br />«{{ leaf.name }}»</h3>
+                            <h3>VPS Hetzner <br /><a href="{{ leaf.address }}">«{{ leaf.name }}»</a></h3>
                             <p class="ip-address green">{{ leaf.branch }}</p>
                         </div>
                         <div class="unit-20">

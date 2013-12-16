@@ -251,7 +251,7 @@ class Trunk(tornado.web.Application):
             self.settings["mongo_port"]
         )
 
-        leaves_list = sorted(client.trunk.leaves.find(), key=lambda k: k.get('branch', ""))
+        leaves_list = client.trunk.leaves.find()
         leaves = {}
         for leaf in leaves_list:
             leaves[leaf["name"]] = leaf
