@@ -279,6 +279,7 @@ class Trunk(tornado.web.Application):
                     # Лист есть в списке активных и в списке необработанных
                     if leaf["name"] in leaf_names_all and leaf["name"] in leaf_names:
                         success = success or True
+                        leaf["branch"] = branch
                         leaves.append(leaf)
                         leaf_names.remove(leaf["name"])
                     # Лист есть в списке активных, но его уже обработали
