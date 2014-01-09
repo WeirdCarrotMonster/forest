@@ -225,8 +225,8 @@ class Trunk(tornado.web.Application):
         else:
             logs = logs_document["values"]
 
-        if len(logs) > 12 * 60:
-            logs.pop(0)
+        if len(logs) > 100:
+            logs = logs[-99:]
 
         logs.append(log)
         client.trunk.logs.update({"type": "memory"}, {"$set": {"values": logs}})
