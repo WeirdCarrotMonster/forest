@@ -1,21 +1,52 @@
 <!DOCTYPE html>
 <html ng-app>
 <head>
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Login - Forest</title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+
+    <link rel="stylesheet" href="/static_new/css/main.css">
+    <link rel="stylesheet" href="/static_new/css/login.css">
+
     <script src="/static_new/js/angular.min.js"></script>
     <script src="/static_new/js/login.js"></script>
-    <link href="/static_new/css/signin.css" rel="stylesheet">
-    <title></title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <!--[if lt IE 9]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
 </head>
-<body ng-controller="Login">
-    <div class="container">
-        <form class="form-signin" role="form" ng-submit="loginUser()">
-            <h2 class="form-signin-heading">Please sign in</h2>
-            <input ng-model="username" type="text" class="form-control" placeholder="Username" required autofocus>
-            <input ng-model="password" type="password" class="form-control" placeholder="Password" required>
-            <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
-        </form>
-    </div>
+<body>
+<div class="container" ng-controller="Login">
+    <main>
+        <section class="units-row">
+            <div class="unit-centered unit-30 unit-white">
+                <header class="units-row unit-header unit-green">
+                    <div class="unit-centered unit-80">
+                        <a href="#"><img src="images/logo.png" alt="Forest"></a>
+                    </div>
+                </header>
+                <section class="units-row">
+                    <div class="unit-centered unit-80">
+                        <form action="#" role="form" ng-submit="loginUser()">
+                            <p>
+                                <input ng-model="username" type="text" class="width-100" placeholder="Логин">
+                                <input ng-model="password" type="password" class="width-100" placeholder="Пароль">
+                            </p>
+                            <p><a href="#" class="button medium">Войти</a></p>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+    <footer class="footer units-row">
+        <div class="container">
+            <p>ç 2013 Noble code</p>
+        </div>
+    </footer>
+</div>
 </body>
 </html>
