@@ -29,17 +29,22 @@ class Leaf():
         self.settings = json.dumps(settings)
         self.pid = 0
 
-    def prepare_database(self):
-        cmd = [
-            self.python_executable,
-            self.executable,
-            "syncdb",
-            "--noinput"
-        ]
+    def init_database(self):
+        # Два шага инициализации нового инстанса:
+        # syncdb для создания основных таблиц
+        # migrate для создания таблиц, управляемых через south
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
-        subprocess.Popen(cmd, env=my_env, shell=False)
+        subprocess.Popen([self.python_executable, self.executable, "syncdb", "--noinput"], env=my_env, shell=False)
+        subprocess.Popen([self.python_executable, self.executable, "migrate"], env=my_env, shell=False)
+
+    def update_database(self):
+        # Обновляем таблицы через south
+        my_env = os.environ
+        my_env["DATABASE_SETTINGS"] = self.launch_env
+        my_env["APPLICATION_SETTINGS"] = self.settings
+        subprocess.Popen([self.python_executable, self.executable, "migrate"], env=my_env, shell=False)
 
     def mem_usage(self):
         try:

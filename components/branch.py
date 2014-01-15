@@ -150,7 +150,7 @@ class Branch(tornado.web.Application):
                 "comment": "found existing leaf"
             }
 
-        log_message("Creating new leaf: {0}".format(name), component="Branch")
+        log_message("Creating new leaf: {0}, with initdb: {1}".format(name, initdb), component="Branch")
 
         new_leaf = Leaf(
             name=name,
@@ -166,7 +166,7 @@ class Branch(tornado.web.Application):
             new_leaf.start()
             self.leaves.append(new_leaf)
             if initdb:
-                new_leaf.prepare_database()
+                new_leaf.init_database()
         except Exception:
             self.settings["port_range"].append(new_leaf.fcgi_port)
             return {
@@ -252,5 +252,6 @@ class Branch(tornado.web.Application):
             }
         for leaf in self.leaves:
             leaf.stop()
+            leaf.update_database()
             leaf.start()
         return result
