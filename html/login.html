@@ -18,8 +18,8 @@
         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 </head>
-<body>
-<div class="container" ng-controller="Login">
+<body ng-controller="Login">
+<div class="container">
     <main>
         <section class="units-row">
             <div class="unit-centered unit-30 unit-white">
@@ -30,12 +30,12 @@
                 </header>
                 <section class="units-row">
                     <div class="unit-centered unit-80">
-                        <form action="#" role="form" ng-submit="loginUser()">
+                        <form action="#" role="form">
                             <p>
                                 <input ng-model="username" type="text" class="width-100" placeholder="Логин">
                                 <input ng-model="password" type="password" class="width-100" placeholder="Пароль">
                             </p>
-                            <p><a href="#" class="button medium">Войти</a></p>
+                            <p><a href="#" ng-click="loginUser()" class="button medium">Войти</a></p>
                         </form>
                     </div>
                 </section>
