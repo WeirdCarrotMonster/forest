@@ -29,8 +29,10 @@ function Leaves($scope, $http, $timeout) {
             }
         }).
         success(function(data, status, headers, config) {
-            $scope.leaves = data["leaves"];
-            console.log(data);
+            $scope.leaves = [];
+            var a = data["leaves"];
+            while (a.length > 0)
+                $scope.leaves.push(a.splice(0, size));
         }).
         error(function(data, status, headers, config) {
           // called asynchronously if an error occurs
