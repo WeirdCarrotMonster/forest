@@ -1,0 +1,16 @@
+/* =Login Custom
+-----------------------------------------------------------------------------*/
+
+main > * {
+	position: absolute;
+	top: 5%;
+	width: 100%;
+}
+
+.footer {
+	position: absolute;
+	bottom: 0;
+}
+	.footer p {
+		text-align: center;
+	}
