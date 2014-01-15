@@ -93,6 +93,6 @@ class Leaf():
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
-        subprocess.call(['kill', '-SIGQUIT', str(self.pid)])
+        subprocess.call(['kill', '-3', str(self.pid)])
         os.remove(self.pidfile)
         self.pid = 0
