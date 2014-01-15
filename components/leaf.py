@@ -32,6 +32,7 @@ class Leaf():
         self.launch_env = json.dumps(env)
         self.settings = json.dumps(settings)
         self.pid = 0
+        self.process = None
 
     def init_database(self):
         # Два шага инициализации нового инстанса:
@@ -51,16 +52,16 @@ class Leaf():
         subprocess.Popen([self.python_executable, self.executable, "migrate"], env=my_env, shell=False)
 
     def mem_usage(self):
-        try:
+        if self.process.poll() == None:
             mem = int(subprocess.check_output(
                 [
                     'ps', 
                     '-p', 
-                    str(self.pid), 
+                    str(self.process.pid), 
                     '-o', 
                     'rss='])
             )
-        except:
+        else:
             mem = 0
         return mem/1024
 
@@ -71,28 +72,22 @@ class Leaf():
             "uwsgi",
             "--chdir=" + self.chdir,
             "--module=wsgi:application",
-            "--pidfile=" + self.pidfile,
             "--master",
             "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
-            "--processes=4",
-            "--daemonize=" + self.logfile
+            "--processes=4"
         ]
         print(' '.join(cmd))
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
-        subprocess.call(cmd, env=my_env)
-        log_message("Started leaf {0}".format(self.name), component="Leaf")
-        try:
-            pidfile_result = open(self.pidfile, 'r')
-            self.pid = int(pidfile_result.read().strip())
-            pidfile_result.close()
-        except Exception:
+        self.process = subprocess.Popen(cmd, env=my_env)
+        if self.process.poll() == None:
+            log_message("Started leaf {0}".format(self.name), component="Leaf")
+        else:
             raise Exception("Launch failed: {0}".format(traceback.format_exc()))
+            
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
-        subprocess.call(['kill', '-3', str(self.pid)])
-        os.remove(self.pidfile)
-        self.pid = 0
+        self.process.kill()
