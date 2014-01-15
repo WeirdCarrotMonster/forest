@@ -1,4 +1,4 @@
-function Dashboard($scope, $http, $timeout) {
+function Leaves($scope, $http, $timeout) {
     $scope.leaves = [];
 
     $scope.getNiceLookingPercent = function(part, all){
