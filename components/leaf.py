@@ -75,7 +75,7 @@ class Leaf():
             "--master",
             "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
             "--processes=4",
-            "-b=65535"
+            "--buffer-size=65535"
         ]
         print(' '.join(cmd))
         my_env = os.environ
