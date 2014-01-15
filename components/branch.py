@@ -27,6 +27,8 @@ class Branch(tornado.web.Application):
             response = self.add_leaf(message)
         if function == "delete_leaf":
             response = self.delete_leaf(message)
+        if function == "restart_leaf":
+            response = self.restart_leaf(message)
         if function == "status_report":
             response = self.status_report()
         if function == "known_leaves":
@@ -220,6 +222,27 @@ class Branch(tornado.web.Application):
         return {
             "result": "success",
             "message": "deleted leaf info from server"
+        }
+
+    def restart_leaf(self, message):
+        name = message.get("name", None)
+        if not name:
+            return {
+                "result": "failure",
+                "message": "missing argument: name"
+            }
+
+        for leaf in self.leaves:
+            if leaf.name == name:
+                leaf.stop()
+                leaf.start()
+
+        log_message("Restarting leaf '{0}'".format(name), 
+            component="Branch")
+
+        return {
+            "result": "success",
+            "message": "restarted leaf {0}".format(name)
         }
 
     def update_repo(self):
