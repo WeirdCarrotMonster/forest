@@ -14,7 +14,9 @@ class Leaf():
                  fcgi_host="127.0.0.1",
                  fcgi_port=3000,
                  pidfile=None,
+                 logfile=None,
                  executable=None,
+                 chdir=None,
                  env={},
                  settings={}
                  ):
@@ -24,6 +26,8 @@ class Leaf():
         self.fcgi_host = fcgi_host
         self.fcgi_port = fcgi_port
         self.pidfile = pidfile
+        self.logfile = logfile
+        self.chdir = chdir
         self.executable = executable
         self.launch_env = json.dumps(env)
         self.settings = json.dumps(settings)
@@ -64,14 +68,17 @@ class Leaf():
         # TODO: кидать exception, если присутствуют не все настройки
         # что-то через not all(..)
         cmd = [
-            self.python_executable,
-            self.executable,
-            "runfcgi",
-            "method=" + self.fcgi_method,
-            "host=" + self.fcgi_host,
-            "port=" + str(self.fcgi_port),
-            "pidfile=" + self.pidfile
+            "uwsgi",
+            "--fastcgi-socket",
+            "--chdir=" + self.chdir,
+            "--module=wsgi:application",
+            "--pidfile=" + self.pidfile,
+            "--master",
+            "--socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
+            "--processes=4",
+            "--daemonize=" + self.logfile
         ]
+        print(' '.join(cmd))
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
@@ -87,6 +94,6 @@ class Leaf():
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
-        subprocess.call(['kill', str(self.pid)])
+        subprocess.call(['kill', '-SIGQUIT', str(self.pid)])
         os.remove(self.pidfile)
         self.pid = 0
