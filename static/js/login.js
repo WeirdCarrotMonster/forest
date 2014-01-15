@@ -17,6 +17,9 @@ function Login($scope, $http, $location) {
             if (data["result"] == "success"){
                 window.location.href = "/dashboard";
             }
+            else{
+                $(".login").addClass("shake");
+            }
         }).
         error(function(data, status) {
         });
