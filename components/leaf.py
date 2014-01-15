@@ -69,12 +69,11 @@ class Leaf():
         # что-то через not all(..)
         cmd = [
             "uwsgi",
-            "--fastcgi-socket",
             "--chdir=" + self.chdir,
             "--module=wsgi:application",
             "--pidfile=" + self.pidfile,
             "--master",
-            "--socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
+            "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
             "--processes=4",
             "--daemonize=" + self.logfile
         ]
