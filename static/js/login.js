@@ -19,7 +19,7 @@ function Login($scope, $http, $location) {
             }
             else{
                 $(".login").removeClass("fadeInDown").removeClass("shake")
-                $(".login").addClass("shake");
+                $(".login").addClass("shake").removeClass("shake");
             }
         }).
         error(function(data, status) {
