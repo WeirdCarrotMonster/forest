@@ -18,8 +18,8 @@ function Login($scope, $http, $location) {
                 window.location.href = "/dashboard";
             }
             else{
-                $(".login").removeClass("fadeInDown").removeClass("shake")
-                $(".login").addClass("shake").removeClass("shake");
+                $(".login").removeClass("fadeInDown");
+                $(".login").addClass("shake");
             }
         }).
         error(function(data, status) {
