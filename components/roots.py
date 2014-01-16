@@ -9,6 +9,7 @@ from components.common import log_message
 
 
 class Roots(tornado.web.Application):
+
     def __init__(self, settings_dict, **settings):
         super(Roots, self).__init__(**settings)
         self.settings = settings_dict
@@ -33,6 +34,7 @@ class Roots(tornado.web.Application):
             "message": "Working well",
             "role": "roots"
         }
+
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
@@ -81,9 +83,9 @@ class Roots(tornado.web.Application):
             }
 
         log_message(
-            "Preparing database for {0}".format(name), 
+            "Preparing database for {0}".format(name),
             component="Roots"
-            )
+        )
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
@@ -93,10 +95,10 @@ class Roots(tornado.web.Application):
         if leaf:
             log_message(
                 "Found existing database {0} for leaf {1}".format(
-                    leaf["db_name"], 
-                    name), 
+                    leaf["db_name"],
+                    name),
                 component="Roots"
-                )
+            )
             result = {
                 "result": "success",
                 "env":
@@ -136,9 +138,9 @@ class Roots(tornado.web.Application):
         }
 
         log_message(
-            "No existing database; creating new called {0}".format(db_name), 
+            "No existing database; creating new called {0}".format(db_name),
             component="Roots"
-            )
+        )
 
         db = MySQLdb.connect(
             host=self.settings.get("mysql_inner", "127.0.0.1"),
@@ -156,7 +158,7 @@ class Roots(tornado.web.Application):
                 IDENTIFIED BY '{2}' WITH GRANT OPTION;
                 FLUSH PRIVILEGES;
                 """.format(db_name, username, password)
-                )
+            )
             db.close()
         except Exception, e:
             result = {

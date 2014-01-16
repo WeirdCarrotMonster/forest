@@ -7,16 +7,16 @@ from components.leaf import Leaf
 from components.common import log_message
 import pymongo
 import traceback
-import simplejson as json
 
 
 class Branch(tornado.web.Application):
+
     def __init__(self, settings_dict, **settings):
         super(Branch, self).__init__(**settings)
         self.settings = settings_dict
         self.leaves = []
         self.settings["port_range"] = range(
-            self.settings["port_range_begin"], 
+            self.settings["port_range_begin"],
             self.settings["port_range_end"])
         self.init_leaves()
 
@@ -60,19 +60,19 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         for leaf in leaves.find():
             log_message("Found leaf {0} in configuration".format(
-                leaf["name"]), 
+                leaf["name"]),
                 component="Branch"
-                )
+            )
             new_leaf = Leaf(
                 name=leaf["name"],
                 chdir=self.settings["chdir"],
                 executable=self.settings["executable"],
                 fcgi_host=self.settings["host"],
                 fcgi_port=leaf["port"],
-                pidfile=os.path.join(self.settings["pid_dir"], 
-                    leaf["name"] + '.pid'),
-                logfile=os.path.join(self.settings["log_dir"], 
-                    leaf["name"] + '.log'),
+                pidfile=os.path.join(self.settings["pid_dir"],
+                                     leaf["name"] + '.pid'),
+                logfile=os.path.join(self.settings["log_dir"],
+                                     leaf["name"] + '.log'),
                 env=leaf.get("env", {}),
                 settings=leaf.get("settings", {})
             )
@@ -101,7 +101,7 @@ class Branch(tornado.web.Application):
         for leaf in self.leaves:
             known_leaves.append({
                 "name": leaf.name,
-                "port": leaf.fcgi_port ,
+                "port": leaf.fcgi_port,
                 "env": leaf.launch_env,
                 "settings": leaf.settings,
                 "mem": leaf.mem_usage()
@@ -148,7 +148,8 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing leaf: {0}".format(name), component="Branch")
+            log_message(
+                "Found existing leaf: {0}".format(name), component="Branch")
             return {
                 "result": "success",
                 "host": self.settings["host"],
@@ -156,7 +157,8 @@ class Branch(tornado.web.Application):
                 "comment": "found existing leaf"
             }
 
-        log_message("Creating new leaf: {0}, with initdb: {1}".format(name, initdb), component="Branch")
+        log_message("Creating new leaf: {0}, with initdb: {1}".format(
+            name, initdb), component="Branch")
 
         new_leaf = Leaf(
             name=name,
@@ -210,8 +212,8 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        log_message("Deleting leaf '{0}' from server".format(name), 
-            component="Branch")
+        log_message("Deleting leaf '{0}' from server".format(name),
+                    component="Branch")
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -311,9 +313,9 @@ class Branch(tornado.web.Application):
         try:
             if repo_type == "git":
                 cmd = [
-                    "git", 
-                    "--git-dir={0}/.git".format(path), 
-                    "--work-tree={0}".format(path), 
+                    "git",
+                    "--git-dir={0}/.git".format(path),
+                    "--work-tree={0}".format(path),
                     "pull"
                 ]
                 output = check_output(cmd, stderr=STDOUT)

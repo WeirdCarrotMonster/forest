@@ -6,6 +6,7 @@ import pymongo
 
 
 class Air(tornado.web.Application):
+
     def __init__(self, settings_dict, **settings):
         super(Air, self).__init__(**settings)
         self.settings = settings_dict
@@ -47,7 +48,7 @@ class Air(tornado.web.Application):
                 leaf_data[arg] = value
 
         print("Publishing leaf {0} on address {1}".format(
-            leaf_data["name"], 
+            leaf_data["name"],
             leaf_data["address"])
         )
 
@@ -82,9 +83,9 @@ class Air(tornado.web.Application):
         return {
             "result": "success",
             "message": "Published leaf {0} on address {1}".format(
-                leaf_data["name"], 
+                leaf_data["name"],
                 leaf_data["address"]
-                )
+            )
         }
 
     def unpublish_leaf(self, message):

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import tornado.web
 import simplejson as json
 import tornado.httpclient
@@ -9,6 +9,7 @@ import hashlib
 
 
 class Trunk(tornado.web.Application):
+
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
@@ -123,7 +124,8 @@ class Trunk(tornado.web.Application):
             body = encode(post_data, receiver["secret"])
             response = json.loads(
                 decode(http_client.fetch(
-                    "http://{0}:{1}".format(receiver["host"], receiver["port"]),
+                    "http://{0}:{1}".format(
+                        receiver["host"], receiver["port"]),
                     method='POST',
                     body=body,
                     allow_ipv6=True
@@ -231,7 +233,8 @@ class Trunk(tornado.web.Application):
             logs = logs[-99:]
 
         logs.append(log)
-        client.trunk.logs.update({"type": "memory"}, {"$set": {"values": logs}})
+        client.trunk.logs.update(
+            {"type": "memory"}, {"$set": {"values": logs}})
 
     def get_memory_logs(self, message):
         client = pymongo.MongoClient(
@@ -333,7 +336,8 @@ class Trunk(tornado.web.Application):
 
             if response["result"] == "success":
                 for leaf in response["leaves"]:
-                    leaves[leaf["name"]]["settings"] = leaves[leaf["name"]].get("settings", {})
+                    leaves[leaf["name"]]["settings"] = leaves[
+                        leaf["name"]].get("settings", {})
                     # Лист есть в списке активных и в списке необработанных
                     if leaves[leaf["name"]].get("active", False) and not leaves[leaf["name"]].get("processed", False):
                         success = success or True
@@ -623,7 +627,8 @@ class Trunk(tornado.web.Application):
         if not component:
             return {
                 "result": "failure",
-                "message": "failed to get component: logic error, check code"  # реально не должно выпадать
+                # реально не должно выпадать
+                "message": "failed to get component: logic error, check code"
             }
 
         post_data = {
@@ -1083,7 +1088,7 @@ class Trunk(tornado.web.Application):
                 "$set": {
                     "address": leaf["address"],
                     "branch": leaf_data["destination"],
-                    "port": new_branch_response["port"],    
+                    "port": new_branch_response["port"],
                 }
             },
             upsert=False,
