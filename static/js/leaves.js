@@ -1,5 +1,15 @@
 function Leaves($scope, $http, $timeout) {
     $scope.leaves = [];
+    $scope.leaf_settings = "";
+    $scope.settings_element = null;
+
+    $scope.closeSettings = function() {
+        $scope.settings_element = null;
+    }
+
+    $scope.openSettings = function(leaf) {
+        $scope.settings_element = leaf;
+    }
 
     $scope.enableLeaf = function(leaf) {
         $http({
@@ -16,6 +26,8 @@ function Leaves($scope, $http, $timeout) {
         error(function(data, status, headers, config) {
         });
     };
+
+
 
     $scope.disableLeaf = function(leaf) {
         $http({

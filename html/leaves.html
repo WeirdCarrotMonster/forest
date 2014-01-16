@@ -61,7 +61,7 @@
                                     </div>
                                     <br>
                                     <a href="" class="blue"><b>Перенести</b></a><br><br>
-                                    <a href="" class="blue"><b>Настроить</b></a>
+                                    <a href="" ng-click="openSettings(leaf)" class="blue"><b>Настроить</b></a>
                                 </section>
                             </section>
                         </div>
@@ -76,21 +76,14 @@
             </div>
         </div>
     </footer>
-    <div class="unit-100 pop-up" style="display: none;">
+    <div class="unit-100 pop-up" ng-class="{hidden: settings_element == null}">
         <div class="unit-25 unit-centered unit-white">
-            <a href="#" class="pop-up-close"><b class="fa fa-times fa-lg"></b></a>
+            <a href="" ng-click="closeSettings" class="pop-up-close"><b class="fa fa-times fa-lg"></b></a>
             <div class="unit-90 unit-centered">
-                <header class="units-row-end unit-header"><h1>Настройки</h1></header>
+                <header class="units-row-end unit-header"><h1>Настройки {{ settings_element.name }}</h1></header>
                 <section class="units-row">
                     <form action="#" class="forms">
-                        <p><label><b>Адрес</b><input type="text" class="width-80"></label></p>
-                        <p><label>
-                            <b>Стиль</b>
-                            <select name="user-country" class="width-50">
-                                <option>Expresso</option>
-                            </select>
-                        </label></p>
-                        <p><label><b>Ограничение филиалов</b><input type="number" class="width-25"></label></p>
+                        <textarea id="settings" ng-model="leaf_settings"></textarea>
                         <a href="#" class="button medium">Сохранить</a>
                     </form>
                 </section>
