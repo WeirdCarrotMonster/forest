@@ -78,12 +78,13 @@
     </footer>
     <div class="unit-100 pop-up" ng-class="{hidden: settings_element == null}">
         <div class="unit-25 unit-centered unit-white">
-            <a href="" ng-click="closeSettings" class="pop-up-close"><b class="fa fa-times fa-lg"></b></a>
+            <a href="" ng-click="closeSettings()" class="pop-up-close"><b class="fa fa-times fa-lg"></b></a>
             <div class="unit-90 unit-centered">
                 <header class="units-row-end unit-header"><h1>Настройки {{ settings_element.name }}</h1></header>
                 <section class="units-row">
                     <form action="#" class="forms">
-                        <textarea id="settings" ng-model="leaf_settings"></textarea>
+                        <textarea id="settings" class="width-100" ng-model="leaf_settings"></textarea>
+                        <br>
                         <a href="#" class="button medium">Сохранить</a>
                     </form>
                 </section>
