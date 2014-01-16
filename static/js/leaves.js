@@ -19,6 +19,7 @@ function Leaves($scope, $http, $timeout) {
             url: '/',
             data: {
                 function: "change_settings",
+                name: $scope.settings_element.name,
                 settings: $scope.leaf_settings
             }
         }).
