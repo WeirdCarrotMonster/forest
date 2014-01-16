@@ -1177,7 +1177,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'settigs']
+        required_args = ['name', 'settings']
         leaf_data = {}
         for arg in required_args:
             value = message.get(arg, None)
