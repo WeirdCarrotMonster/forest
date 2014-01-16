@@ -103,4 +103,8 @@ class Leaf():
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
-        self.process.kill()
+        try:
+            self.process.kill()
+            self.process.wait()
+        except OSError:
+            pass
