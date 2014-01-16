@@ -1,23 +1,20 @@
 function Leaves($scope, $http, $timeout) {
     $scope.leaves = [];
 
-    $scope.getNiceLookingPercent = function(part, all){
-        if (all == 0){
-            all = 100;
-        }
-        return ((part/all)*100).toFixed(0);
-    };
-
-    $scope.getLoadClass = function(part, all){
-        if (all == 0){
-            all = 100;
-        }
-        if ((part/all)*100 > 75){
-            return "red";
-        }
-        else{
-            return "green"
-        }
+    $scope.shutdownLeaf = function(leaf) {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "disable_leaf",
+                name: leaf.name
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.getLeavesData();
+        }).
+        error(function(data, status, headers, config) {
+        });
     };
 
     $scope.getLeavesData = function() {
@@ -36,7 +33,6 @@ function Leaves($scope, $http, $timeout) {
            });
            console.log(a);
             while (a.length > 0){
-               console.log("processing shit");
                 $scope.leaves.push(a.splice(0, 2));
            }
         }).
