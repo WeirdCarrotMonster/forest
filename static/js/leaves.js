@@ -9,7 +9,7 @@ function Leaves($scope, $http, $timeout) {
 
     $scope.openSettings = function(leaf) {
         $scope.settings_element = leaf;
-        $scope.leaf_settings = JSON.stringify(leaf.settings);
+        $scope.leaf_settings = JSON.stringify(leaf.settings, undefined, 2);
     }
 
     $scope.enableLeaf = function(leaf) {
