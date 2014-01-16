@@ -331,12 +331,11 @@ class Trunk(tornado.web.Application):
 
             if response["result"] == "success":
                 for leaf in response["leaves"]:
-                    # Записываем адрес ветви
-                    leaf["host"] = branch["host"]
                     # Лист есть в списке активных и в списке необработанных
                     if leaves[leaf["name"]].get("active", False) and not leaves[leaf["name"]].get("processed", False):
                         success = success or True
                         leaves[leaf["name"]]["mem"] = leaf["mem"]
+                        leaves[leaf["name"]]["host"] = branch["host"]
                         leaves[leaf["name"]]["processed"] = True
                     # Лист есть в списке активных, но его уже обработали
                     elif leaves[leaf["name"]].get("active", False) and leaves[leaf["name"]].get("processed", False):
