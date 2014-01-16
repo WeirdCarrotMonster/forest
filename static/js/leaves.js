@@ -29,7 +29,6 @@ function Leaves($scope, $http, $timeout) {
             }
         }).
         success(function(data, status, headers, config) {
-           console.log("got shit");
             $scope.leaves = [];
             var a = $.map(data["leaves"], function(value, index) {
                value["name"] = index;
@@ -40,7 +39,6 @@ function Leaves($scope, $http, $timeout) {
                console.log("processing shit");
                 $scope.leaves.push(a.splice(0, 2));
            }
-           console.log("done shit");
         }).
         error(function(data, status, headers, config) {
           // called asynchronously if an error occurs

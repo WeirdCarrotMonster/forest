@@ -45,7 +45,7 @@
                             <header class="units-row-end unit-header"><h1><a href="#">{{ leaf.name }}</a></h1></header>
                             <section class="units-row-end">
                                 <section class="unit-50">
-                                    <p class="normal"><strong>на VPS Hetzner</strong><br>88.198.242.74<br>Port: 7181</p>
+                                    <p class="normal"><strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>Port: {{ leaf.port }}</p>
                                     <p>
                                         <a href="http://{{ leaf.address }}" class="green">{{ leaf.address }}</a><br>
                                     </p>
