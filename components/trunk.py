@@ -100,6 +100,8 @@ class Trunk(tornado.web.Application):
             response = self.add_leaf(message)
         if function == "rehost_leaf":
             response = self.rehost_leaf(message)
+        if function == "change_settings":
+            response = self.change_settings(message)
 
         if response is None:
             response = {

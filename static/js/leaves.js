@@ -12,6 +12,23 @@ function Leaves($scope, $http, $timeout) {
         $scope.leaf_settings = JSON.stringify(leaf.settings, undefined, 2);
     }
 
+    $scope.saveSettings = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "change_settings",
+                settings: JSON.parseJSON($scope.leaf_settings)
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.closeSettings();
+            $scope.getLeavesData();
+        }).
+        error(function(data, status, headers, config) {
+        });    
+    }
+
     $scope.enableLeaf = function(leaf) {
         $http({
             method: 'POST',
