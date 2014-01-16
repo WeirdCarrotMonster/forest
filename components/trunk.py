@@ -1221,7 +1221,7 @@ class Trunk(tornado.web.Application):
             multi=False
         )
 
-        if leaf.get("enabled", False):
+        if leaf.get("active", False):
             # Обновляем настройки на самой ветви
             branch = client.trunk.branches.find_one({"name": leaf["branch"]})
             if not branch:
