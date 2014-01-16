@@ -1,7 +1,23 @@
 function Leaves($scope, $http, $timeout) {
     $scope.leaves = [];
 
-    $scope.shutdownLeaf = function(leaf) {
+    $scope.enableLeaf = function(leaf) {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "enable_leaf",
+                name: leaf.name
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.getLeavesData();
+        }).
+        error(function(data, status, headers, config) {
+        });
+    };
+
+    $scope.disableLeaf = function(leaf) {
         $http({
             method: 'POST',
             url: '/',

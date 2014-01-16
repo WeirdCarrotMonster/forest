@@ -55,7 +55,11 @@
                                     <p><b class="big orange">2781</b><br><strong>сила Евгения</strong></p>
                                 </section>
                                 <section class="unit-25 normal right">
-                                    <a href="" class="orange" ng-click="shutdownLeaf(leaf)"><b>Выключить</b></a><br><br>
+                                    <div ng-switch="leaf.active">
+                                    <a href="" class="orange" ng-switch-when="true" ng-click="disableLeaf(leaf)"><b>Выключить</b></a>
+                                    <a href="" class="orange" ng-switch-when="false" ng-click="enableLeaf(leaf)"><b>Включить</b></a>
+                                    </div>
+                                    <br>
                                     <a href="" class="blue"><b>Перенести</b></a><br><br>
                                     <a href="" class="blue"><b>Настроить</b></a>
                                 </section>
