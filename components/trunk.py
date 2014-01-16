@@ -1189,6 +1189,15 @@ class Trunk(tornado.web.Application):
             else:
                 leaf_data[arg] = value
 
+        if type(leaf_data["settings"]) != dict:
+            try:
+                leaf_data["settings"] = json.loads(leaf_data["settings"])
+            except:
+                return {
+                    "result": "failure",
+                    "message": "Failed to save settings"
+                }
+
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
