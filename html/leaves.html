@@ -43,14 +43,14 @@
                     <article class="unit-50 border-bottom" ng-repeat="leaf in sub_leaf">
                         <div class="unit-80 unit-centered">
                             <header class="units-row-end unit-header"><h1><a href="#">{{ leaf.name }}</a></h1></header>
-                            <section class="units-row-end">
+                            <section class="units-row-end" ng-class="{disabled: !leaf.active}">
                                 <section class="unit-50">
                                     <p class="normal"><strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>Port: {{ leaf.port }}</p>
                                     <p>
                                         <a href="http://{{ leaf.address }}" class="green">{{ leaf.address }}</a><br>
                                     </p>
                                 </section>
-                                <section class="unit-25">
+                                <section class="unit-25" ng-class="{disabled: !leaf.active}">
                                     <p><b class="big green">{{ leaf.mem }} мб</b><br><strong>память</strong></p>
                                     <p><b class="big orange">2781</b><br><strong>сила Евгения</strong></p>
                                 </section>
