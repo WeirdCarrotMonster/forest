@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 from __future__ import print_function
 import sys
@@ -46,7 +46,7 @@ loop = tornado.ioloop.IOLoop.instance()
 if not SETTINGS["role"] in ["roots", "trunk", "branch", "air", "owl"]:
     log_message(
         "Configuration error: unknown role '{0}'".format(SETTINGS["role"])
-        )
+    )
     sys.exit(0)
 
 APPLICATION = None
@@ -58,11 +58,11 @@ if SETTINGS["role"] == "roots":
 
 if SETTINGS["role"] == "trunk":
     LISTENERS.append((r'/static/(.*)', tornado.web.StaticFileHandler,
-        {'path': os.path.join(FOREST_DIR, 'druid/static')}))
+                      {'path': os.path.join(FOREST_DIR, 'druid/static')}))
     LISTENERS.append((r'/static_new/(.*)', tornado.web.StaticFileHandler,
-        {'path': os.path.join(FOREST_DIR, 'static')}))
+                      {'path': os.path.join(FOREST_DIR, 'static')}))
     LISTENERS.append((r'/druid/(.*)', tornado.web.StaticFileHandler,
-        {'path': os.path.join(FOREST_DIR, 'druid/html')}))
+                      {'path': os.path.join(FOREST_DIR, 'druid/html')}))
     LISTENERS.append((r"/websocket", WebSocketListener))
     LISTENERS.append((r"/(.*)", TransparentListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
@@ -70,7 +70,8 @@ if SETTINGS["role"] == "trunk":
     # Частота обновления логов - одна минута
     # TODO: брать из настроек
     PERIOD = 10
-    period_cbk = tornado.ioloop.PeriodicCallback(APPLICATION.log_stats, 1000*60*PERIOD, loop)
+    period_cbk = tornado.ioloop.PeriodicCallback(
+        APPLICATION.log_stats, 1000 * 60 * PERIOD, loop)
     period_cbk.start()
 
 
@@ -88,13 +89,13 @@ if SETTINGS["role"] == "owl":
 
 # Создаем и запускаем приложение
 log_message("Listening on: {0}:{1}".format(
-    SETTINGS["connections"]["address"], 
+    SETTINGS["connections"]["address"],
     SETTINGS["connections"]["port"])
 )
 APPLICATION.listen(
-    SETTINGS["connections"]["port"], 
+    SETTINGS["connections"]["port"],
     SETTINGS["connections"]["address"]
-    )
+)
 
 
 def cleanup(signum=None, frame=None):
