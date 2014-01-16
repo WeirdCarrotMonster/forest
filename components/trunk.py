@@ -1221,6 +1221,27 @@ class Trunk(tornado.web.Application):
             multi=False
         )
 
+        if leaf.get("enabled", False):
+            # Обновляем настройки на самой ветви
+            branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+            if not branch:
+                return {
+                    "result": "failure",
+                    "message": "Internal error: leaf hosted on unknown branch"
+                }
+
+            post_data = {
+                "function": "change_settings",
+                "name": leaf["name"],
+                "settings": leaf_data["settings"]
+            }
+            response = self.send_message(branch, post_data)
+            if response["result"] != "success":
+                return {
+                    "result": "failure",
+                    "message": "Failed to save settings on branch"
+                }
+
         return {
             "result": "success",
             "message": "Successfully changed settings for leaf {0}".format(leaf_data["name"])

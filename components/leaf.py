@@ -60,6 +60,9 @@ class Leaf():
             env=my_env,
             shell=False)
 
+    def set_settings(self, settings):
+        self.settings = json.dumps(settings)
+
     def mem_usage(self):
         if self.process.poll() is None:
             mem = int(subprocess.check_output(

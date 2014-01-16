@@ -29,6 +29,8 @@ class Branch(tornado.web.Application):
             response = self.delete_leaf(message)
         if function == "restart_leaf":
             response = self.restart_leaf(message)
+        if function == "change_settings":
+            response = self.change_settings(message)
         if function == "status_report":
             response = self.status_report()
         if function == "known_leaves":
@@ -121,7 +123,7 @@ class Branch(tornado.web.Application):
                 "message": "missing argument: name"
             }
 
-        if not name:
+        if not env:
             return {
                 "result": "failure",
                 "message": "missing argument: env"
@@ -146,8 +148,7 @@ class Branch(tornado.web.Application):
         leaves = client.branch.leaves
         leaf = leaves.find_one({"name": name})
         if leaf:
-            log_message("Found existing leaf: {0}".format(name), 
-                component="Branch")
+            log_message("Found existing leaf: {0}".format(name), component="Branch")
             return {
                 "result": "success",
                 "host": self.settings["host"],
@@ -237,12 +238,64 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 leaf.start()
 
-        log_message("Restarting leaf '{0}'".format(name), 
-            component="Branch")
+        log_message("Restarting leaf '{0}'".format(name), component="Branch")
 
         return {
             "result": "success",
             "message": "restarted leaf {0}".format(name)
+        }
+
+    def change_settings(self, message):
+        name = message.get("name", None)
+        settings = message.get("settings", None)
+
+        if not name:
+            return {
+                "result": "failure",
+                "message": "missing argument: name"
+            }
+
+        if not settings:
+            return {
+                "result": "failure",
+                "message": "missing argument: env"
+            }
+        if type(settings) != dict:
+            return {
+                "result": "failure",
+                "message": "Settings should be dict"
+            }
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaf = client.branch.leaves.find_one({"name": name})
+        if not leaf:
+            return {
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(name)
+            }
+
+        client.branch.leaves.update(
+            {"name": name},
+            {
+                "$set": {
+                    "settings": settings
+                }
+            },
+            upsert=False,
+            multi=False
+        )
+
+        for leaf in self.leaves:
+            if leaf.name == name:
+                leaf.stop()
+                leaf.set_settings(settings)
+                leaf.start()
+
+        return {
+            "result": "success",
+            "message": "Saved settings for leaf {0}".format(name)
         }
 
     def update_repo(self):
