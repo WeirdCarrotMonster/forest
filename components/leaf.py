@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import subprocess
 import os
 from components.common import log_message
@@ -41,25 +41,35 @@ class Leaf():
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
-        subprocess.Popen([self.python_executable, self.executable, "syncdb", "--noinput"], env=my_env, shell=False)
-        subprocess.Popen([self.python_executable, self.executable, "migrate"], env=my_env, shell=False)
+        subprocess.Popen(
+            [self.python_executable, self.executable, "syncdb", "--noinput"],
+            env=my_env,
+            shell=False)
+        subprocess.Popen(
+            [self.python_executable, self.executable, "migrate"],
+            env=my_env,
+            shell=False)
 
     def update_database(self):
         # Обновляем таблицы через south
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
-        subprocess.Popen([self.python_executable, self.executable, "migrate"], env=my_env, shell=False)
+        subprocess.Popen(
+            [self.python_executable, self.executable, "migrate"],
+            env=my_env,
+            shell=False)
 
     def mem_usage(self):
-        if self.process.poll() == None:
+        if self.process.poll() is None:
             mem = int(subprocess.check_output(
                 [
-                    'ps', 
-                    '-p', 
-                    str(self.process.pid), 
-                    '-o', 
-                    'rss='])
+                    'ps',
+                    '-p',
+                    str(self.process.pid),
+                    '-o',
+                    'rss='
+                ])
             )
         else:
             mem = 0
@@ -83,11 +93,10 @@ class Leaf():
         my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
         self.process = subprocess.Popen(cmd, env=my_env)
-        if self.process.poll() == None:
+        if self.process.poll() is None:
             log_message("Started leaf {0}".format(self.name), component="Leaf")
         else:
             raise Exception("Launch failed: {0}".format(traceback.format_exc()))
-            
 
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")

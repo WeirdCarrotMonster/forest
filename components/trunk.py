@@ -541,7 +541,7 @@ class Trunk(tornado.web.Application):
             self.log_event(air_result)
 
         return {
-            "result": "success", 
+            "result": "success",
             "message": "Done",
             "loads": loads
         }
@@ -691,7 +691,6 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Обращаемся к roots для создания новой базы
         # =========================================
-        logs = []
         root = self.get_root()
         post_data = {
             "function": "prepare_database",
@@ -859,7 +858,7 @@ class Trunk(tornado.web.Application):
             "settings": leaf.get("settings", {})
         }
         response = self.send_message(branch, post_data)
-        branch_response = response
+
         if response["result"] != "success":
             return {
                 "result": "failure",
