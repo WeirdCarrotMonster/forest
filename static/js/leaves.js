@@ -4,11 +4,12 @@ function Leaves($scope, $http, $timeout) {
     $scope.settings_element = null;
 
     $scope.closeSettings = function() {
-        $scope.settings_element = null;
+        $scope.settings_element = null; 
     }
 
     $scope.openSettings = function(leaf) {
         $scope.settings_element = leaf;
+        $scope.leaf_settings = JSON.stringify(leaf.settings);
     }
 
     $scope.enableLeaf = function(leaf) {

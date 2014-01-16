@@ -331,6 +331,7 @@ class Trunk(tornado.web.Application):
 
             if response["result"] == "success":
                 for leaf in response["leaves"]:
+                    leaves[leaf["name"]]["settings"] = leaves[leaf["name"]].get("settings", {})
                     # Лист есть в списке активных и в списке необработанных
                     if leaves[leaf["name"]].get("active", False) and not leaves[leaf["name"]].get("processed", False):
                         success = success or True
@@ -1168,6 +1169,50 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "message": "Successfully published leaf on {0}".format(leaf_data["address"])
+        }
+
+    def change_settings(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name', 'settigs']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                leaf_data[arg] = value
+
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaves = client.trunk.leaves
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return {
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
+            }
+
+        client.trunk.leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "$set": {
+                    "settings": leaf_data["settings"]
+                }
+            },
+            upsert=False,
+            multi=False
+        )
+
+        return {
+            "result": "success",
+            "message": "Successfully changed settings for leaf {0}".format(leaf_data["name"])
         }
 
     def add_branch(self, message):
