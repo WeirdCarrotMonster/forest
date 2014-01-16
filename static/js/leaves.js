@@ -13,12 +13,13 @@ function Leaves($scope, $http, $timeout) {
     }
 
     $scope.saveSettings = function() {
+        console.log($scope.leaf_settings);
         $http({
             method: 'POST',
             url: '/',
             data: {
                 function: "change_settings",
-                settings: JSON.parseJSON($scope.leaf_settings)
+                settings: $scope.leaf_settings
             }
         }).
         success(function(data, status, headers, config) {
