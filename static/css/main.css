@@ -36,13 +36,13 @@ a:hover {
 	color: #1fbba6;
 }
 
-input[type], select {
+input[type] {
 	margin: 5px 0;
 	padding: 7px;
 	outline: none;
 	font-size: 1em;
 }
-input[type]:focus, select:focus {
+input[type]:focus {
 	border-color: #1fbba6;
 	box-shadow: none;
 }

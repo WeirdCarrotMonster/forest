@@ -60,7 +60,10 @@
                                     <a href="" class="orange" ng-switch-when="false" ng-click="enableLeaf(leaf)"><b>Включить</b></a>
                                     </div>
                                     <br>
-                                    <a href="" class="blue"><b>Перенести</b></a><br><br>
+                                    <div>
+                                    <a href="" ng-show="leaf.new_branch == null" ng-click="leaf.new_branch = leaf.branch" class="blue"><b>Перенести</b></a>
+                                    <select ng-show="leaf.new_branch" ng-change="migrateLeaf(leaf)" ng-model="leaf.new_branch" ng-options="b for b in acceptableBranches(leaf)" ng-disabled="leaf.branch != leaf.new_branch"></select>
+                                    </div><br>
                                     <a href="" ng-click="openSettings(leaf)" class="blue"><b>Настроить</b></a>
                                 </section>
                             </section>
@@ -83,6 +86,7 @@
                 <header class="units-row-end unit-header"><h1>Настройки {{ settings_element.name }}</h1></header>
                 <section class="units-row">
                     <form action="#" class="forms">
+                        <p><label><b>Адрес</b><input ng-model="leaf_address" type="text" class="width-80"></label></p>
                         <textarea id="settings" class="width-100" ng-model="leaf_settings"></textarea>
                         <br>
                         <a href="" ng-click="saveSettings()" class="button medium">Сохранить</a>
