@@ -3,6 +3,10 @@ function Leaves($scope, $http, $timeout) {
     $scope.leaf_settings = "";
     $scope.leaf_address = "";
     $scope.settings_element = null;
+    $scope.logs_element = null;
+    $scope.logs_loaded = false;
+    $scope.logs = [];
+
     $scope.branches = [
         {name: "strong", type: "espresso"},
         {name: "main", type: "espresso"},
@@ -42,10 +46,35 @@ function Leaves($scope, $http, $timeout) {
         $scope.settings_element = null; 
     };
 
+    $scope.closeLogs = function() {
+        $scope.logs_element = null;
+        $scope.logs_loaded = false;
+    };
+
     $scope.openSettings = function(leaf) {
         $scope.settings_element = leaf;
         $scope.leaf_settings = JSON.stringify(leaf.settings, undefined, 2);
         $scope.leaf_address = leaf.address;
+    };
+
+    $scope.openLogs = function(leaf) {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "get_leaf_logs",
+                name: leaf.name
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                $scope.logs = data["logs"];
+                $scope.logs_loaded = true;
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+        $scope.logs_element = leaf;
     };
 
     $scope.saveSettings = function() {

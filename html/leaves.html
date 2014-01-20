@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="/static_new/css/main.css">
     <link rel="stylesheet" href="/static_new/css/leaves.css">
+    <link rel="stylesheet" href="/static_new/css/spinner.css">
     
     <script type="text/javascript" src="/static_new/js/jquery-1.10.2.min.js"></script>
     <script type="text/javascript" src="/static_new/js/angular.min.js"></script>
@@ -38,7 +39,7 @@
                 <section class="units-row-end units-split" ng-repeat="sub_leaf in leaves">
                     <article class="unit-50 border-bottom" ng-repeat="leaf in sub_leaf">
                         <div class="unit-80 unit-centered">
-                            <header class="units-row-end unit-header"><h1><a href="#">{{ leaf.name }}</a></h1></header>
+                            <header class="units-row-end unit-header"><h1><a href="" ng-click="openLogs(leaf)">{{ leaf.name }}</a></h1></header>
                             <section class="units-row-end">
                                 <section class="unit-50" ng-class="{disabled: !leaf.active}">
                                     <p class="normal"><strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>Port: {{ leaf.port }}</p>
@@ -88,6 +89,25 @@
                         <a href="" ng-click="saveSettings()" class="button medium">Сохранить</a>
                     </form>
                 </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="unit-100 pop-up" ng-class="{hidden: logs_element == null}">
+        <div class="unit-70 unit-centered unit-white" style="height: 60%;">
+            <a href="" ng-click="closeLogs()" class="pop-up-close"><b class="fa fa-times fa-lg"></b></a>
+            <div class="unit-90 unit-centered">
+                <header class="units-row-end unit-header"><h1 ng-click="logs_loaded=true">Логи {{ logs_element.name }}</h1></header>
+                <div ng-class="{hidden: logs_loaded}">
+                    <ul class="spinner">
+                      <li></li>
+                      <li></li>
+                      <li></li>
+                    </ul>
+                </div>
+                <div ng-class="{hidden: !logs_loaded}">
+                    <textarea id="logs" class="width-100" ng-model="leaf_settings">{{logs}}</textarea>
+                </div>
             </div>
         </div>
     </div>

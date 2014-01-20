@@ -103,6 +103,8 @@ class Trunk(tornado.web.Application):
             response = self.rehost_leaf(message)
         if function == "change_settings":
             response = self.change_settings(message)
+        if function == "get_leaf_logs":
+            response = self.get_leaf_logs(message)
 
         if response is None:
             response = {
@@ -1248,6 +1250,27 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "message": "Successfully changed settings for leaf {0}".format(leaf_data["name"])
+        }
+
+    def get_leaf_logs(self, message):
+        # =========================================
+        # Проверяем наличие требуемых аргументов
+        # =========================================
+        required_args = ['name']
+        leaf_data = {}
+        for arg in required_args:
+            value = message.get(arg, None)
+            if not value:
+                return {
+                    "result": "failure",
+                    "message": "Argument '{0}' is missing".format(arg)
+                }
+            else:
+                leaf_data[arg] = value
+
+        return {
+            "result": "success",
+            "logs": ["asd", "asd", "asd"]
         }
 
     def add_branch(self, message):
