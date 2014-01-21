@@ -31,6 +31,8 @@ class Branch(tornado.web.Application):
             response = self.restart_leaf(message)
         if function == "change_settings":
             response = self.change_settings(message)
+        if function == "get_leaf_logs":
+            response = self.get_leaf_logs(message)
         if function == "status_report":
             response = self.status_report()
         if function == "known_leaves":
@@ -298,6 +300,30 @@ class Branch(tornado.web.Application):
         return {
             "result": "success",
             "message": "Saved settings for leaf {0}".format(name)
+        }
+
+    def get_leaf_logs(self, message):
+        name = message.get("name", None)
+
+        if not name:
+            return {
+                "result": "failure",
+                "message": "missing argument: name"
+            }
+
+        logs = None
+        for leaf in self.leaves:
+            if leaf.name == name:
+                logs = leaf.get_logs()
+        if logs is None:
+            return {
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(name)
+            }
+
+        return {
+            "result": "success",
+            "logs": logs
         }
 
     def update_repo(self):

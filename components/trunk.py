@@ -1268,9 +1268,38 @@ class Trunk(tornado.web.Application):
             else:
                 leaf_data[arg] = value
 
+        client = pymongo.MongoClient(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"]
+        )
+        leaf = client.trunk.leaves.find_one({"name": leaf_data["name"]})
+        if not leaf:
+            return {
+                "result": "failure",
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
+            }
+
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+        if not branch:
+            return {
+                "result": "failure",
+                "message": "Internal server error"
+            }
+
+        post_data = {
+            "function": "get_leaf_logs",
+            "name": leaf["name"]
+        }
+        response = self.send_message(branch, post_data)
+        if response["result"] != "success":
+            return {
+                "result": "failure",
+                "message": "Failed to save settings on branch"
+            }
+
         return {
             "result": "success",
-            "logs": ["asd", "asd", "asd"]
+            "logs": response["logs"]
         }
 
     def add_branch(self, message):

@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import os
+import sys
 from components.common import log_message
 import traceback
 import simplejson as json
+from threading import Thread
+from Queue import Queue, Empty
+
+
+def enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+    out.close()
 
 
 class Leaf():
@@ -33,6 +42,10 @@ class Leaf():
         self.settings = json.dumps(settings)
         self.pid = 0
         self.process = None
+
+        self._thread = None
+        self._queue = None
+        self.logs = []
 
     def init_database(self):
         # Два шага инициализации нового инстанса:
@@ -95,9 +108,14 @@ class Leaf():
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
-        self.process = subprocess.Popen(cmd, env=my_env)
+
+        self.process = subprocess.Popen(cmd, env=my_env, stderr=subprocess.PIPE, bufsize=1, close_fds=True)
         if self.process.poll() is None:
             log_message("Started leaf {0}".format(self.name), component="Leaf")
+            self._queue = Queue()
+            self._thread = Thread(target=enqueue_output, args=(self.process.stderr, self._queue))
+            self._thread.daemon = True
+            self._thread.start()
         else:
             raise Exception("Launch failed: {0}".format(traceback.format_exc()))
 
@@ -108,3 +126,12 @@ class Leaf():
             self.process.wait()
         except OSError:
             pass
+
+    def get_logs(self):
+        try:
+            while True:
+                line = self._queue.get_nowait()
+                self.logs.append(line)
+        except Empty:
+            pass
+        return self.logs

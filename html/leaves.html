@@ -106,7 +106,7 @@
                     </ul>
                 </div>
                 <div ng-class="{hidden: !logs_loaded}">
-                    <textarea id="logs" class="width-100" ng-model="leaf_settings">{{logs}}</textarea>
+                    <textarea id="logs" class="width-100">{{ logs.join("") }}</textarea>
                 </div>
             </div>
         </div>
