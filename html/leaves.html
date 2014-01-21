@@ -41,16 +41,17 @@
                         <div class="unit-80 unit-centered">
                             <header class="units-row-end unit-header"><h1><a href="" ng-click="openLogs(leaf)">{{ leaf.name }}</a></h1></header>
                             <section class="units-row-end">
-                                <section class="unit-50" ng-class="{disabled: !leaf.active}">
+                                <section class="unit-50" ng-if="leaf.working" ng-class="{disabled: !leaf.active}">
                                     <p class="normal"><strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>Port: {{ leaf.port }}</p>
                                     <p>
                                         <a href="http://{{ leaf.address }}" class="green">{{ leaf.address }}</a><br>
                                     </p>
                                 </section>
-                                <section class="unit-25" ng-class="{disabled: !leaf.active}">
+                                <section class="unit-25" ng-if="leaf.working" ng-class="{disabled: !leaf.active}">
                                     <p><b class="big green">{{ leaf.mem }} мб</b><br><strong>память</strong></p>
                                     <p><b class="big orange">{{ leaf.req.toFixed(3) }}</b><br><strong>запросов в минуту</strong></p>
                                 </section>
+
                                 <section class="unit-25 normal right">
                                     <div ng-switch="leaf.active">
                                     <a href="" class="orange" ng-switch-when="true" ng-click="disableLeaf(leaf)"><b>Выключить</b></a>

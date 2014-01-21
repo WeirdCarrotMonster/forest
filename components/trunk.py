@@ -319,6 +319,7 @@ class Trunk(tornado.web.Application):
         leaves = {}
         for leaf in leaves_list:
             leaves[leaf["name"]] = leaf
+            leaves[leaf["name"]]["working"] = False
 
         success = False
         failure = False
@@ -338,6 +339,7 @@ class Trunk(tornado.web.Application):
 
             if response["result"] == "success":
                 for leaf in response["leaves"]:
+                    leaves[leaf["name"]]["working"] = True
                     leaves[leaf["name"]]["host"] = branch["host"]
                     leaves[leaf["name"]]["req"] = leaf.get("req", float(0))
                     leaves[leaf["name"]]["settings"] = leaves[
