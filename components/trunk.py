@@ -83,10 +83,10 @@ class Trunk(tornado.web.Application):
         # Работа с ветвями
         if function == "add_branch":
             response = self.add_branch(message)
-        if function == "get_branches":
-            response = self.get_branches(message)
         if function == "modify_branch":
             response = self.modify_branch(message)
+        if function == "list_branches":
+            response = self.list_branches(message)
         if function == "add_owl":
             response = self.add_owl(message)
 
@@ -1387,15 +1387,19 @@ class Trunk(tornado.web.Application):
             "message": "Owl '{0}' successfully added".format(owl["name"])
         }
 
-    def get_branches(self, message):
+    def list_branches(self, message):
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
             self.settings["mongo_port"]
         )
 
+        branches = []
+        for branch in client.trunk.branches.find():
+            branches.append({"name": branch["name"], "type": branch["type"]})
+
         return {
             "result": "success",
-            "branches": [branch for branch in client.trunk.branches.find()]
+            "branches": branches
         }
 
     def modify_branch(self, message):

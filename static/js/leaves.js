@@ -7,12 +7,7 @@ function Leaves($scope, $http, $timeout) {
     $scope.logs_loaded = false;
     $scope.logs = [];
 
-    $scope.branches = [
-        {name: "strong", type: "espresso"},
-        {name: "main", type: "espresso"},
-        {name: "second", type: "espresso"},
-        {name: "main_clients", type: "clients"}
-    ];
+    $scope.branches = [];
 
     $scope.migrateLeaf = function(leaf) {
         leaf.selectEnabled = false;
@@ -134,8 +129,6 @@ function Leaves($scope, $http, $timeout) {
         });
     };
 
-
-
     $scope.disableLeaf = function(leaf) {
         $http({
             method: 'POST',
@@ -171,9 +164,23 @@ function Leaves($scope, $http, $timeout) {
             }
         }).
         error(function(data, status, headers, config) {
-          // called asynchronously if an error occurs
-          // or server returns response with an error status.
         });
     };
+
+    $scope.getBranches = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "list_branches"
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.branches = data["branches"];
+        }).
+        error(function(data, status, headers, config) {
+        });
+    };
+    $scope.getBranches();
     $scope.getLeavesData();
 }
