@@ -106,11 +106,11 @@ class Leaf():
             pass
         measurement_time = datetime.datetime.now()
         time_delta = measurement_time - self._last_req_measurement
-        seconds = time_delta.days * 24 * 60 * 60 + time_delta.seconds  # С гарантией
-        if seconds > 60:
-            self._last_req_count = float(count) / float(seconds)
+        minutes = time_delta.days * 24 * 60 + time_delta.seconds / float(60)  # С гарантией
+        if minutes > 5:
+            self._last_req_count = float(count) / float(minutes)
         else:
-            self._last_req_count = (count + self._last_req_count * (60 - seconds))/float(60)
+            self._last_req_count = (count + self._last_req_count * (5 - minutes))/float(5)
 
     def req_per_second(self):
         self.update_logs_req_count()
