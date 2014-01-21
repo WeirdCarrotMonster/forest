@@ -106,7 +106,8 @@ class Branch(tornado.web.Application):
                 "port": leaf.fcgi_port,
                 "env": leaf.launch_env,
                 "settings": leaf.settings,
-                "mem": leaf.mem_usage()
+                "mem": leaf.mem_usage(),
+                "req": leaf.req_per_second()
             })
         result = {
             "result": "success",

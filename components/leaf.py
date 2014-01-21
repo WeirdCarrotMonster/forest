@@ -7,6 +7,7 @@ import traceback
 import simplejson as json
 from threading import Thread
 from Queue import Queue, Empty
+import datetime
 
 
 def enqueue_output(out, queue):
@@ -46,6 +47,9 @@ class Leaf():
         self._thread = None
         self._queue = None
         self.logs = []
+
+        self._last_req_measurement = datetime.datetime.now()
+        self._last_req_count = 0
 
     def init_database(self):
         # Два шага инициализации нового инстанса:
@@ -91,6 +95,27 @@ class Leaf():
             mem = 0
         return mem/1024
 
+    def update_logs_req_count(self):
+        count = 0
+        try:
+            while True:
+                line = self._queue.get_nowait()
+                self.logs.append(line)
+                count += 1
+        except Empty:
+            pass
+        measurement_time = datetime.datetime.now()
+        time_delta = measurement_time - self._last_req_measurement
+        seconds = time_delta.days * 24 * 60 * 60 + time_delta.seconds  # С гарантией
+        if seconds > 300:
+            self._last_req_count = float(count) / float(seconds)
+        else:
+            self._last_req_count = (count + self._last_req_count * (300 - seconds))/float(300)
+
+    def req_per_second(self):
+        self.update_logs_req_count()
+        return self._last_req_count
+
     def start(self):
         # TODO: кидать exception, если присутствуют не все настройки
         # что-то через not all(..)
@@ -128,10 +153,5 @@ class Leaf():
             pass
 
     def get_logs(self):
-        try:
-            while True:
-                line = self._queue.get_nowait()
-                self.logs.append(line)
-        except Empty:
-            pass
+        self.update_logs_req_count()
         return self.logs
