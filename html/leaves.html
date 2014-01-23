@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/static_new/css/main.css">
     <link rel="stylesheet" href="/static_new/css/leaves.css">
     <link rel="stylesheet" href="/static_new/css/spinner.css">
+    <link rel="stylesheet" href="/static_new/css/vendor/animate.css">
     
     <script type="text/javascript" src="/static_new/js/jquery-1.10.2.min.js"></script>
     <script type="text/javascript" src="/static_new/js/angular.min.js"></script>
@@ -36,6 +37,23 @@
     </header>
     <main class="units-row">
             <div class="container unit-white">
+            	<div class="units-row units-row-end">
+	            	<div class="add-leaf unit-centered unit-90">
+	            		<a class="big orange baron" ng-click="add_leaf_show=true" href="">Добавить лист</a>
+	            		<form class="forms forms-inline add-leaf-form" ng-show="add_leaf_show">
+	            			<input ng-model="new_leaf_name" type="text" placeholder="Название" />
+	            			<input ng-model="new_leaf_address" type="text" placeholder="URL" />
+	            			<select ng-model="new_leaf_type" ng-options="t.name for t in types"></select>
+                            <span id="new_leaf_settings" ng-repeat="param in new_leaf_type.settings" ng-switch on="param.type">
+                                <select data-key="{{ param.name }}" ng-switch-when="select">
+                                    <option ng-repeat="choice in param.choices" value="{{ choice.value }}">{{ choice.name }}</option>
+                                </select>
+                                <input data-key="{{ param.name }}" ng-switch-when="input-int" type="number"/>
+                            </span>
+	            			<input class="button-small" type="button" ng-click="addLeaf()" value="Добавить" />
+	            		</form>
+	            	</div>
+            	</div>
                 <section class="units-row-end units-split" ng-repeat="sub_leaf in leaves">
                     <article class="unit-50 border-bottom" ng-repeat="leaf in sub_leaf">
                         <div class="unit-80 unit-centered">

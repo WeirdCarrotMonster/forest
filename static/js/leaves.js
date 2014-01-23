@@ -6,8 +6,59 @@ function Leaves($scope, $http, $timeout) {
     $scope.logs_element = null;
     $scope.logs_loaded = false;
     $scope.logs = [];
-
     $scope.branches = [];
+    $scope.types = [
+        {
+            name: "espresso",
+            settings: [
+                {
+                    verbose: "Стиль",
+                    name: "style",
+                    type: "select",
+                    choices: [
+                        {
+                            name: "Эспрессо",
+                            value: "espresso"
+                        },
+                        {
+                            name: "Кофелайк",
+                            value: "like-coffee"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "clients",
+            settings: [
+                {
+                    verbose: "Ограничение филиалов",
+                    name: "unit-limit",
+                    type: "input-int",
+                    min_value: 1,
+                    max_value: 100
+                }
+            ]
+        }
+    ];
+    $scope.add_leaf_show = false;
+    $scope.new_leaf_type = null;
+    $scope.new_leaf_name = "";
+    $scope.new_leaf_address = "";
+
+    $scope.addLeaf = function(){
+        var settings = {};
+        $("#new_leaf_settings").children().each(function(){
+            settings[$(this).attr("data-key")] = $(this).val();
+        });
+
+        console.log({
+            name: $scope.new_leaf_name,
+            address: $scope.new_leaf_address,
+            type: $scope.new_leaf_type.name,
+            settings: settings
+        })
+    };
 
     $scope.migrateLeaf = function(leaf) {
         leaf.selectEnabled = false;
