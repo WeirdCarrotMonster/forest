@@ -52,12 +52,23 @@ function Leaves($scope, $http, $timeout) {
             settings[$(this).attr("data-key")] = $(this).val();
         });
 
-        console.log({
-            name: $scope.new_leaf_name,
-            address: $scope.new_leaf_address,
-            type: $scope.new_leaf_type.name,
-            settings: settings
-        })
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "create_leaf",
+                name: $scope.new_leaf_name,
+                address: $scope.new_leaf_address,
+                type: $scope.new_leaf_type.name,
+                settings: settings
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.getLeavesData();
+            $scope.add_leaf_show = false;
+        }).
+        error(function(data, status, headers, config) {
+        });
     };
 
     $scope.migrateLeaf = function(leaf) {
