@@ -5,6 +5,7 @@ import tornado.httpclient
 import tornado.template
 import pymongo
 from components.shadow import encode, decode
+from components.common import ArgumentMissing, check_arguments
 import hashlib
 
 
@@ -23,6 +24,28 @@ class Trunk(tornado.web.Application):
         self.auth_urls = {
             "dashboard": "html/dashboard.html",
             "leaves": "html/leaves.html"
+        }
+
+        self.functions = {
+            # Обработка состояний сервера
+            "dashboard_stats": self.dashboard_stats,
+            "status_report": self.status_report,
+            "update_repository": self.update_repo,
+            "check_leaves": self.check_leaves,
+            "get_memory_logs": self.get_memory_logs,
+            # Работа с ветвями
+            "add_branch": self.add_branch,
+            "modify_branch": self.modify_branch,
+            "list_branches": self.list_branches,
+            "add_owl": self.add_owl,
+            # Работа с листьями
+            "enable_leaf": self.enable_leaf,
+            "disable_leaf": self.disable_leaf,
+            "migrate_leaf": self.migrate_leaf,
+            "create_leaf": self.add_leaf,
+            "rehost_leaf": self.rehost_leaf,
+            "change_settings": self.change_settings,
+            "get_leaf_logs": self.get_leaf_logs
         }
 
     def log_event(self, event, type="info"):
@@ -47,6 +70,7 @@ class Trunk(tornado.web.Application):
     def process_message(self, message, socket=None, handler=None, user=None):
         self.socket = socket
         self.handler = handler
+        self.logs = []
         response = None
         function = message.get('function', None)
         if function is None:
@@ -60,63 +84,35 @@ class Trunk(tornado.web.Application):
         if function == "login_user":
             response = self.login_user(message, user=user)
 
-        # Далее - функции только для залогиненых
-        if not response and not user:
+        if response:
+            return response
+        elif not user:
             return {
                 "result": "failure",
                 "type": "result",
                 "message": "Not authenticated"
             }
 
-        # Обработка состояний сервера
-        if function == "dashboard_stats":
-            response = self.dashboard_stats(message)
-        if function == "status_report":
-            response = self.status_report(message)
-        if function == "update_repository":
-            response = self.update_repo(message)
-        if function == "check_leaves":
-            response = self.check_leaves(message)
-        if function == "get_memory_logs":
-            response = self.get_memory_logs(message)
-
-        # Работа с ветвями
-        if function == "add_branch":
-            response = self.add_branch(message)
-        if function == "modify_branch":
-            response = self.modify_branch(message)
-        if function == "list_branches":
-            response = self.list_branches(message)
-        if function == "add_owl":
-            response = self.add_owl(message)
-
-        # Работа с листьями
-        if function == "enable_leaf":
-            response = self.enable_leaf(message)
-        if function == "disable_leaf":
-            response = self.disable_leaf(message)
-        if function == "migrate_leaf":
-            response = self.migrate_leaf(message)
-        if function == "create_leaf":
-            response = self.add_leaf(message)
-        if function == "rehost_leaf":
-            response = self.rehost_leaf(message)
-        if function == "change_settings":
-            response = self.change_settings(message)
-        if function == "get_leaf_logs":
-            response = self.get_leaf_logs(message)
-
-        if response is None:
-            response = {
+        # Далее - функции только для залогиненых
+        if not function in self.functions:
+            return {
                 "result": "failure",
-                "message": "Unknown function"
+                "message": "No function or unknown one called"
             }
 
-        if len(self.logs) > 0:
-            response["logs"] = self.logs
-            self.logs = []
-        response["type"] = "result"
-        return response
+        try:
+            pass
+        except ArgumentMissing, arg:
+            return {
+                "result": "failure",
+                "message": "Missing argument: {0}".format(arg.message)
+            }
+        else:
+            if len(self.logs) > 0:
+                response["logs"] = self.logs
+            response["type"] = "result"
+            return response
+
 
     @staticmethod
     def send_message(receiver, contents):

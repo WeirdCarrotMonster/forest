@@ -4,13 +4,12 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message
+from components.common import log_message, ArgumentMissing
 import pymongo
 import traceback
 
 
 class Branch(tornado.web.Application):
-
     def __init__(self, settings_dict, **settings):
         super(Branch, self).__init__(**settings)
         self.settings = settings_dict
@@ -20,39 +19,43 @@ class Branch(tornado.web.Application):
             self.settings["port_range_end"])
         self.init_leaves()
 
-    def process_message(self, message):
-        response = None
-        function = message.get('function', None)
-        if function == "create_leaf":
-            response = self.add_leaf(message)
-        if function == "delete_leaf":
-            response = self.delete_leaf(message)
-        if function == "restart_leaf":
-            response = self.restart_leaf(message)
-        if function == "change_settings":
-            response = self.change_settings(message)
-        if function == "get_leaf_logs":
-            response = self.get_leaf_logs(message)
-        if function == "status_report":
-            response = self.status_report()
-        if function == "known_leaves":
-            response = self.known_leaves()
-        if function == "update_repository":
-            response = self.update_repo()
+        self.functions = {
+            "create_leaf": self.add_leaf,
+            "delete_leaf": self.delete_leaf,
+            "restart_leaf": self.restart_leaf,
+            "change_settings": self.change_settings,
+            "get_leaf_logs": self.get_leaf_logs,
+            "status_report": self.status_report,
+            "known_leaves": self.known_leaves,
+            "update_repository": self.update_repo
+        }
 
-        if function is None:
-            response = {
+    def process_message(self, message):
+        function = message.get('function', None)
+
+        if not function in self.functions:
+            return {
                 "result": "failure",
                 "message": "No function or unknown one called"
             }
 
-        if response:
-            return response
-        else:
+        try:
+            response = self.functions[function](message)
+        except ArgumentMissing, arg:
             return {
                 "result": "failure",
-                "message": "Unknown error occured"
+                "message": "Missing argument: {0}".format(arg.message)
             }
+        except Exception, e:
+            return {
+                "result": "failure",
+                "message": e.message
+            }
+        else:
+            return response
+
+    def _check_arguments(self, message, required):
+        pass
 
     def init_leaves(self):
         client = pymongo.MongoClient(
@@ -91,14 +94,14 @@ class Branch(tornado.web.Application):
         for leaf in self.leaves:
             leaf.stop()
 
-    def status_report(self):
+    def status_report(self, message):
         return {
             "result": "success",
             "message": "Working well",
             "role": "branch"
         }
 
-    def known_leaves(self):
+    def known_leaves(self, message):
         known_leaves = []
         for leaf in self.leaves:
             known_leaves.append({
@@ -327,7 +330,7 @@ class Branch(tornado.web.Application):
             "logs": logs
         }
 
-    def update_repo(self):
+    def update_repo(self, message):
         try:
             path = self.settings["repository"]["path"]
             repo_type = self.settings["repository"]["type"]

@@ -11,6 +11,21 @@ import traceback
 import os
 
 
+class ArgumentMissing(Exception):
+    pass
+
+
+def check_arguments(message, required_args):
+    data = {}
+    for arg in required_args:
+        value = message.get(arg, None)
+        if not value:
+            raise ArgumentMissing(arg)
+        else:
+            data[arg] = value
+    return data
+
+
 class WebSocketListener(tornado.websocket.WebSocketHandler):
     def open(self):
         log_message("Socket opened")
