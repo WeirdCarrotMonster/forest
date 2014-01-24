@@ -15,7 +15,7 @@ class ArgumentMissing(Exception):
     pass
 
 
-def check_arguments(message, required_args, optional_args=[]):
+def check_arguments(message, required_args, optional_args=None):
     data = {}
     for arg in required_args:
         value = message.get(arg, None)
@@ -23,8 +23,7 @@ def check_arguments(message, required_args, optional_args=[]):
             raise ArgumentMissing(arg)
         else:
             data[arg] = value
-
-    for arg in optional_args:
+    for arg in optional_args or []:
         data[arg[0]] = message.get(arg[0], arg[1])
     return data
 
@@ -42,11 +41,12 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
                 socket_message
             )
         except ValueError:
-            self.write_message(json.dumps({
-                "result": "failure",
-                "message": "Failed to decode message",
-                "details": traceback.format_exc()
-            }, default=json_util.default))
+            self.write_message(json.dumps(
+                {
+                    "result": "failure",
+                    "message": "Failed to decode message",
+                    "details": traceback.format_exc()
+                }, default=json_util.default))
             return
 
         try:
@@ -76,15 +76,16 @@ class CommonListener(tornado.web.RequestHandler):
     def post(self):
         try:
             message = json.loads(
-                decode(self.request.body, 
-                self.application.settings["secret"])
+                decode(self.request.body,
+                       self.application.settings["secret"])
             )
         except ValueError:
-            self.write(json.dumps({
-                "result": "failure",
-                "message": "Failed to decode message",
-                "details": traceback.format_exc()
-            }, default=json_util.default))
+            self.write(json.dumps(
+                {
+                    "result": "failure",
+                    "message": "Failed to decode message",
+                    "details": traceback.format_exc()
+                }, default=json_util.default))
             return
 
         try:
@@ -101,7 +102,7 @@ class CommonListener(tornado.web.RequestHandler):
                 "message": "Missing argument: {0}".format(arg.message)
             }
         self.write(encode(
-            json.dumps(response, default=json_util.default), 
+            json.dumps(response, default=json_util.default),
             self.application.settings["secret"])
         )
 
@@ -116,8 +117,8 @@ class TransparentListener(tornado.web.RequestHandler):
         # Потому что мне так велел велоцираптор иисус
         try:
             response = self.application.process_page(page, self.get_current_user())
-            with open(os.path.join(self.application.settings["REALPATH"], response), 'r') as file:
-                self.write(file.read())
+            with open(os.path.join(self.application.settings["REALPATH"], response), 'r') as page_file:
+                self.write(page_file.read())
         except Exception as e:
             self.write(e.message)
 
@@ -128,11 +129,12 @@ class TransparentListener(tornado.web.RequestHandler):
         try:
             message = json.loads(self.request.body)
         except ValueError:
-            self.write(json.dumps({
-                "result": "failure",
-                "message": "Failed to decode message",
-                "details": traceback.format_exc()
-            }, default=json_util.default))
+            self.write(json.dumps(
+                {
+                    "result": "failure",
+                    "message": "Failed to decode message",
+                    "details": traceback.format_exc()
+                }, default=json_util.default))
             return
 
         try:

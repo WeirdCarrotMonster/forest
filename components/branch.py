@@ -4,7 +4,7 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, ArgumentMissing, check_arguments
+from components.common import log_message, check_arguments
 import pymongo
 import traceback
 
