@@ -4,7 +4,7 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, ArgumentMissing
+from components.common import log_message, ArgumentMissing, check_arguments
 import pymongo
 import traceback
 
@@ -39,23 +39,7 @@ class Branch(tornado.web.Application):
                 "message": "No function or unknown one called"
             }
 
-        try:
-            response = self.functions[function](message)
-        except ArgumentMissing, arg:
-            return {
-                "result": "failure",
-                "message": "Missing argument: {0}".format(arg.message)
-            }
-        except Exception, e:
-            return {
-                "result": "failure",
-                "message": e.message
-            }
-        else:
-            return response
-
-    def _check_arguments(self, message, required):
-        pass
+        return self.functions[function](message)
 
     def init_leaves(self):
         client = pymongo.MongoClient(
@@ -112,36 +96,20 @@ class Branch(tornado.web.Application):
                 "mem": leaf.mem_usage(),
                 "req": leaf.req_per_second()
             })
-        result = {
+        return {
             "result": "success",
             "leaves": known_leaves
         }
-        return result
 
     def add_leaf(self, message):
-        name = message.get("name", None)
-        env = message.get("env", None)
-        settings = message.get("settings", None)
-        initdb = bool(message.get("initdb", False))
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
-
-        if not env:
-            return {
-                "result": "failure",
-                "message": "missing argument: env"
-            }
-
-        if type(env) != dict:
+        leaf_data = check_arguments(message, ["name", "env"], [("settings", {}), ("initdb", True)])
+        if type(leaf_data["env"]) != dict:
             return {
                 "result": "failure",
                 "message": "Environment should be dict"
             }
 
-        if type(settings) != dict:
+        if type(leaf_data["settings"]) != dict:
             return {
                 "result": "failure",
                 "message": "Settings should be dict"
@@ -152,10 +120,10 @@ class Branch(tornado.web.Application):
             self.settings["mongo_port"]
         )
         leaves = client.branch.leaves
-        leaf = leaves.find_one({"name": name})
+        leaf = leaves.find_one({"name": leaf_data["name"]})
         if leaf:
             log_message(
-                "Found existing leaf: {0}".format(name), component="Branch")
+                "Found existing leaf: {0}".format(leaf_data["name"]), component="Branch")
             return {
                 "result": "success",
                 "host": self.settings["host"],
@@ -164,24 +132,24 @@ class Branch(tornado.web.Application):
             }
 
         log_message("Creating new leaf: {0}, with initdb: {1}".format(
-            name, initdb), component="Branch")
+            leaf_data["name"], leaf_data["initdb"]), component="Branch")
 
         new_leaf = Leaf(
-            name=name,
+            name=leaf_data["name"],
             chdir=self.settings["chdir"],
             executable=self.settings["executable"],
             fcgi_host=self.settings["host"],
             fcgi_port=self.settings["port_range"].pop(),
-            pidfile=os.path.join(self.settings["pid_dir"], name + '.pid'),
-            logfile=os.path.join(self.settings["log_dir"], name + '.log'),
-            env=env,
-            settings=settings
+            pidfile=os.path.join(self.settings["pid_dir"], leaf_data["name"] + '.pid'),
+            logfile=os.path.join(self.settings["log_dir"], leaf_data["name"] + '.log'),
+            env=leaf_data["env"],
+            settings=leaf_data["settings"]
         )
 
         try:
             new_leaf.start()
             self.leaves.append(new_leaf)
-            if initdb:
+            if leaf_data["initdb"]:
                 new_leaf.init_database()
         except Exception:
             self.settings["port_range"].append(new_leaf.fcgi_port)
@@ -193,8 +161,8 @@ class Branch(tornado.web.Application):
             leaf = {
                 "name": new_leaf.name,
                 "port": new_leaf.fcgi_port,
-                "env": env,
-                "settings": settings
+                "env": leaf_data["env"],
+                "settings": leaf_data["settings"]
             }
             leaves.insert(leaf)
 
@@ -206,19 +174,14 @@ class Branch(tornado.web.Application):
             }
 
     def delete_leaf(self, message):
-        name = message.get("name", None)
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
+        leaf_data = check_arguments(message, ["name"])
 
         for leaf in self.leaves:
-            if leaf.name == name:
+            if leaf.name == leaf_data["name"]:
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        log_message("Deleting leaf '{0}' from server".format(name),
+        log_message("Deleting leaf '{0}' from server".format(leaf_data["name"]),
                     component="Branch")
 
         client = pymongo.MongoClient(
@@ -226,7 +189,7 @@ class Branch(tornado.web.Application):
             self.settings["mongo_port"]
         )
         leaves = client.branch.leaves
-        leaves.remove({"name": name})
+        leaves.remove({"name": leaf_data["name"]})
 
         return {
             "result": "success",
@@ -234,41 +197,24 @@ class Branch(tornado.web.Application):
         }
 
     def restart_leaf(self, message):
-        name = message.get("name", None)
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
+        leaf_data = check_arguments(message, ["name"])
 
         for leaf in self.leaves:
-            if leaf.name == name:
+            if leaf.name == leaf_data["name"]:
                 leaf.stop()
                 leaf.start()
 
-        log_message("Restarting leaf '{0}'".format(name), component="Branch")
+        log_message("Restarting leaf '{0}'".format(leaf_data["name"]), component="Branch")
 
         return {
             "result": "success",
-            "message": "restarted leaf {0}".format(name)
+            "message": "restarted leaf {0}".format(leaf_data["name"])
         }
 
     def change_settings(self, message):
-        name = message.get("name", None)
-        settings = message.get("settings", None)
+        leaf_data = check_arguments(message, ["name", "settings"])
 
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
-
-        if not settings:
-            return {
-                "result": "failure",
-                "message": "missing argument: env"
-            }
-        if type(settings) != dict:
+        if type(leaf_data["settings"]) != dict:
             return {
                 "result": "failure",
                 "message": "Settings should be dict"
@@ -277,18 +223,18 @@ class Branch(tornado.web.Application):
             self.settings["mongo_host"],
             self.settings["mongo_port"]
         )
-        leaf = client.branch.leaves.find_one({"name": name})
+        leaf = client.branch.leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             return {
                 "result": "failure",
-                "message": "Leaf with name {0} not found".format(name)
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
             }
 
         client.branch.leaves.update(
-            {"name": name},
+            {"name": leaf_data["name"]},
             {
                 "$set": {
-                    "settings": settings
+                    "settings": leaf_data["settings"]
                 }
             },
             upsert=False,
@@ -296,33 +242,27 @@ class Branch(tornado.web.Application):
         )
 
         for leaf in self.leaves:
-            if leaf.name == name:
+            if leaf.name == leaf_data["name"]:
                 leaf.stop()
-                leaf.set_settings(settings)
+                leaf.set_settings(leaf_data["settings"])
                 leaf.start()
 
         return {
             "result": "success",
-            "message": "Saved settings for leaf {0}".format(name)
+            "message": "Saved settings for leaf {0}".format(leaf_data["name"])
         }
 
     def get_leaf_logs(self, message):
-        name = message.get("name", None)
-
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
+        leaf_data = check_arguments(message, ["name"])
 
         logs = None
         for leaf in self.leaves:
-            if leaf.name == name:
+            if leaf.name == leaf_data["name"]:
                 logs = leaf.get_logs()
         if logs is None:
             return {
                 "result": "failure",
-                "message": "Leaf with name {0} not found".format(name)
+                "message": "Leaf with name {0} not found".format(leaf_data["name"])
             }
 
         return {

@@ -15,7 +15,7 @@ class ArgumentMissing(Exception):
     pass
 
 
-def check_arguments(message, required_args):
+def check_arguments(message, required_args, optional_args=[]):
     data = {}
     for arg in required_args:
         value = message.get(arg, None)
@@ -23,6 +23,9 @@ def check_arguments(message, required_args):
             raise ArgumentMissing(arg)
         else:
             data[arg] = value
+
+    for arg in optional_args:
+        data[arg[0]] = message.get(arg[0], arg[1])
     return data
 
 
@@ -92,6 +95,11 @@ class CommonListener(tornado.web.RequestHandler):
                 "message": "Internal server error",
                 "details": traceback.format_exc()
             }
+        except ArgumentMissing, arg:
+            return {
+                "result": "failure",
+                "message": "Missing argument: {0}".format(arg.message)
+            }
         self.write(encode(
             json.dumps(response, default=json_util.default), 
             self.application.settings["secret"])
@@ -127,7 +135,19 @@ class TransparentListener(tornado.web.RequestHandler):
             }, default=json_util.default))
             return
 
-        response = self.application.process_message(message, handler=self, user=self.get_current_user())
+        try:
+            response = self.application.process_message(message, handler=self, user=self.get_current_user())
+        except ArgumentMissing, arg:
+            response = {
+                "result": "failure",
+                "message": "Missing argument: {0}".format(arg.message)
+            }
+        except Exception:
+            response = {
+                "result": "failure",
+                "message": "Internal server error",
+                "details": traceback.format_exc()
+            }
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps(response, default=json_util.default))
 

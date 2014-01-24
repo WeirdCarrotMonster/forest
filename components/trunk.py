@@ -48,9 +48,9 @@ class Trunk(tornado.web.Application):
             "get_leaf_logs": self.get_leaf_logs
         }
 
-    def log_event(self, event, type="info"):
+    def log_event(self, event, event_type="info"):
         if self.socket:
-            event["type"] = type
+            event["type"] = event_type
             self.socket.send_message(event)
         else:
             self.logs.append(event)
@@ -100,18 +100,11 @@ class Trunk(tornado.web.Application):
                 "message": "No function or unknown one called"
             }
 
-        try:
-            pass
-        except ArgumentMissing, arg:
-            return {
-                "result": "failure",
-                "message": "Missing argument: {0}".format(arg.message)
-            }
-        else:
-            if len(self.logs) > 0:
-                response["logs"] = self.logs
-            response["type"] = "result"
-            return response
+        response = self.functions[function](message)
+        if len(self.logs) > 0:
+            response["logs"] = self.logs
+        response["type"] = "result"
+        return response
 
 
     @staticmethod
@@ -257,17 +250,7 @@ class Trunk(tornado.web.Application):
                 "message": "Already authenticated"
             }
 
-        required_args = ['username', 'password']
-        user_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                user_data[arg] = value
+        user_data = check_arguments(message, ['username', 'password'])
 
         if self.handler:
             client = pymongo.MongoClient(
@@ -352,7 +335,7 @@ class Trunk(tornado.web.Application):
                             "component": "leaf",
                             "name": leaf["name"],
                             "response": leaf
-                        }, type="warning")
+                        }, event_type="warning")
                     # Листа нет в списке активных, но он активен на ветви
                     else:
                         self.log_event({
@@ -360,7 +343,7 @@ class Trunk(tornado.web.Application):
                             "component": "leaf",
                             "name": leaf["name"],
                             "response": leaf
-                        }, type="warning")
+                        }, event_type="warning")
             else:
                 failure = failure or True
                 self.log_event({
@@ -368,7 +351,7 @@ class Trunk(tornado.web.Application):
                     "component": "branch",
                     "name": branch["name"],
                     "response": response
-                }, type="error")
+                }, event_type="error")
 
         if success and not failure:
             return {
@@ -558,17 +541,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['type']
-        repo_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                repo_data[arg] = value
+        repo_data = check_arguments(message, ['type'])
+
         result = {
             "success": [],
             "failure": [],
@@ -596,14 +570,7 @@ class Trunk(tornado.web.Application):
 
     def call_component_function(self, message):
         # TODO: протестировать
-        required_args = ['component', 'name', 'function', 'arguments']
-        function_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return "Argument is missing: {0}".format(arg)
-            else:
-                function_data[arg] = value
+        function_data = check_arguments(message, ['component', 'name', 'function', 'arguments'])
 
         if not function_data['component'] in ['branch', 'roots', 'air']:
             return {
@@ -656,17 +623,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'address', 'type']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name', 'address', 'type'])
         leaf_settings = message.get("settings", {})
         # =========================================
         # Проверяем, нет ли листа с таким именем в базе
@@ -739,7 +696,7 @@ class Trunk(tornado.web.Application):
             "name": leaf_data["name"],
             "env": env_for_leaf,
             "settings": leaf_settings,
-            "initdb": "True"
+            "initdb": True
         }
 
         self.log_event({
@@ -814,17 +771,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name'])
         # =========================================
         # Проверяем, есть ли лист с таким именем в базе
         # =========================================
@@ -884,7 +831,7 @@ class Trunk(tornado.web.Application):
             "host": response["host"],
             "port": response["port"]
         }
-        response = self.send_message(air, post_data)
+        self.send_message(air, post_data)
         leaves.update(
             {"name": leaf_data["name"]},
             {
@@ -904,17 +851,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name'])
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -960,7 +897,7 @@ class Trunk(tornado.web.Application):
             "function": "unpublish_leaf",
             "name": leaf["name"]
         }
-        response = self.send_message(air, post_data)
+        self.send_message(air, post_data)
         leaves.update(
             {"name": leaf_data["name"]},
             {
@@ -980,17 +917,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'destination']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name', 'destination'])
+
         # =========================================
         # Ищем лист в базе
         # =========================================
@@ -1104,17 +1032,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'address']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name', 'address'])
+
         # =========================================
         # Ищем лист в базе
         # =========================================
@@ -1181,17 +1100,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'settings']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name', 'settings'])
 
         if type(leaf_data["settings"]) != dict:
             try:
@@ -1255,17 +1164,7 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name']
-        leaf_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                leaf_data[arg] = value
+        leaf_data = check_arguments(message, ['name'])
 
         client = pymongo.MongoClient(
             self.settings["mongo_host"],
@@ -1305,17 +1204,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'host', 'port', 'secret', 'type']
-        branch_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                branch_data[arg] = value
+        branch_data = check_arguments(message, ['name', 'host', 'port', 'secret', 'type'])
+
         # =========================================
         # Проверяем, нет ветви с таким именем в базе
         # =========================================
@@ -1350,17 +1240,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', 'verbose_name', 'host', 'port', 'secret']
-        owl = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                owl[arg] = value
+        owl = check_arguments(message, ['name', 'verbose_name', 'host', 'port', 'secret'])
+
         # =========================================
         # Проверяем, нет ли филина с таким именем в базе
         # =========================================
@@ -1402,17 +1283,8 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем наличие требуемых аргументов
         # =========================================
-        required_args = ['name', "args"]
-        branch_data = {}
-        for arg in required_args:
-            value = message.get(arg, None)
-            if not value:
-                return {
-                    "result": "failure",
-                    "message": "Argument '{0}' is missing".format(arg)
-                }
-            else:
-                branch_data[arg] = value
+        branch_data = check_arguments(message, ['name', "args"])
+
         # =========================================
         # Проверка на наличие ветви с таким именем
         # =========================================
