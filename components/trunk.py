@@ -5,12 +5,11 @@ import tornado.httpclient
 import tornado.template
 import pymongo
 from components.shadow import encode, decode
-from components.common import ArgumentMissing, check_arguments
+from components.common import check_arguments
 import hashlib
 
 
 class Trunk(tornado.web.Application):
-
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
@@ -330,28 +329,31 @@ class Trunk(tornado.web.Application):
                         leaves[leaf["name"]]["processed"] = True
                     # Лист есть в списке активных, но его уже обработали
                     elif leaves[leaf["name"]].get("active", False) and leaves[leaf["name"]].get("processed", False):
-                        self.log_event({
-                            "warning": "Duplicate leaf found",
-                            "component": "leaf",
-                            "name": leaf["name"],
-                            "response": leaf
-                        }, event_type="warning")
+                        self.log_event(
+                            {
+                                "warning": "Duplicate leaf found",
+                                "component": "leaf",
+                                "name": leaf["name"],
+                                "response": leaf
+                            }, event_type="warning")
                     # Листа нет в списке активных, но он активен на ветви
                     else:
-                        self.log_event({
-                            "warning": "This leaf shouldn't be active",
-                            "component": "leaf",
-                            "name": leaf["name"],
-                            "response": leaf
-                        }, event_type="warning")
+                        self.log_event(
+                            {
+                                "warning": "This leaf shouldn't be active",
+                                "component": "leaf",
+                                "name": leaf["name"],
+                                "response": leaf
+                            }, event_type="warning")
             else:
                 failure = failure or True
-                self.log_event({
-                    "error": "Failed to communicate with branch",
-                    "component": "branch",
-                    "name": branch["name"],
-                    "response": response
-                }, event_type="error")
+                self.log_event(
+                    {
+                        "error": "Failed to communicate with branch",
+                        "component": "branch",
+                        "name": branch["name"],
+                        "response": response
+                    }, event_type="error")
 
         if success and not failure:
             return {
@@ -717,11 +719,10 @@ class Trunk(tornado.web.Application):
         })
 
         if response["result"] != "success":
-            result = {
+            return {
                 "result": "failure",
                 "message": "Failed to create leaf: {0}".format(response["message"])
             }
-            return result
         # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
@@ -949,7 +950,9 @@ class Trunk(tornado.web.Application):
         if new_branch["type"] != leaf["type"]:
             return {
                 "result": "failure",
-                "message": "Can't move leaf with type '{0}' to branch with type '{1}'".format(leaf["type"], new_branch["type"])
+                "message": "Can't move leaf with type '{0}' to branch with type '{1}'".format(
+                    leaf["type"],
+                    new_branch["type"])
             }
 
         if not new_branch:
