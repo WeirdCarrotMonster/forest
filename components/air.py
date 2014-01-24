@@ -11,23 +11,24 @@ class Air(tornado.web.Application):
         super(Air, self).__init__(**settings)
         self.settings = settings_dict
 
+        self.functions = {
+            "publish_leaf": self.publish_leaf,
+            "unpublish_leaf": self.unpublish_leaf,
+            "status_report": self.status_report
+        }
+
     def process_message(self, message):
         function = message.get('function', None)
-        if function == "publish_leaf":
-            response = self.publish_leaf(message)
-        if function == "unpublish_leaf":
-            response = self.unpublish_leaf(message)
-        if function == "status_report":
-            response = self.status_report()
 
-        if function is None:
-            response = {
+        if not function in self.functions:
+            return {
                 "result": "failure",
                 "message": "No function or unknown one called"
             }
-        return response
 
-    def status_report(self):
+        return self.functions[function](message)
+
+    def status_report(self, message):
         return {
             "result": "success",
             "message": "Working well",
