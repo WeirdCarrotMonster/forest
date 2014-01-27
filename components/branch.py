@@ -131,8 +131,8 @@ class Branch(tornado.web.Application):
                 "comment": "found existing leaf"
             }
 
-        log_message("Creating new leaf: {0}, with initdb: {1}".format(
-            leaf_data["name"], leaf_data["initdb"]), component="Branch")
+        log_message("Creating new leaf: {0}".format(
+            leaf_data["name"]), component="Branch")
 
         new_leaf = Leaf(
             name=leaf_data["name"],
