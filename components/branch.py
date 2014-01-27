@@ -102,7 +102,7 @@ class Branch(tornado.web.Application):
         }
 
     def add_leaf(self, message):
-        leaf_data = check_arguments(message, ["name", "env"], [("settings", {}), ("initdb", True)])
+        leaf_data = check_arguments(message, ["name", "env"], [("settings", {})])
         if type(leaf_data["env"]) != dict:
             return {
                 "result": "failure",
@@ -149,8 +149,7 @@ class Branch(tornado.web.Application):
         try:
             new_leaf.start()
             self.leaves.append(new_leaf)
-            if leaf_data["initdb"]:
-                new_leaf.init_database()
+            new_leaf.init_database()
         except Exception:
             self.settings["port_range"].append(new_leaf.fcgi_port)
             return {
