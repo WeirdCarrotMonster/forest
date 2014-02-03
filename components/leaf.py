@@ -126,6 +126,7 @@ class Leaf():
             "--module=wsgi:application",
             "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
             "--processes=4",
+            "--master",
             "--buffer-size=65535"
         ]
         my_env = os.environ
@@ -152,7 +153,7 @@ class Leaf():
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
         try:
-            os.killpg(self.process.pid, signal.SIGQUIT)
+            self.process.send_signal(signal.SIGINT)
             self.process.wait()
             del self._thread
         except OSError:
