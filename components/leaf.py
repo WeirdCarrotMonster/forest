@@ -2,6 +2,7 @@
 import subprocess
 import os
 import sys
+import signal
 from components.common import log_message
 import traceback
 import simplejson as json
@@ -123,7 +124,6 @@ class Leaf():
             "uwsgi",
             "--chdir=" + self.chdir,
             "--module=wsgi:application",
-            "--master",
             "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
             "--processes=4",
             "--buffer-size=65535"
@@ -133,7 +133,14 @@ class Leaf():
         my_env["APPLICATION_SETTINGS"] = self.settings
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
 
-        self.process = subprocess.Popen(cmd, env=my_env, stderr=subprocess.PIPE, bufsize=1, close_fds=True)
+        self.process = subprocess.Popen(
+            cmd,
+            env=my_env,
+            stderr=subprocess.PIPE,
+            bufsize=1,
+            close_fds=True,
+            preexec_fn=os.setpgrp
+        )
         if self.process.poll() is None:
             self._queue = Queue()
             self._thread = Thread(target=enqueue_output, args=(self.process.stderr, self._queue))
@@ -145,9 +152,9 @@ class Leaf():
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
         try:
-            #self.process.send_signal(subprocess.signal.SIGINT)
-            self.process.terminate()
+            os.killpg(self.process.pid, signal.SIGKILL)
             self.process.wait()
+            del self._thread
         except OSError:
             pass
 

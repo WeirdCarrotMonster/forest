@@ -1155,7 +1155,8 @@ class Trunk(tornado.web.Application):
             if response["result"] != "success":
                 return {
                     "result": "failure",
-                    "message": "Failed to save settings on branch"
+                    "message": "Failed to save settings on branch",
+                    "details": response
                 }
 
         return {
