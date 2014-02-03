@@ -139,7 +139,7 @@ class Leaf():
             stderr=subprocess.PIPE,
             bufsize=1,
             close_fds=True,
-            preexec_fn=os.setpgrp
+            #preexec_fn=os.setpgrp # DIS SHIT
         )
         if self.process.poll() is None:
             self._queue = Queue()
@@ -152,7 +152,7 @@ class Leaf():
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
         try:
-            os.killpg(self.process.pid, signal.SIGKILL)
+            os.killpg(self.process.pid, signal.SIGQUIT)
             self.process.wait()
             del self._thread
         except OSError:
