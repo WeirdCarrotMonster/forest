@@ -145,7 +145,8 @@ class Leaf():
     def stop(self):
         log_message("Stopping leaf {0}".format(self.name), component="Leaf")
         try:
-            self.process.send_signal(subprocess.signal.SIGINT)
+            #self.process.send_signal(subprocess.signal.SIGINT)
+            self.process.terminate()
             self.process.wait()
         except OSError:
             pass
