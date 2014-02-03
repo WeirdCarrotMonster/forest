@@ -9,6 +9,17 @@ from datetime import datetime
 from bson import json_util
 import traceback
 import os
+from multiprocessing import Process
+
+
+def run_parallel(fns):
+    proc = []
+    for fn in fns:
+        p = Process(target=fn)
+        p.start()
+        proc.append(p)
+    for p in proc:
+        p.join()
 
 
 class ArgumentMissing(Exception):

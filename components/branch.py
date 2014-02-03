@@ -4,7 +4,7 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, check_arguments
+from components.common import log_message, check_arguments, run_parallel
 import pymongo
 import traceback
 
@@ -75,8 +75,7 @@ class Branch(tornado.web.Application):
 
     def shutdown_leaves(self):
         log_message("Shutting down leaves...", component="Branch")
-        for leaf in self.leaves:
-            leaf.stop()
+        run_parallel([leaf.stop for leaf in self.leaves])
 
     def status_report(self, message):
         return {
@@ -302,8 +301,7 @@ class Branch(tornado.web.Application):
                 "result": "failure",
                 "message": traceback.format_exc()
             }
-        for leaf in self.leaves:
-            leaf.stop()
-            leaf.update_database()
-            leaf.start()
+
+        run_parallel([leaf.do_update_routine for leaf in self.leaves])
+
         return result

@@ -128,7 +128,6 @@ class Leaf():
             "--processes=4",
             "--buffer-size=65535"
         ]
-        print(' '.join(cmd))
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = self.launch_env
         my_env["APPLICATION_SETTINGS"] = self.settings
@@ -136,7 +135,6 @@ class Leaf():
 
         self.process = subprocess.Popen(cmd, env=my_env, stderr=subprocess.PIPE, bufsize=1, close_fds=True)
         if self.process.poll() is None:
-            log_message("Started leaf {0}".format(self.name), component="Leaf")
             self._queue = Queue()
             self._thread = Thread(target=enqueue_output, args=(self.process.stderr, self._queue))
             self._thread.daemon = True
@@ -155,3 +153,8 @@ class Leaf():
     def get_logs(self):
         self.update_logs_req_count()
         return self.logs
+
+    def do_update_routine(self):
+        self.stop()
+        self.update_database()
+        self.start()
