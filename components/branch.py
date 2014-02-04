@@ -241,9 +241,8 @@ class Branch(tornado.web.Application):
 
         for leaf in self.leaves:
             if leaf.name == leaf_data["name"]:
-                leaf.stop()
                 leaf.set_settings(leaf_data["settings"])
-                leaf.start()
+                leaf.restart()
 
         return {
             "result": "success",
@@ -302,6 +301,9 @@ class Branch(tornado.web.Application):
                 "message": traceback.format_exc()
             }
 
-        run_parallel([leaf.do_update_routine for leaf in self.leaves])
+        run_parallel([leaf.update_database for leaf in self.leaves])
+
+        for leaf in self.leaves:
+            leaf.restart()
 
         return result

@@ -9,6 +9,7 @@ import simplejson as json
 from threading import Thread
 from Queue import Queue, Empty
 import datetime
+import time
 
 
 def enqueue_output(out, queue):
@@ -158,6 +159,10 @@ class Leaf():
             del self._thread
         except OSError:
             pass
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def get_logs(self):
         self.update_logs_req_count()
