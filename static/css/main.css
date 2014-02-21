@@ -11,8 +11,8 @@
 /* =Main
 -----------------------------------------------------------------------------*/
 
-body, html { 
-	width: 100%; 
+body, html {
+	width: 100%;
 	height: 100%;
 }
 body {
@@ -213,8 +213,8 @@ input[type].button-small {
 }
 	.nav li {
 		float: left;
-		margin-left: 2.5em; 
-	}
+		margin-left: 2.5em;
+    }
 		.nav a {
 			display: block;
 			border-bottom: 1px solid rgba(255, 255, 255, 0.3);

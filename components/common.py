@@ -122,6 +122,7 @@ class TransparentListener(tornado.web.RequestHandler):
     def get_current_user(self):
         return self.get_secure_cookie("user")
 
+    @tornado.web.asynchronous
     def get(self, page):
         # Вот тут выдаются страницы
         # Все те, что не статика
@@ -129,10 +130,11 @@ class TransparentListener(tornado.web.RequestHandler):
         try:
             response = self.application.process_page(page, self.get_current_user())
             with open(os.path.join(self.application.settings["REALPATH"], response), 'r') as page_file:
-                self.write(page_file.read())
+                self.finish(page_file.read())
         except Exception as e:
-            self.write(e.message)
+            self.finish(e.message)
 
+    @tornado.web.asynchronous
     def post(self, stuff):
         # Вот тут обрабатывается API
         # Строго через POST
@@ -140,7 +142,7 @@ class TransparentListener(tornado.web.RequestHandler):
         try:
             message = json.loads(self.request.body)
         except ValueError:
-            self.write(json.dumps(
+            self.finish(json.dumps(
                 {
                     "result": "failure",
                     "message": "Failed to decode message",
@@ -162,7 +164,7 @@ class TransparentListener(tornado.web.RequestHandler):
                 "details": traceback.format_exc()
             }
         self.set_header("Content-Type", "application/json")
-        self.write(json.dumps(response, default=json_util.default))
+        self.finish(json.dumps(response, default=json_util.default))
 
 
 def log_message(message, component="Forest"):

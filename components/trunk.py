@@ -22,7 +22,8 @@ class Trunk(tornado.web.Application):
         }
         self.auth_urls = {
             "dashboard": "html/dashboard.html",
-            "leaves": "html/leaves.html"
+            "leaves": "html/leaves.html",
+            "fauna": "html/fauna.html"
         }
 
         self.functions = {
