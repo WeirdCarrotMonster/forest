@@ -221,6 +221,7 @@ function Leaves($scope, $http, $timeout) {
                value["name"] = index;
                return [value];
             });
+            a.sort(function(a,b){return a.name > b.name});
             while (a.length > 0){
                 $scope.leaves.push(a.splice(0, 2));
             }
