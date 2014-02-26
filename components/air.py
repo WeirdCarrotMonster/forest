@@ -61,14 +61,13 @@ def get_leaves_proxy(settings):
         host = branch["host"]
         port = leaf["port"]
         conf = '''
-$HTTP["host"] == "{0}" \{
+$HTTP["host"] == "%s" {
     fastcgi.server = ("/" => ((
-        "host" => "{1}",
-        "port" => {2},
+        "host" => "%s",
+        "port" => %s,
         "check-local" => "disable",
         "disable-time" => 1,
         "fix-root-scriptname" => "enable"
     )))
-\}
-        '''.format(address, host, str(port))
+}''' % (address, host, str(port))
         print(conf)
