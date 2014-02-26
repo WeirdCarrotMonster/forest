@@ -106,7 +106,8 @@ class Branch(tornado.web.Application):
         log_message("Doing following shit:\n\
                      to_remove: {0}\n\
                      db_leaves: {1}\n\
-                    ".format(to_remove, db_leaves_names),
+                     current_leaves: {3}\
+                    ".format(to_remove, db_leaves_names, current_leaves),
                     component="Branch")
 
         for leaf in self.leaves:
