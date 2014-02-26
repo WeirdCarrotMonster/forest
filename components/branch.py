@@ -7,6 +7,7 @@ from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
     run_parallel, LogicError, get_connection
 import traceback
+import time
 
 
 class Branch(tornado.web.Application):
@@ -96,6 +97,10 @@ class Branch(tornado.web.Application):
         })
         db_leaves_names = [leaf["name"] for leaf in db_leaves]
 
+        log_message("Triggering update", component="Branch")
+        log_message("Doing following shit:\nto_remove: {0}\ndb_leaves: {1}".format(to_remove, db_leaves_names), 
+                    component="Branch")
+
         # Сравниваем списки листьев
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
@@ -142,17 +147,31 @@ class Branch(tornado.web.Application):
             "branch": self.settings["name"],
             "active": True
         })
+
+        ports_reassigned = False
         for leaf in leaves:
-            log_message("Found leaf {0} in configuration".format(
-                leaf["name"]),
+            log_message("Found leaf {0} in configuration\nPort: {1}".format(
+                leaf["name"], leaf["port"]),
                 component="Branch"
             )
+            port = leaf["port"]
+            if port in self.settings["port_range"]:
+                # Активируем на порту, который попадает в диапазон и свободен
+                self.settings["port_range"].remove(port)
+            else:
+                port = self.get_port()
+                client.trunk.leaves.update(
+                    {"name": leaf["name"]},
+                    {"$set": {"port": port}}
+                )
+                ports_reassigned |= True
+
             new_leaf = Leaf(
                 name=leaf["name"],
                 chdir=self.settings["chdir"],
                 executable=self.settings["executable"],
                 fcgi_host=self.settings["host"],
-                fcgi_port=leaf["port"],
+                fcgi_port=port,
                 pidfile=os.path.join(self.settings["pid_dir"],
                                      leaf["name"] + '.pid'),
                 logfile=os.path.join(self.settings["log_dir"],
@@ -160,13 +179,16 @@ class Branch(tornado.web.Application):
                 env=leaf.get("env", {}),
                 settings=leaf.get("settings", {})
             )
-            try:
-                self.settings["port_range"].remove(new_leaf.fcgi_port)
-            except ValueError:
-                # Порт не в списке. Стабильности ради делаем НИЧЕГО.
-                pass
             new_leaf.start()
             self.leaves.append(new_leaf)
+
+        if ports_reassigned:
+            client.trunk.events.insert({
+                "to": "trunk",
+                "from": "branch",
+                "message": "ports_reassigned",
+                "time": time.gmtime()
+            })
 
     def shutdown_leaves(self):
         log_message("Shutting down leaves...", component="Branch")

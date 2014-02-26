@@ -67,12 +67,12 @@ if SETTINGS["role"] == "trunk":
     LISTENERS.append((r"/(.*)", TransparentListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
 
-    # Частота обновления логов - одна минута
-    # TODO: брать из настроек
-    PERIOD = 10
     period_cbk = tornado.ioloop.PeriodicCallback(
-        APPLICATION.log_stats, 1000 * 60 * PERIOD, loop)
+        APPLICATION.log_stats, 1000 * 60 * 10, loop)
     period_cbk.start()
+    period_cbk2 = tornado.ioloop.PeriodicCallback(
+        APPLICATION.read_events, 1000 * 5, loop)
+    period_cbk2.start()
 
 
 if SETTINGS["role"] == "branch":

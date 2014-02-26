@@ -1167,6 +1167,28 @@ class Trunk(tornado.web.Application):
             "message": "Successfully updated branch"
         }
 
+    def read_events(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        need_air_restart = False
+        accepted = []
+        for event in client.trunk.events.find({"to": "trunk"}):
+            accepted.append(event)
+            if event["message"] == "ports_reassigned":
+                need_air_restart |= True
+
+        for event in accepted:
+            client.trunk.events.remove({"_id": event["_id"]})
+
+        # TODO: перенести перезапуск прокси в отдельный метод
+        if need_air_restart:
+            air = self.get_air()
+            self.send_message(air, {"function": "update_state"})
+
     def get_branch(self, branch_type):
         client = get_connection(
             self.settings["mongo_host"],
