@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import os
-import sys
 import signal
 from components.common import log_message
 import traceback
 import simplejson as json
 from threading import Thread
-from Queue import Queue, Empty
+from Queue import Queue
 import datetime
-import time
 
 
 def enqueue_output(out, queue):
@@ -41,8 +39,8 @@ class Leaf():
         self.logfile = logfile
         self.chdir = chdir
         self.executable = executable
-        self.launch_env = json.dumps(env)
-        self.settings = json.dumps(settings)
+        self.launch_env = env
+        self.settings = settings
         self.pid = 0
         self.process = None
 
@@ -58,8 +56,8 @@ class Leaf():
         # syncdb для создания основных таблиц
         # migrate для создания таблиц, управляемых через south
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = self.launch_env
-        my_env["APPLICATION_SETTINGS"] = self.settings
+        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
+        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
             env=my_env,
@@ -72,15 +70,15 @@ class Leaf():
     def update_database(self):
         # Обновляем таблицы через south
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = self.launch_env
-        my_env["APPLICATION_SETTINGS"] = self.settings
+        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
+        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
             shell=False)
 
     def set_settings(self, settings):
-        self.settings = json.dumps(settings)
+        self.settings = settings
 
     def mem_usage(self):
         if self.process.poll() is None:
@@ -98,21 +96,9 @@ class Leaf():
         return mem/1024
 
     def update_logs_req_count(self):
-        count = 0
-        try:
-            while True:
-                line = self._queue.get_nowait()
-                self.logs.append(line)
-                count += 1
-        except Empty:
-            pass
-        measurement_time = datetime.datetime.now()
-        time_delta = measurement_time - self._last_req_measurement
-        minutes = time_delta.days * 24 * 60 + time_delta.seconds / float(60)  # С гарантией
-        if minutes > 5:
-            self._last_req_count = float(count) / float(minutes)
-        else:
-            self._last_req_count = (count + self._last_req_count * (5 - minutes))/float(5)
+        # Старая логика - говно
+        # TODO: написать нормальный анализ
+        return 0
 
     def req_per_second(self):
         self.update_logs_req_count()
@@ -131,8 +117,8 @@ class Leaf():
             "--buffer-size=65535"
         ]
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = self.launch_env
-        my_env["APPLICATION_SETTINGS"] = self.settings
+        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
+        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
 
         self.process = subprocess.Popen(
@@ -145,7 +131,10 @@ class Leaf():
         )
         if self.process.poll() is None:
             self._queue = Queue()
-            self._thread = Thread(target=enqueue_output, args=(self.process.stderr, self._queue))
+            self._thread = Thread(
+                target=enqueue_output,
+                args=(self.process.stderr, self._queue)
+            )
             self._thread.daemon = True
             self._thread.start()
         else:
@@ -156,6 +145,7 @@ class Leaf():
         try:
             self.process.send_signal(signal.SIGINT)
             self.process.wait()
+            self.process = None
             del self._thread
         except OSError:
             pass
@@ -172,3 +162,11 @@ class Leaf():
         self.stop()
         self.update_database()
         self.start()
+
+    def status(self):
+        if self.process is None:
+            return "stopped"
+        elif self.process.poll != 0:
+            return "killed"
+        else:
+            return "running"

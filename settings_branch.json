@@ -7,6 +7,7 @@
     "role": "branch",
     "settings":
     {
+        "name": "second",
         "secret": "d(lldw!r(f-95868izj^f*(ij4x56$-!-1j&exabvxhswb1^0w",
         "host": "127.0.0.1",
         "port_range_begin": 8000,
@@ -21,6 +22,14 @@
         {
             "type": "git",
             "path": "/home/wcm/espresso"
+        }
+    },
+    "species": {
+        "espresso": {
+            "vcs": "git",
+            "url": "sample_url",
+            "launch": "cmd",
+            "update": [ "python3.3 manage.py syncdb", "python3.3 manage.py migrate" ]
         }
     }
 }

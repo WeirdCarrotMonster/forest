@@ -4,8 +4,8 @@ import os
 import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, check_arguments, run_parallel
-import pymongo
+from components.common import log_message, check_arguments, \
+    run_parallel, LogicError, get_connection
 import traceback
 
 
@@ -20,34 +20,129 @@ class Branch(tornado.web.Application):
         self.init_leaves()
 
         self.functions = {
-            "create_leaf": self.add_leaf,
-            "delete_leaf": self.delete_leaf,
             "restart_leaf": self.restart_leaf,
-            "change_settings": self.change_settings,
             "get_leaf_logs": self.get_leaf_logs,
             "status_report": self.status_report,
             "known_leaves": self.known_leaves,
-            "update_repository": self.update_repo
+            "update_repository": self.update_repo,
+            "update_state": self.update_state
         }
 
     def process_message(self, message):
         function = message.get('function', None)
 
         if not function in self.functions:
-            return {
-                "result": "failure",
-                "message": "No function or unknown one called"
-            }
+            raise LogicError("No function or unknown one called")
 
         return self.functions[function](message)
 
-    def init_leaves(self):
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
+    def get_leaf(self, leaf_name):
+        for leaf in self.leaves:
+            if leaf.name == leaf_name:
+                return leaf
+        return None
+
+    def add_leaf(self, leaf):
+        new_leaf = Leaf(
+            name=leaf["name"],
+            chdir=self.settings["chdir"],
+            executable=self.settings["executable"],
+            fcgi_host=self.settings["host"],
+            fcgi_port=self.get_port(),
+            pidfile=os.path.join(
+                self.settings["pid_dir"],
+                leaf["name"] + '.pid'
+            ),
+            logfile=os.path.join(
+                self.settings["log_dir"],
+                leaf["name"] + '.log'
+            ),
+            env=leaf["env"],
+            settings=leaf["settings"]
         )
-        leaves = client.branch.leaves
-        for leaf in leaves.find():
+        try:
+            new_leaf.start()
+            self.leaves.append(new_leaf)
+            new_leaf.init_database()
+        except Exception:
+            self.return_port(new_leaf.fcgi_port)
+            raise LogicError("Start failed: {0}".format(traceback.format_exc()))
+        else:
+            # Лист успешно запущен.
+            # Записываем порт, на котором он активирован
+            client = get_connection(
+                self.settings["mongo_host"],
+                self.settings["mongo_port"],
+                "admin",
+                "password"
+            )
+            client.trunk.leaves.update(
+                {"name": leaf["name"]},
+                {"$set": {"port": new_leaf.fcgi_port}}
+            )
+
+    def update_state(self, message):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        # Составляем списки имеющихся листьев и требуемых
+        current_leaves = [leaf.name for leaf in self.leaves]
+        db_leaves = client.trunk.leaves.find({
+            "branch": self.settings["name"],
+            "active": True
+        })
+        db_leaves_names = [leaf["name"] for leaf in db_leaves]
+
+        # Сравниваем списки листьев
+        # Выбираем все листы, которые есть локально, но не
+        # указаны в базе и выключаем их
+        to_remove = list(set(current_leaves) - set(db_leaves_names))
+
+        for leaf in self.leaves:
+            if leaf.name in to_remove:
+                leaf.stop()
+                self.leaves.remove(leaf)
+
+        # Обрабатываем все листья, назначенные на данную ветвь
+        for leaf in db_leaves:
+            if leaf["name"] in current_leaves:
+                # Лист уже работает
+                # Перечитываем конфиг и сравниваем с текущим,
+                # при необходимости перезапускаем лист
+                leaf_running = self.get_leaf(leaf["name"])
+                if leaf["settings"] != leaf_running.settings or \
+                   leaf["env"] != leaf_running.env:
+                    leaf_running.settings = leaf["settings"]
+                    leaf_running.env = leaf["env"]
+                    leaf_running.restart()
+            else:
+                self.add_leaf(leaf)
+
+        return {
+            "result": "success"
+        }
+
+    def get_port(self):
+        return self.settings["port_range"].pop()
+
+    def return_port(self, port):
+        self.settings["port_range"].append(port)
+
+    def init_leaves(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        leaves = client.trunk.leaves.find({
+            "branch": self.settings["name"],
+            "active": True
+        })
+        for leaf in leaves:
             log_message("Found leaf {0} in configuration".format(
                 leaf["name"]),
                 component="Branch"
@@ -100,167 +195,33 @@ class Branch(tornado.web.Application):
             "leaves": known_leaves
         }
 
-    def add_leaf(self, message):
-        leaf_data = check_arguments(message, ["name", "env"], [("settings", {})])
-        if type(leaf_data["env"]) != dict:
-            return {
-                "result": "failure",
-                "message": "Environment should be dict"
-            }
-
-        if type(leaf_data["settings"]) != dict:
-            return {
-                "result": "failure",
-                "message": "Settings should be dict"
-            }
-
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
-        )
-        leaves = client.branch.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if leaf:
-            log_message(
-                "Found existing leaf: {0}".format(leaf_data["name"]), component="Branch")
-            return {
-                "result": "success",
-                "host": self.settings["host"],
-                "port": leaf["port"],
-                "comment": "found existing leaf"
-            }
-
-        log_message("Creating new leaf: {0}".format(
-            leaf_data["name"]), component="Branch")
-
-        new_leaf = Leaf(
-            name=leaf_data["name"],
-            chdir=self.settings["chdir"],
-            executable=self.settings["executable"],
-            fcgi_host=self.settings["host"],
-            fcgi_port=self.settings["port_range"].pop(),
-            pidfile=os.path.join(self.settings["pid_dir"], leaf_data["name"] + '.pid'),
-            logfile=os.path.join(self.settings["log_dir"], leaf_data["name"] + '.log'),
-            env=leaf_data["env"],
-            settings=leaf_data["settings"]
-        )
-
-        try:
-            new_leaf.start()
-            self.leaves.append(new_leaf)
-            new_leaf.init_database()
-        except Exception:
-            self.settings["port_range"].append(new_leaf.fcgi_port)
-            return {
-                "result": "failure",
-                "message": "Start failed: {0}".format(traceback.format_exc())
-            }
-        else:
-            leaf = {
-                "name": new_leaf.name,
-                "port": new_leaf.fcgi_port,
-                "env": leaf_data["env"],
-                "settings": leaf_data["settings"]
-            }
-            leaves.insert(leaf)
-
-            return {
-                "result": "success",
-                "host": self.settings["host"],
-                "port": new_leaf.fcgi_port,
-                "comment": "created new leaf"
-            }
-
-    def delete_leaf(self, message):
-        leaf_data = check_arguments(message, ["name"])
-
-        for leaf in self.leaves:
-            if leaf.name == leaf_data["name"]:
-                leaf.stop()
-                self.leaves.remove(leaf)
-
-        log_message("Deleting leaf '{0}' from server".format(leaf_data["name"]),
-                    component="Branch")
-
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
-        )
-        leaves = client.branch.leaves
-        leaves.remove({"name": leaf_data["name"]})
-
-        return {
-            "result": "success",
-            "message": "deleted leaf info from server"
-        }
-
     def restart_leaf(self, message):
         leaf_data = check_arguments(message, ["name"])
+        leaf = self.get_leaf(leaf_data["name"])
+        if leaf:
+            leaf.restart()
+        else:
+            raise LogicError("Leaf with name {0} not found".format(
+                leaf_data["name"]))
 
-        for leaf in self.leaves:
-            if leaf.name == leaf_data["name"]:
-                leaf.stop()
-                leaf.start()
-
-        log_message("Restarting leaf '{0}'".format(leaf_data["name"]), component="Branch")
+        log_message("Restarting leaf '{0}'".format(
+            leaf_data["name"]), component="Branch")
 
         return {
             "result": "success",
             "message": "restarted leaf {0}".format(leaf_data["name"])
         }
 
-    def change_settings(self, message):
-        leaf_data = check_arguments(message, ["name", "settings"])
-
-        if type(leaf_data["settings"]) != dict:
-            return {
-                "result": "failure",
-                "message": "Settings should be dict"
-            }
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
-        )
-        leaf = client.branch.leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
-
-        client.branch.leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "settings": leaf_data["settings"]
-                }
-            },
-            upsert=False,
-            multi=False
-        )
-
-        for leaf in self.leaves:
-            if leaf.name == leaf_data["name"]:
-                leaf.set_settings(leaf_data["settings"])
-                leaf.restart()
-
-        return {
-            "result": "success",
-            "message": "Saved settings for leaf {0}".format(leaf_data["name"])
-        }
-
     def get_leaf_logs(self, message):
         leaf_data = check_arguments(message, ["name"])
 
         logs = None
-        for leaf in self.leaves:
-            if leaf.name == leaf_data["name"]:
-                logs = leaf.get_logs()
-        if logs is None:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
+        leaf = self.get_leaf(leaf_data["name"])
+        if leaf:
+            logs = leaf.get_logs()
+        else:
+            raise LogicError("Leaf with name {0} not found".format(
+                leaf_data["name"]))
 
         return {
             "result": "success",
@@ -291,10 +252,7 @@ class Branch(tornado.web.Application):
                     "message": output
                 }
             else:
-                result = {
-                    "result": "failure",
-                    "message": "configuration error: unknown repository type"
-                }
+                raise LogicError("configuration error: unknown repository type")
         except CalledProcessError:
             result = {
                 "result": "failure",

@@ -5,7 +5,7 @@ import tornado.httpclient
 import tornado.template
 import pymongo
 from components.shadow import encode, decode
-from components.common import check_arguments
+from components.common import check_arguments, get_connection
 import hashlib
 
 
@@ -106,7 +106,6 @@ class Trunk(tornado.web.Application):
         response["type"] = "result"
         return response
 
-
     @staticmethod
     def send_message(receiver, contents):
         try:
@@ -187,9 +186,11 @@ class Trunk(tornado.web.Application):
         }
 
     def log_stats(self):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         leaves_list = client.trunk.leaves.find()
@@ -228,9 +229,11 @@ class Trunk(tornado.web.Application):
             {"type": "memory"}, {"$set": {"values": logs}})
 
     def get_memory_logs(self, message):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         values = client.trunk.logs.find_one({"type": "memory"}).get("values")
         keys = [leaf["name"] for leaf in client.trunk.leaves.find()]
@@ -253,9 +256,11 @@ class Trunk(tornado.web.Application):
         user_data = check_arguments(message, ['username', 'password'])
 
         if self.handler:
-            client = pymongo.MongoClient(
+            client = get_connection(
                 self.settings["mongo_host"],
-                self.settings["mongo_port"]
+                self.settings["mongo_port"],
+                "admin",
+                "password"
             )
             user = client.trunk.users.find_one(
                 {
@@ -289,9 +294,11 @@ class Trunk(tornado.web.Application):
         }
 
     def check_leaves(self, message):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         leaves_list = client.trunk.leaves.find()
@@ -324,12 +331,14 @@ class Trunk(tornado.web.Application):
                     leaves[leaf["name"]]["settings"] = leaves[
                         leaf["name"]].get("settings", {})
                     # Лист есть в списке активных и в списке необработанных
-                    if leaves[leaf["name"]].get("active", False) and not leaves[leaf["name"]].get("processed", False):
+                    if leaves[leaf["name"]].get("active", False) and \
+                       not leaves[leaf["name"]].get("processed", False):
                         success = success or True
                         leaves[leaf["name"]]["mem"] = leaf["mem"]
                         leaves[leaf["name"]]["processed"] = True
                     # Лист есть в списке активных, но его уже обработали
-                    elif leaves[leaf["name"]].get("active", False) and leaves[leaf["name"]].get("processed", False):
+                    elif leaves[leaf["name"]].get("active", False) and \
+                            leaves[leaf["name"]].get("processed", False):
                         self.log_event(
                             {
                                 "warning": "Duplicate leaf found",
@@ -376,9 +385,11 @@ class Trunk(tornado.web.Application):
             }
 
     def dashboard_stats(self, message):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         loads = []
@@ -410,9 +421,11 @@ class Trunk(tornado.web.Application):
         }
 
     def status_report(self, message):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         loads = []
@@ -552,9 +565,11 @@ class Trunk(tornado.web.Application):
             "warning": [],
         }
 
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         for branch in client.trunk.branches.find():
@@ -571,57 +586,6 @@ class Trunk(tornado.web.Application):
             })
         return result
 
-    def call_component_function(self, message):
-        # TODO: протестировать
-        function_data = check_arguments(message, ['component', 'name', 'function', 'arguments'])
-
-        if not function_data['component'] in ['branch', 'roots', 'air']:
-            return {
-                "result": "failure",
-                "message": "unknown component type specified"
-            }
-
-        component = None
-        try:
-            if function_data['component'] == "branch":
-                component = self.get_branch(function_data['name'])
-            if function_data['component'] == "roots":
-                component = self.get_root(function_data['name'])
-            if function_data['component'] == "air":
-                component = self.get_air(function_data['name'])
-        except KeyError:
-            return {
-                "result": "failure",
-                "message": "component with specified name not found"
-            }
-
-        if not component:
-            return {
-                "result": "failure",
-                # реально не должно выпадать
-                "message": "failed to get component: logic error, check code"
-            }
-
-        post_data = {
-            "function": function_data['function'],
-        }
-        arguments = json.loads(function_data['arguments'])
-
-        if type(arguments) != dict:
-            return {
-                "result": "failure",
-                "message": "function arguments should be provided in json-encoded dict"
-            }
-
-        for arg in arguments.keys():
-            post_data[arg] = arguments[arg]
-
-        response = self.send_message(component, post_data)
-        return {
-            "result": response["result"],
-            "response": response
-        }
-
     def add_leaf(self, message):
         # =========================================
         # Проверяем наличие требуемых аргументов
@@ -631,9 +595,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем, нет ли листа с таким именем в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -658,20 +624,27 @@ class Trunk(tornado.web.Application):
                 "message": "No known branches of type '{0}'".format(leaf_data["type"])
             }
         # =========================================
+        # Записываем лист в базе
+        # =========================================
+
+        leaves.insert({
+            "name": leaf_data["name"],
+            "active": True,
+            "type": leaf_data["type"],
+            "address": leaf_data["address"],
+            "branch": branch["name"],
+            "settings": leaf_settings
+        })
+        # У листа отсутствует порт и настройки базы
+        # Они будут заполнены позднее
+
+        # =========================================
         # Обращаемся к roots для создания новой базы
         # =========================================
         root = self.get_root()
         post_data = {
-            "function": "prepare_database",
-            "name": leaf_data["name"]
+            "function": "update_state"
         }
-
-        self.log_event({
-            "status": "info",
-            "component": "roots",
-            "name": root["name"],
-            "message": "Asking root to prepare database"
-        })
 
         response = self.send_message(root, post_data)
         roots_response = response
@@ -682,24 +655,11 @@ class Trunk(tornado.web.Application):
             "name": root["name"],
             "response": roots_response
         })
-
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to get database settings",
-                "details": response,
-            }
-
-        env_for_leaf = response["env"]
         # =========================================
         # Обращаемся к branch для поднятия листа
         # =========================================
         post_data = {
-            "function": "create_leaf",
-            "name": leaf_data["name"],
-            "env": env_for_leaf,
-            "settings": leaf_settings,
-            "initdb": True
+            "function": "update_state"
         }
 
         self.log_event({
@@ -718,22 +678,12 @@ class Trunk(tornado.web.Application):
             "name": branch["name"],
             "response": branch_response
         })
-
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to create leaf: {0}".format(response["message"])
-            }
         # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
         post_data = {
-            "function": "publish_leaf",
-            "name": leaf_data["name"],
-            "address": leaf_data["address"],
-            "host": response["host"],
-            "port": response["port"]
+            "function": "update_state"
         }
 
         self.log_event({
@@ -752,17 +702,6 @@ class Trunk(tornado.web.Application):
             "response": response
         })
 
-        leaf = {
-            "name": leaf_data["name"],
-            "active": True,
-            "type": leaf_data["type"],
-            "address": leaf_data["address"],
-            "branch": branch["name"],
-            "port": branch_response["port"],
-            "env": roots_response["env"],
-            "settings": leaf_settings
-        }
-        leaves.insert(leaf)
         response = {
             "result": "success",
             "message": "Successfully added leaf '{0}'".format(leaf["name"])
@@ -777,9 +716,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем, есть ли лист с таким именем в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -806,44 +747,32 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": "No available branches of type '{0}'".format(leaf["type"])
             }
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "$set": {
+                    "active": True,
+                    "branch": branch["name"]
+                }
+            }
+        )
         # =========================================
         # Обращаемся к branch для поднятия листа
         # =========================================
         post_data = {
-            "function": "create_leaf",
-            "name": leaf["name"],
-            "env": leaf.get("env", {}),
-            "settings": leaf.get("settings", {})
+            "function": "update_state"
         }
-        response = self.send_message(branch, post_data)
 
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to create leaf: {0}".format(response["message"])
-            }
+        response = self.send_message(branch, post_data)
         # =========================================
         # Обращаемся к air для публикации листа
         # =========================================
         air = self.get_air()
         post_data = {
-            "function": "publish_leaf",
-            "name": leaf["name"],
-            "address": leaf["address"],
-            "host": response["host"],
-            "port": response["port"]
+            "function": "update_state"
         }
         self.send_message(air, post_data)
-        leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "active": True
-                }
-            },
-            upsert=True,
-            multi=False
-        )
+
         return {
             "result": "success",
             "message": "Re-enabled leaf '{0}'".format(leaf["name"])
@@ -855,9 +784,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         leaf_data = check_arguments(message, ['name'])
 
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -871,45 +802,28 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": "Leaf with name '{0}' already disabled".format(leaf_data["name"])
             }
-        # =========================================
-        # Обращаемся к branch для удаления листа
-        # =========================================
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-        if not branch:
-            return {
-                "result": "failure",
-                "message": "Internal server error: leaf '{0}' running on unknown branch".format(leaf_data["name"])
-            }
-        post_data = {
-            "function": "delete_leaf",
-            "name": leaf["name"]
-        }
-        response = self.send_message(branch, post_data)
 
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to delete leaf: {0}".format(response["message"])
-            }
-        # =========================================
-        # Обращаемся к air для де-публикации листа
-        # =========================================
-        air = self.get_air()
-        post_data = {
-            "function": "unpublish_leaf",
-            "name": leaf["name"]
-        }
-        self.send_message(air, post_data)
         leaves.update(
             {"name": leaf_data["name"]},
             {
                 "$set": {
                     "active": False
                 }
-            },
-            upsert=False,
-            multi=False
+            }
         )
+        # =========================================
+        # Обращаемся к branch для удаления листа
+        # =========================================
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+
+        if branch:
+            self.send_message(branch, {"function": "update_state"})
+        # =========================================
+        # Обращаемся к air для де-публикации листа
+        # =========================================
+        air = self.get_air()
+        self.send_message(air, {"function": "update_state"})
+
         return {
             "result": "success",
             "message": "Disabled leaf '{0}'".format(leaf["name"])
@@ -924,9 +838,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Ищем лист в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -961,72 +877,27 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": "Destination branch not found"
             }
-        if not old_branch:
-            return {
-                "result": "failure",
-                "message": "Internal server error: source branch '{0}'' not found".format(leaf["branch"])
-            }
-        # =========================================
-        # Обращаемся к новому branch'у для переноса листа
-        # =========================================
-        post_data = {
-            "function": "create_leaf",
-            "name": leaf["name"],
-            "env": leaf.get("env", {}),
-            "settings": leaf.get("settings", {}),
-            "initdb": False
-        }
-        response = self.send_message(new_branch, post_data)
-        new_branch_response = response
-        if new_branch_response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to create leaf: {0}".format(response["message"])
-            }
-        # =========================================
-        # Обращаемся к air для публикации листа
-        # =========================================
-        air = self.get_air()
-        post_data = {
-            "function": "publish_leaf",
-            "name": leaf_data["name"],
-            "address": leaf["address"],
-            "host": new_branch_response["host"],
-            "port": new_branch_response["port"]
-        }
-        response = self.send_message(air, post_data)
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to publish leaf: {0}".format(response["message"])
-            }
-        # =========================================
-        # Обращаемся старому branch'у для отключения листа
-        # =========================================
-        post_data = {
-            "function": "delete_leaf",
-            "name": leaf_data["name"]
-        }
-        response = self.send_message(old_branch, post_data)
-        old_branch_response = response
-        if old_branch_response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to delete leaf: {0}".format(response["message"])
-            }
 
         leaves.update(
             {"name": leaf_data["name"]},
             {
-                "$set": {
-                    "address": leaf["address"],
-                    "branch": leaf_data["destination"],
-                    "port": new_branch_response["port"],
-                }
-            },
-            upsert=False,
-            multi=False
+                "$set": {"branch": new_branch["name"]},
+                "$unset": {"port": 1}
+            }
         )
+        # =========================================
+        # Обращаемся к новому branch'у для переноса листа
+        # =========================================
+        if old_branch:
+            self.send_message(old_branch, {"function": "update_state"})
+        self.send_message(new_branch, {"function": "update_state"})
+
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        self.send_message(air, {"function": "update_state"})
+
         return {
             "result": "success",
             "message": "Moved leaf to {0}".format(leaf_data["destination"])
@@ -1041,9 +912,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Ищем лист в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -1058,31 +931,6 @@ class Trunk(tornado.web.Application):
                 "result": "warning",
                 "message": "Leaf is already on address '{0}'".format(leaf["address"])
             }
-        # =========================================
-        # Обращаемся к air для публикации листа
-        # =========================================
-        air = self.get_air()
-
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-        if not branch:
-            return {
-                "result": "failure",
-                "message": "Internal error: leaf hosted on unknown branch"
-            }
-
-        post_data = {
-            "function": "publish_leaf",
-            "name": leaf["name"],
-            "address": leaf_data["address"],
-            "host": branch["host"],
-            "port": leaf["port"]
-        }
-        response = self.send_message(air, post_data)
-        if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to publish leaf: {0}".format(response["message"])
-            }
 
         client.trunk.leaves.update(
             {"name": leaf_data["name"]},
@@ -1090,10 +938,13 @@ class Trunk(tornado.web.Application):
                 "$set": {
                     "address": leaf_data["address"]
                 }
-            },
-            upsert=False,
-            multi=False
+            }
         )
+        # =========================================
+        # Обращаемся к air для публикации листа
+        # =========================================
+        air = self.get_air()
+        self.send_message(air, {"function": "update_state"})
 
         return {
             "result": "success",
@@ -1115,9 +966,11 @@ class Trunk(tornado.web.Application):
                     "message": "Failed to save settings"
                 }
 
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -1133,9 +986,7 @@ class Trunk(tornado.web.Application):
                 "$set": {
                     "settings": leaf_data["settings"]
                 }
-            },
-            upsert=False,
-            multi=False
+            }
         )
 
         if leaf.get("active", False):
@@ -1147,18 +998,7 @@ class Trunk(tornado.web.Application):
                     "message": "Internal error: leaf hosted on unknown branch"
                 }
 
-            post_data = {
-                "function": "change_settings",
-                "name": leaf["name"],
-                "settings": leaf_data["settings"]
-            }
-            response = self.send_message(branch, post_data)
-            if response["result"] != "success":
-                return {
-                    "result": "failure",
-                    "message": "Failed to save settings on branch",
-                    "details": response
-                }
+            self.send_message(branch, {"function": "update_state"})
 
         return {
             "result": "success",
@@ -1171,9 +1011,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         leaf_data = check_arguments(message, ['name'])
 
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         leaf = client.trunk.leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
@@ -1197,7 +1039,7 @@ class Trunk(tornado.web.Application):
         if response["result"] != "success":
             return {
                 "result": "failure",
-                "message": "Failed to save settings on branch"
+                "message": "Failed to get logs from branch"
             }
 
         return {
@@ -1214,9 +1056,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем, нет ветви с таким именем в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         branches = client.trunk.branches
         branch = branches.find_one({"name": branch_data["name"]})
@@ -1250,9 +1094,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверяем, нет ли филина с таким именем в базе
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         owls = client.trunk.owls
         if owls.find_one({"name": owl["name"]}):
@@ -1293,9 +1139,11 @@ class Trunk(tornado.web.Application):
         # =========================================
         # Проверка на наличие ветви с таким именем
         # =========================================
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         if not client.trunk.branches.find_one({"name": branch_data["name"]}):
             return {
@@ -1320,9 +1168,11 @@ class Trunk(tornado.web.Application):
         }
 
     def get_branch(self, branch_type):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
         branches = client.trunk.branches
         return branches.find_one({"type": branch_type})

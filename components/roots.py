@@ -4,8 +4,7 @@ import MySQLdb
 import string
 import random
 import tornado.web
-import pymongo
-from components.common import log_message
+from components.common import log_message, get_connection
 
 
 class Roots(tornado.web.Application):
@@ -14,21 +13,23 @@ class Roots(tornado.web.Application):
         super(Roots, self).__init__(**settings)
         self.settings = settings_dict
 
+        self.functions = {
+            "update_state": self.update_state,
+            "status_report": self.status_report
+        }
+
     def process_message(self, message):
         function = message.get('function', None)
-        if function == "prepare_database":
-            response = self.prepare_database(message)
-        if function == "status_report":
-            response = self.status_report()
 
-        if function is None:
-            response = {
+        if not function in self.functions:
+            return {
                 "result": "failure",
                 "message": "No function or unknown one called"
             }
-        return response
 
-    def status_report(self):
+        return self.functions[function](message)
+
+    def status_report(self, message):
         return {
             "result": "success",
             "message": "Working well",
@@ -74,43 +75,31 @@ class Roots(tornado.web.Application):
         cur.close()
         return bool(result[0][0])
 
-    def prepare_database(self, message):
-        name = message.get("name", None)
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
+    def update_state(self, message):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        to_prepare = client.trunk.leaves.find({"env": {'$exists': False}})
+        for leaf in to_prepare:
+            env = self.prepare_database(leaf["name"])
+            if env:
+                client.trunk.leaves.update(
+                    {"name": leaf["name"]},
+                    {"$set": {"env": env}}
+                )
 
+        return {
+            "result": "success"
+        }
+
+    def prepare_database(self, name):
         log_message(
             "Preparing database for {0}".format(name),
             component="Roots"
         )
-        client = pymongo.MongoClient(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"]
-        )
-        leaves = client.roots.leaves
-        leaf = leaves.find_one({"name": name})
-        if leaf:
-            log_message(
-                "Found existing database {0} for leaf {1}".format(
-                    leaf["db_name"],
-                    name),
-                component="Roots"
-            )
-            result = {
-                "result": "success",
-                "env":
-                {
-                    "db_host": self.settings["mysql_host"],
-                    "db_port": self.settings["mysql_port"],
-                    "db_name": leaf["db_name"],
-                    "db_user": leaf["db_user"],
-                    "db_pass": leaf["db_pass"]
-                }
-            }
-            return result
 
         db_name = name
         if self.mysql_db_exists(db_name):
@@ -119,26 +108,15 @@ class Roots(tornado.web.Application):
         username = self.generate_username()
         password = self.string_generator()
         result = {
-            "result": "success",
-            "env":
-            {
-                "db_host": self.settings["mysql_host"],
-                "db_port": self.settings["mysql_port"],
-                "db_name": db_name,
-                "db_user": username,
-                "db_pass": password
-            }
-        }
-
-        leaf = {
-            "name": name,
+            "db_host": self.settings["mysql_host"],
+            "db_port": self.settings["mysql_port"],
             "db_name": db_name,
             "db_user": username,
             "db_pass": password
         }
 
         log_message(
-            "No existing database; creating new called {0}".format(db_name),
+            "Creating database {0}".format(db_name),
             component="Roots"
         )
 
@@ -152,28 +130,14 @@ class Roots(tornado.web.Application):
             cur = db.cursor()
             cur.execute(
                 """
-                CREATE DATABASE `{0}` CHARACTER SET utf8 
+                CREATE DATABASE `{0}` CHARACTER SET utf8
                 COLLATE utf8_general_ci;
-                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' 
+                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%'
                 IDENTIFIED BY '{2}' WITH GRANT OPTION;
                 FLUSH PRIVILEGES;
                 """.format(db_name, username, password)
             )
             db.close()
-        except Exception, e:
-            result = {
-                "result": "failure",
-                "message": e.message
-            }
-        leaves.insert(leaf)
+        except:
+            result = None
         return result
-
-    def delete_database(self, message):
-        name = message.get("name", None)
-        if not name:
-            return {
-                "result": "failure",
-                "message": "missing argument: name"
-            }
-        # TODO: Удаление самой базы и инстанса по имени из сохраненных
-        pass

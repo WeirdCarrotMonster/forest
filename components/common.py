@@ -10,6 +10,13 @@ from bson import json_util
 import traceback
 import os
 from multiprocessing import Process
+from pymongo import MongoReplicaSetClient
+
+
+def get_connection(host, port, user, password):
+    con = MongoReplicaSetClient(host, port, replicaSet="forest")
+    con.admin.authenticate(user, password)
+    return con
 
 
 def run_parallel(fns):
@@ -23,6 +30,10 @@ def run_parallel(fns):
 
 
 class ArgumentMissing(Exception):
+    pass
+
+
+class LogicError(Exception):
     pass
 
 
@@ -61,7 +72,11 @@ class WebSocketListener(tornado.websocket.WebSocketHandler):
             return
 
         try:
-            response = self.application.process_message(message, socket=self, user=self.get_current_user())
+            response = self.application.process_message(
+                message,
+                socket=self,
+                user=self.get_current_user()
+            )
         except Exception:
             response = {
                 "result": "failure",
@@ -128,8 +143,12 @@ class TransparentListener(tornado.web.RequestHandler):
         # Все те, что не статика
         # Потому что мне так велел велоцираптор иисус
         try:
-            response = self.application.process_page(page, self.get_current_user())
-            with open(os.path.join(self.application.settings["REALPATH"], response), 'r') as page_file:
+            response = self.application.process_page(
+                page,
+                self.get_current_user()
+            )
+            with open(os.path.join(self.application.settings["REALPATH"],
+                      response), 'r') as page_file:
                 self.finish(page_file.read())
         except Exception as e:
             self.finish(e.message)
@@ -151,11 +170,20 @@ class TransparentListener(tornado.web.RequestHandler):
             return
 
         try:
-            response = self.application.process_message(message, handler=self, user=self.get_current_user())
+            response = self.application.process_message(
+                message,
+                handler=self,
+                user=self.get_current_user()
+            )
         except ArgumentMissing, arg:
             response = {
                 "result": "failure",
                 "message": "Missing argument: {0}".format(arg.message)
+            }
+        except LogicError, arg:
+            response = {
+                "result": "failure",
+                "message": "{0}".format(arg.message)
             }
         except Exception:
             response = {
