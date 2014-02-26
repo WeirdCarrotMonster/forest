@@ -91,10 +91,10 @@ class Branch(tornado.web.Application):
         )
         # Составляем списки имеющихся листьев и требуемых
         current_leaves = [leaf.name for leaf in self.leaves]
-        db_leaves = client.trunk.leaves.find({
+        db_leaves = [leaf for leaf in client.trunk.leaves.find({
             "branch": self.settings["name"],
             "active": True
-        })
+        })]
         db_leaves_names = [leaf["name"] for leaf in db_leaves]
 
         # Сравниваем списки листьев
@@ -106,7 +106,7 @@ class Branch(tornado.web.Application):
         log_message("Doing following shit:\n\
                      to_remove: {0}\n\
                      db_leaves: {1}\n\
-                     current_leaves: {3}\
+                     current_leaves: {2}\
                     ".format(to_remove, db_leaves_names, current_leaves),
                     component="Branch")
 
