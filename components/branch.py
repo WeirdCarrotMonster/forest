@@ -58,7 +58,7 @@ class Branch(tornado.web.Application):
                 self.settings["log_dir"],
                 leaf["name"] + '.log'
             ),
-            env=leaf["env"],
+            env=leaf.get("env", {}),
             settings=leaf["settings"]
         )
         try:
@@ -179,10 +179,12 @@ class Branch(tornado.web.Application):
                 executable=self.settings["executable"],
                 fcgi_host=self.settings["host"],
                 fcgi_port=port,
-                pidfile=os.path.join(self.settings["pid_dir"],
-                                     leaf["name"] + '.pid'),
-                logfile=os.path.join(self.settings["log_dir"],
-                                     leaf["name"] + '.log'),
+                pidfile=os.path.join(
+                    self.settings["pid_dir"],
+                    leaf["name"] + '.pid'),
+                logfile=os.path.join(
+                    self.settings["log_dir"],
+                    leaf["name"] + '.log'),
                 env=leaf.get("env", {}),
                 settings=leaf.get("settings", {})
             )
