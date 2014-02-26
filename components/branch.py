@@ -120,10 +120,13 @@ class Branch(tornado.web.Application):
                 leaf_running = self.get_leaf(leaf["name"])
                 if leaf["settings"] != leaf_running.settings or \
                    leaf["env"] != leaf_running.env:
+                    log_message("Leaf {0} configuration changed, reloading".format(leaf["name"]), component="Branch")
                     leaf_running.settings = leaf["settings"]
                     leaf_running.env = leaf["env"]
                     leaf_running.restart()
             else:
+                log_message("Adding leaf {0}".format(leaf["name"]),
+                            component="Branch")
                 self.add_leaf(leaf)
 
         return {
