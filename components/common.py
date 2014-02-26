@@ -37,6 +37,10 @@ class LogicError(Exception):
     pass
 
 
+class Warning(Exception):
+    pass
+
+
 def check_arguments(message, required_args, optional_args=None):
     data = {}
     for arg in required_args:
@@ -183,6 +187,11 @@ class TransparentListener(tornado.web.RequestHandler):
         except LogicError, arg:
             response = {
                 "result": "failure",
+                "message": "{0}".format(arg.message)
+            }
+        except Warning, arg:
+            response = {
+                "result": "warning",
                 "message": "{0}".format(arg.message)
             }
         except Exception:

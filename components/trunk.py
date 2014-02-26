@@ -5,7 +5,8 @@ import tornado.httpclient
 import tornado.template
 import pymongo
 from components.shadow import encode, decode
-from components.common import check_arguments, get_connection
+from components.common import check_arguments, get_connection, \
+    LogicError, Warning
 import hashlib
 
 
@@ -73,32 +74,17 @@ class Trunk(tornado.web.Application):
         self.logs = []
         response = None
         function = message.get('function', None)
-        if function is None:
-            response = {
-                "result": "failure",
-                "message": "No function or unknown one called"
-            }
 
-        if function == "known_functions":
-            response = self.known_functions(message)
         if function == "login_user":
             response = self.login_user(message, user=user)
-
-        if response:
             return response
-        elif not user:
-            return {
-                "result": "failure",
-                "type": "result",
-                "message": "Not authenticated"
-            }
+
+        if not user:
+            raise LogicError("Not authenticated")
 
         # Далее - функции только для залогиненых
         if not function in self.functions:
-            return {
-                "result": "failure",
-                "message": "No function or unknown one called"
-            }
+            raise LogicError("No function or unknown one called")
 
         response = self.functions[function](message)
         if len(self.logs) > 0:
@@ -126,64 +112,6 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": e.message
             }
-
-    @staticmethod
-    def known_functions(message):
-        return {
-            "result": "functions",
-            "functions": [
-                {
-                    "name": "status_report",
-                    "description": "Получить информацию о состоянии компонентов системы",
-                    "args": []
-                },
-                {
-                    "name": "create_leaf",
-                    "description": "Создать новый лист указанного типа",
-                    "args": ["name", "type", "address"]
-                },
-                {
-                    "name": "update_repository",
-                    "description": "Обновить репозиторий",
-                    "args": ["type"]
-                },
-                {
-                    "name": "check_leaves",
-                    "description": "Опросить все работающие листья",
-                    "args": []
-                },
-                {
-                    "name": "add_branch",
-                    "description": "Добавить новую ветвь",
-                    "args": ['name', 'host', 'port', 'secret', 'type']
-                },
-                {
-                    "name": "enable_leaf",
-                    "description": "Включить лист",
-                    "args": ['name']
-                },
-                {
-                    "name": "disable_leaf",
-                    "description": "Отключить лист",
-                    "args": ['name']
-                },
-                {
-                    "name": "migrate_leaf",
-                    "description": "Переместить лист на другую ветвь",
-                    "args": ['name', 'destination']
-                },
-                {
-                    "name": "add_owl",
-                    "description": "Добавить филина",
-                    "args": ['name', 'verbose_name', 'host', 'port', 'secret']
-                },
-                {
-                    "name": "rehost_leaf",
-                    "description": "Переместить лист на новый адрес",
-                    "args": ['name', 'address']
-                }
-            ]
-        }
 
     def log_stats(self):
         client = get_connection(
@@ -587,14 +515,10 @@ class Trunk(tornado.web.Application):
         return result
 
     def add_leaf(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name', 'address', 'type'])
         leaf_settings = message.get("settings", {})
-        # =========================================
-        # Проверяем, нет ли листа с таким именем в базе
-        # =========================================
+
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -602,31 +526,28 @@ class Trunk(tornado.web.Application):
             "password"
         )
         leaves = client.trunk.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name '{0}' already exists".format(leaf_data["name"])
-            }
-        leaf = leaves.find_one({"address": leaf_data["address"]})
-        if leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with address '{0}' already exists".format(leaf_data["address"])
-            }
-        # =========================================
+
+        # Проверяем наличие листа с таким именем
+        if leaves.find_one({"name": leaf_data["name"]}):
+            raise LogicError("Leaf with name '{0}' \
+                              already exists".format(leaf_data["name"]))
+        # Проверяем наличие листа с таким адресом
+        # TODO: переделать логику с учетом групп имен
+        if leaves.find_one({"address": leaf_data["address"]}):
+            raise LogicError("Leaf with address '{0}' \
+                              already exists".format(leaf_data["address"]))
+
         # Дополнительная проверка на наличие подходящей ветви
-        # =========================================
+        # TODO: анализ нагрузки и более тщательный выбор
         branch = self.get_branch(leaf_data["type"])
         if not branch:
             return {
                 "result": "failure",
-                "message": "No known branches of type '{0}'".format(leaf_data["type"])
+                "message": "No known branches of type \
+                            '{0}'".format(leaf_data["type"])
             }
-        # =========================================
-        # Записываем лист в базе
-        # =========================================
 
+        # Записываем лист в базе
         leaves.insert({
             "name": leaf_data["name"],
             "active": True,
@@ -635,33 +556,21 @@ class Trunk(tornado.web.Application):
             "branch": branch["name"],
             "settings": leaf_settings
         })
-        # У листа отсутствует порт и настройки базы
+        # На данном этапе у листа отсутствует порт и настройки базы
         # Они будут заполнены позднее
 
-        # =========================================
         # Обращаемся к roots для создания новой базы
-        # =========================================
         root = self.get_root()
-        post_data = {
-            "function": "update_state"
-        }
-
-        response = self.send_message(root, post_data)
-        roots_response = response
+        response = self.request_update(root)
 
         self.log_event({
             "status": "info",
             "component": "roots",
             "name": root["name"],
-            "response": roots_response
+            "response": response
         })
-        # =========================================
-        # Обращаемся к branch для поднятия листа
-        # =========================================
-        post_data = {
-            "function": "update_state"
-        }
 
+        # Посылаем branch сигнал об обновлении состояния
         self.log_event({
             "status": "info",
             "component": "branch",
@@ -669,53 +578,28 @@ class Trunk(tornado.web.Application):
             "message": "Asking branch to start leaf"
         })
 
-        response = self.send_message(branch, post_data)
-        branch_response = response
+        response = self.request_update(branch)
 
         self.log_event({
             "status": "info",
             "component": "branch",
             "name": branch["name"],
-            "response": branch_response
-        })
-        # =========================================
-        # Обращаемся к air для публикации листа
-        # =========================================
-        air = self.get_air()
-        post_data = {
-            "function": "update_state"
-        }
-
-        self.log_event({
-            "status": "info",
-            "component": "air",
-            "name": air["name"],
-            "message": "Asking air to publish leaf"
-        })
-
-        response = self.send_message(air, post_data)
-
-        self.log_event({
-            "status": "info",
-            "component": "air",
-            "name": air["name"],
             "response": response
         })
 
+        # Обращаемся к air для публикации листа
+        self.update_air()
+
         response = {
             "result": "success",
-            "message": "Successfully added leaf '{0}'".format(leaf["name"])
+            "message": "Successfully added leaf '{0}'".format(leaf_data["name"])
         }
         return response
 
     def enable_leaf(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name'])
-        # =========================================
-        # Проверяем, есть ли лист с таким именем в базе
-        # =========================================
+
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -723,30 +607,30 @@ class Trunk(tornado.web.Application):
             "password"
         )
         leaves = client.trunk.leaves
+
+        # Проверяем, есть ли лист с таким именем в базе
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name '{0}' not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                             '{0}' not found".format(leaf_data["name"]))
         if leaf["active"]:
-            return {
-                "result": "failure",
-                "message": "Leaf with name '{0}' already enabled".format(leaf_data["address"])
-            }
-        # =========================================
+            raise LogicError(
+                "Leaf with name \
+                '{0}' already enabled".format(leaf_data["address"])
+            )
+
         # Ищем подходящую ветку для листа
-        # =========================================
         messages = []
         branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if not branch:
             branch = self.get_branch(leaf["type"])
             messages.append("Original branch not found; moving to new branch")
         if not branch:
-            return {
-                "result": "failure",
-                "message": "No available branches of type '{0}'".format(leaf["type"])
-            }
+            raise LogicError("No available branches \
+                              of type '{0}'".format(leaf["type"]))
+        # TODO: при отсутствии ветви необходимого типа,
+        # запрашивать создание этого типа на одной из доступных ветвей
+
         leaves.update(
             {"name": leaf_data["name"]},
             {
@@ -756,22 +640,12 @@ class Trunk(tornado.web.Application):
                 }
             }
         )
-        # =========================================
-        # Обращаемся к branch для поднятия листа
-        # =========================================
-        post_data = {
-            "function": "update_state"
-        }
 
-        response = self.send_message(branch, post_data)
-        # =========================================
+        # Обращаемся к branch для обновления состояния
+        self.request_update(branch)
+
         # Обращаемся к air для публикации листа
-        # =========================================
-        air = self.get_air()
-        post_data = {
-            "function": "update_state"
-        }
-        self.send_message(air, post_data)
+        self.update_air()
 
         return {
             "result": "success",
@@ -779,9 +653,7 @@ class Trunk(tornado.web.Application):
         }
 
     def disable_leaf(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name'])
 
         client = get_connection(
@@ -793,15 +665,11 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name '{0}' not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                             '{0}' not found".format(leaf_data["name"]))
         if not leaf["active"]:
-            return {
-                "result": "failure",
-                "message": "Leaf with name '{0}' already disabled".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                             '{0}' already disabled".format(leaf_data["name"]))
 
         leaves.update(
             {"name": leaf_data["name"]},
@@ -811,18 +679,14 @@ class Trunk(tornado.web.Application):
                 }
             }
         )
-        # =========================================
-        # Обращаемся к branch для удаления листа
-        # =========================================
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
 
+        # Обращаемся к branch для удаления листа
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if branch:
-            self.send_message(branch, {"function": "update_state"})
-        # =========================================
+            self.request_update(branch)
+
         # Обращаемся к air для де-публикации листа
-        # =========================================
-        air = self.get_air()
-        self.send_message(air, {"function": "update_state"})
+        self.update_air()
 
         return {
             "result": "success",
@@ -830,14 +694,10 @@ class Trunk(tornado.web.Application):
         }
 
     def migrate_leaf(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name', 'destination'])
 
-        # =========================================
         # Ищем лист в базе
-        # =========================================
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -847,16 +707,12 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                              {0} not found".format(leaf_data["name"]))
 
         if leaf["branch"] == leaf_data["destination"]:
-            return {
-                "result": "warning",
-                "message": "Leaf is already on branch '{0}'".format(leaf["branch"])
-            }
+            raise Warning("Leaf is already on branch \
+                           '{0}'".format(leaf["branch"]))
         # =========================================
         # Ищем ветви, старую и новую
         # =========================================
@@ -865,18 +721,12 @@ class Trunk(tornado.web.Application):
         new_branch = branches.find_one({"name": leaf_data["destination"]})
 
         if new_branch["type"] != leaf["type"]:
-            return {
-                "result": "failure",
-                "message": "Can't move leaf with type '{0}' to branch with type '{1}'".format(
-                    leaf["type"],
-                    new_branch["type"])
-            }
+            raise LogicError("Can't move leaf with type \
+                             '{0}' to branch with type '{1}'\
+                             ".format(leaf["type"], new_branch["type"]))
 
         if not new_branch:
-            return {
-                "result": "failure",
-                "message": "Destination branch not found"
-            }
+            raise LogicError("Destination branch not found")
 
         leaves.update(
             {"name": leaf_data["name"]},
@@ -921,16 +771,12 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                              {0} not found".format(leaf_data["name"]))
 
         if leaf["address"] == leaf_data["address"]:
-            return {
-                "result": "warning",
-                "message": "Leaf is already on address '{0}'".format(leaf["address"])
-            }
+            raise LogicError("Leaf is already on address \
+                              '{0}'".format(leaf["address"]))
 
         client.trunk.leaves.update(
             {"name": leaf_data["name"]},
@@ -940,21 +786,19 @@ class Trunk(tornado.web.Application):
                 }
             }
         )
-        # =========================================
+
         # Обращаемся к air для публикации листа
-        # =========================================
         air = self.get_air()
         self.send_message(air, {"function": "update_state"})
 
         return {
             "result": "success",
-            "message": "Successfully published leaf on {0}".format(leaf_data["address"])
+            "message": "Successfully published leaf on \
+                        {0}".format(leaf_data["address"])
         }
 
     def change_settings(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name', 'settings'])
 
         if type(leaf_data["settings"]) != dict:
@@ -975,10 +819,8 @@ class Trunk(tornado.web.Application):
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                              {0} not found".format(leaf_data["name"]))
 
         client.trunk.leaves.update(
             {"name": leaf_data["name"]},
@@ -993,22 +835,19 @@ class Trunk(tornado.web.Application):
             # Обновляем настройки на самой ветви
             branch = client.trunk.branches.find_one({"name": leaf["branch"]})
             if not branch:
-                return {
-                    "result": "failure",
-                    "message": "Internal error: leaf hosted on unknown branch"
-                }
+                raise LogicError("Internal error: \
+                                  leaf hosted on unknown branch")
 
             self.send_message(branch, {"function": "update_state"})
 
         return {
             "result": "success",
-            "message": "Successfully changed settings for leaf {0}".format(leaf_data["name"])
+            "message": "Successfully changed settings for leaf \
+                        {0}".format(leaf_data["name"])
         }
 
     def get_leaf_logs(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name'])
 
         client = get_connection(
@@ -1019,17 +858,12 @@ class Trunk(tornado.web.Application):
         )
         leaf = client.trunk.leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
-            return {
-                "result": "failure",
-                "message": "Leaf with name {0} not found".format(leaf_data["name"])
-            }
+            raise LogicError("Leaf with name \
+                              {0} not found".format(leaf_data["name"]))
 
         branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if not branch:
-            return {
-                "result": "failure",
-                "message": "Internal server error"
-            }
+            raise LogicError("Leaf hosted on unknown branch")
 
         post_data = {
             "function": "get_leaf_logs",
@@ -1037,10 +871,7 @@ class Trunk(tornado.web.Application):
         }
         response = self.send_message(branch, post_data)
         if response["result"] != "success":
-            return {
-                "result": "failure",
-                "message": "Failed to get logs from branch"
-            }
+            raise LogicError("Failed to get logs from branch")
 
         return {
             "result": "success",
@@ -1048,14 +879,13 @@ class Trunk(tornado.web.Application):
         }
 
     def add_branch(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
-        branch_data = check_arguments(message, ['name', 'host', 'port', 'secret', 'type'])
+        branch_data = check_arguments(
+            message,
+            ['name', 'host', 'port', 'secret', 'type']
+        )
 
-        # =========================================
         # Проверяем, нет ветви с таким именем в базе
-        # =========================================
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -1065,13 +895,10 @@ class Trunk(tornado.web.Application):
         branches = client.trunk.branches
         branch = branches.find_one({"name": branch_data["name"]})
         if branch:
-            return {
-                "result": "failure",
-                "message": "Branch with name '{0}' already exists".format(branch_data["name"])
-            }
-        # =========================================
+            raise LogicError("Branch with name \
+                              '{0}' already exists".format(branch_data["name"]))
+
         # Сохраняем ветку в базе
-        # =========================================
         branch = {
             "name": branch_data["name"],
             "type": branch_data["type"],
@@ -1082,8 +909,16 @@ class Trunk(tornado.web.Application):
         branches.insert(branch)
         return {
             "result": "success",
-            "message": "Branch '{0}' successfully added".format(branch_data["name"])
+            "message": "Branch '{0}' \
+                        successfully added".format(branch_data["name"])
         }
+
+    def update_air(self):
+        air = self.get_air()
+        return self.send_message(air, {"function": "update_state"})
+
+    def request_update(self, component):
+        return self.send_message(component, {"function": "update_state"})
 
     def add_owl(self, message):
         # =========================================
@@ -1158,9 +993,7 @@ class Trunk(tornado.web.Application):
             {"name": branch_data["name"]},
             {
                 "$set": branch_data["args"],
-            },
-            upsert=False,
-            multi=False
+            }
         )
         return {
             "result": "success",
