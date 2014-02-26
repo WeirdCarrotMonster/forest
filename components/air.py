@@ -54,7 +54,7 @@ def get_leaves_proxy(settings):
         "active": True
     })
     for leaf in leaves:
-        branch = client.branches.find_one({"name": leaf["branch"]})
+        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if not branch:
             continue
         address = leaf["address"]
