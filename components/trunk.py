@@ -943,9 +943,11 @@ class Trunk(tornado.web.Application):
         }
 
     def list_branches(self, message):
-        client = pymongo.MongoClient(
+        client = get_connection(
             self.settings["mongo_host"],
-            self.settings["mongo_port"]
+            self.settings["mongo_port"],
+            "admin",
+            "password"
         )
 
         branches = []
