@@ -97,14 +97,14 @@ class Branch(tornado.web.Application):
         })
         db_leaves_names = [leaf["name"] for leaf in db_leaves]
 
-        log_message("Triggering update", component="Branch")
-        log_message("Doing following shit:\nto_remove: {0}\ndb_leaves: {1}".format(to_remove, db_leaves_names), 
-                    component="Branch")
-
         # Сравниваем списки листьев
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
         to_remove = list(set(current_leaves) - set(db_leaves_names))
+
+        log_message("Triggering update", component="Branch")
+        log_message("Doing following shit:\nto_remove: {0}\ndb_leaves: {1}".format(to_remove, db_leaves_names), 
+                    component="Branch")
 
         for leaf in self.leaves:
             if leaf.name in to_remove:
