@@ -396,7 +396,8 @@ class Trunk(tornado.web.Application):
                         "result": "warning",
                         "name": branch["name"],
                         "role": response["role"],
-                        "error": "Specified role 'branch' doesn't match response '{0}'".format(response["role"])
+                        "error": "Specified role 'branch' doesn't \
+                                  match response '{0}'".format(response["role"])
                     }
             else:
                 branch_result = {
@@ -429,7 +430,8 @@ class Trunk(tornado.web.Application):
                         "result": "warning",
                         "name": root,
                         "role": response["role"],
-                        "error": "Specified role 'roots' doesn't match response '{0}'".format(response["role"])
+                        "error": "Specified role 'roots' doesn't \
+                                  match response '{0}'".format(response["role"])
                     }
             else:
                 root_result = {
@@ -462,7 +464,8 @@ class Trunk(tornado.web.Application):
                         "result": "warning",
                         "name": air,
                         "role": response["role"],
-                        "error": "Specified role 'air' doesn't match response '{0}'".format(response["role"])
+                        "error": "Specified role 'air' doesn't \
+                                  match response '{0}'".format(response["role"])
                     }
             else:
                 air_result = {
@@ -482,9 +485,7 @@ class Trunk(tornado.web.Application):
         }
 
     def update_repo(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         repo_data = check_arguments(message, ['type'])
 
         result = {
@@ -713,9 +714,8 @@ class Trunk(tornado.web.Application):
         if leaf["branch"] == leaf_data["destination"]:
             raise Warning("Leaf is already on branch \
                            '{0}'".format(leaf["branch"]))
-        # =========================================
+
         # Ищем ветви, старую и новую
-        # =========================================
         branches = client.trunk.branches
         old_branch = branches.find_one({"name": leaf["branch"]})
         new_branch = branches.find_one({"name": leaf_data["destination"]})
@@ -735,16 +735,13 @@ class Trunk(tornado.web.Application):
                 "$unset": {"port": 1}
             }
         )
-        # =========================================
+
         # Обращаемся к новому branch'у для переноса листа
-        # =========================================
         if old_branch:
             self.send_message(old_branch, {"function": "update_state"})
         self.send_message(new_branch, {"function": "update_state"})
 
-        # =========================================
         # Обращаемся к air для публикации листа
-        # =========================================
         air = self.get_air()
         self.send_message(air, {"function": "update_state"})
 
@@ -754,14 +751,10 @@ class Trunk(tornado.web.Application):
         }
 
     def rehost_leaf(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
         leaf_data = check_arguments(message, ['name', 'address'])
 
-        # =========================================
         # Ищем лист в базе
-        # =========================================
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -921,14 +914,13 @@ class Trunk(tornado.web.Application):
         return self.send_message(component, {"function": "update_state"})
 
     def add_owl(self, message):
-        # =========================================
         # Проверяем наличие требуемых аргументов
-        # =========================================
-        owl = check_arguments(message, ['name', 'verbose_name', 'host', 'port', 'secret'])
+        owl = check_arguments(
+            message,
+            ['name', 'verbose_name', 'host', 'port', 'secret']
+        )
 
-        # =========================================
         # Проверяем, нет ли филина с таким именем в базе
-        # =========================================
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -939,11 +931,11 @@ class Trunk(tornado.web.Application):
         if owls.find_one({"name": owl["name"]}):
             return {
                 "result": "failure",
-                "message": "Owl with name '{0}' already exists".format(owl["name"])
+                "message": "Owl with name '{0}' \
+                            already exists".format(owl["name"])
             }
-        # =========================================
+
         # Сохраняем филина в базе
-        # =========================================
         owls.insert(owl)
         return {
             "result": "success",

@@ -103,7 +103,10 @@ class Branch(tornado.web.Application):
         to_remove = list(set(current_leaves) - set(db_leaves_names))
 
         log_message("Triggering update", component="Branch")
-        log_message("Doing following shit:\nto_remove: {0}\ndb_leaves: {1}".format(to_remove, db_leaves_names), 
+        log_message("Doing following shit:\n\
+                     to_remove: {0}\n\
+                     db_leaves: {1}\n\
+                    ".format(to_remove, db_leaves_names),
                     component="Branch")
 
         for leaf in self.leaves:
@@ -120,7 +123,8 @@ class Branch(tornado.web.Application):
                 leaf_running = self.get_leaf(leaf["name"])
                 if leaf["settings"] != leaf_running.settings or \
                    leaf["env"] != leaf_running.env:
-                    log_message("Leaf {0} configuration changed, reloading".format(leaf["name"]), component="Branch")
+                    log_message("Leaf {0} configuration changed, reloading\
+                                ".format(leaf["name"]), component="Branch")
                     leaf_running.settings = leaf["settings"]
                     leaf_running.env = leaf["env"]
                     leaf_running.restart()
