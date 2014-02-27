@@ -101,35 +101,38 @@ class Branch(tornado.web.Application):
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
         to_remove = list(set(current_leaves) - set(db_leaves_names))
+        to_update = list(set(current_leaves) & set(db_leaves_names))
+        to_append = list(set(db_leaves_names) - set(current_leaves))
 
         log_message("Triggering update", component="Branch")
         log_message("Doing following shit:\n\
                      to_remove: {0}\n\
-                     db_leaves: {1}\n\
-                     current_leaves: {2}\
-                    ".format(to_remove, db_leaves_names, current_leaves),
+                     to_update: {1}\n\
+                     to_append: {2}\n\
+                     current_leaves: {3}\
+                    ".format(to_remove, to_update, to_append),
                     component="Branch")
 
+        # Удаляем те, что должны быть випилены
         for leaf in self.leaves:
             if leaf.name in to_remove:
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        # Обрабатываем все листья, назначенные на данную ветвь
+        # Перепроверяем данные у тех, что не изменились
+        for leaf in to_update:
+            leaf_running = self.get_leaf(leaf["name"])
+            if leaf["settings"] != leaf_running.settings or \
+               leaf["env"] != leaf_running.env:
+                log_message("Leaf {0} configuration changed, reloading\
+                            ".format(leaf["name"]), component="Branch")
+                leaf_running.settings = leaf["settings"]
+                leaf_running.env = leaf["env"]
+                leaf_running.restart()
+
+        # Добавляем те, что отсутствуют в данный момент
         for leaf in db_leaves:
-            if leaf["name"] in current_leaves:
-                # Лист уже работает
-                # Перечитываем конфиг и сравниваем с текущим,
-                # при необходимости перезапускаем лист
-                leaf_running = self.get_leaf(leaf["name"])
-                if leaf["settings"] != leaf_running.settings or \
-                   leaf["env"] != leaf_running.env:
-                    log_message("Leaf {0} configuration changed, reloading\
-                                ".format(leaf["name"]), component="Branch")
-                    leaf_running.settings = leaf["settings"]
-                    leaf_running.env = leaf["env"]
-                    leaf_running.restart()
-            else:
+            if leaf["name"] in to_append:
                 log_message("Adding leaf {0}".format(leaf["name"]),
                             component="Branch")
                 self.add_leaf(leaf)
