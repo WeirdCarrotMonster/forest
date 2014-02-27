@@ -165,7 +165,7 @@ class Branch(tornado.web.Application):
                 leaf["name"], leaf["port"]),
                 component="Branch"
             )
-            port = leaf["port"]
+            port = leaf.get("port")
             if port in self.settings["port_range"]:
                 # Активируем на порту, который попадает в диапазон и свободен
                 self.settings["port_range"].remove(port)
