@@ -57,9 +57,11 @@ def get_leaves_proxy(settings):
         branch = client.trunk.branches.find_one({"name": leaf["branch"]})
         if not branch:
             continue
-        address = leaf["address"]
-        host = branch["host"]
-        port = leaf["port"]
+        address = leaf.get("address")
+        host = branch.get("host")
+        port = leaf.get("port")
+        if not all([address, host, port]):
+            continue
         conf = '''
 $HTTP["host"] == "%s" {
     fastcgi.server = ("/" => ((
