@@ -199,8 +199,7 @@ class Branch(tornado.web.Application):
             client.trunk.events.insert({
                 "to": "trunk",
                 "from": "branch",
-                "message": "ports_reassigned",
-                "time": time.gmtime()
+                "message": "ports_reassigned"
             })
 
     def shutdown_leaves(self):
