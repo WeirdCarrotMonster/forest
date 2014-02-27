@@ -119,20 +119,17 @@ class Branch(tornado.web.Application):
                 leaf.stop()
                 self.leaves.remove(leaf)
 
-        # Перепроверяем данные у тех, что не изменились
-        for leaf in to_update:
-            leaf_running = self.get_leaf(leaf["name"])
-            if leaf["settings"] != leaf_running.settings or \
-               leaf["env"] != leaf_running.env:
-                log_message("Leaf {0} configuration changed, reloading\
-                            ".format(leaf["name"]), component="Branch")
-                leaf_running.settings = leaf["settings"]
-                leaf_running.env = leaf["env"]
-                leaf_running.restart()
-
-        # Добавляем те, что отсутствуют в данный момент
         for leaf in db_leaves:
-            if leaf["name"] in to_append:
+            if leaf["name"] in to_update:
+                leaf_running = self.get_leaf(leaf["name"])
+                if leaf["settings"] != leaf_running.settings or \
+                   leaf["env"] != leaf_running.env:
+                    log_message("Leaf {0} configuration changed, reloading\
+                                ".format(leaf["name"]), component="Branch")
+                    leaf_running.settings = leaf["settings"]
+                    leaf_running.env = leaf["env"]
+                    leaf_running.restart()
+            elif leaf["name"] in to_append:
                 log_message("Adding leaf {0}".format(leaf["name"]),
                             component="Branch")
                 self.add_leaf(leaf)
