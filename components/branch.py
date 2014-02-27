@@ -110,7 +110,7 @@ class Branch(tornado.web.Application):
                      to_update: {1}\n\
                      to_append: {2}\n\
                      current_leaves: {3}\
-                    ".format(to_remove, to_update, to_append),
+                    ".format(to_remove, to_update, to_append, current_leaves),
                     component="Branch")
 
         # Удаляем те, что должны быть випилены
