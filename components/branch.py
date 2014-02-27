@@ -122,7 +122,7 @@ class Branch(tornado.web.Application):
         for leaf in db_leaves:
             if leaf["name"] in to_update:
                 leaf_running = self.get_leaf(leaf["name"])
-                if leaf["settings"] != leaf_running.settings or \
+                if leaf.get("settings", {}) != leaf_running.settings or \
                    leaf["env"] != leaf_running.launch_env:
                     log_message("Leaf {0} configuration changed, reloading\
                                 ".format(leaf["name"]), component="Branch")
