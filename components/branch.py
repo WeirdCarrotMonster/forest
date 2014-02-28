@@ -59,7 +59,7 @@ class Branch(tornado.web.Application):
                 leaf["name"] + '.log'
             ),
             env=leaf.get("env", {}),
-            settings=leaf["settings"]
+            settings=leaf.get("settings", {})
         )
         try:
             new_leaf.start()
@@ -113,7 +113,6 @@ class Branch(tornado.web.Application):
                     ".format(to_remove, to_update, to_append, current_leaves),
                     component="Branch")
 
-        # Удаляем те, что должны быть випилены
         for leaf in self.leaves:
             if leaf.name in to_remove:
                 leaf.stop()
