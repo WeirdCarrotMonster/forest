@@ -131,7 +131,7 @@ class Branch(tornado.web.Application):
             "result":       "success",
             "message":      "Working well",
             "role":         "owl",
-            "mesaurements": measurements
+            "measurements": measurements
         }
 
     def update_state(self, message):
