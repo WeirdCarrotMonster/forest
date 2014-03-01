@@ -128,9 +128,9 @@ class Branch(tornado.web.Application):
             "uptime_seconds": seconds
         }
         return {
-            "result":       "success",
-            "message":      "Working well",
-            "role":         "owl",
+            "result": "success",
+            "message": "Working well",
+            "role": "branch",
             "measurements": measurements
         }
 
@@ -253,13 +253,6 @@ class Branch(tornado.web.Application):
     def shutdown_leaves(self):
         log_message("Shutting down leaves...", component="Branch")
         run_parallel([leaf.stop for leaf in self.leaves])
-
-    def status_report(self, message):
-        return {
-            "result": "success",
-            "message": "Working well",
-            "role": "branch"
-        }
 
     def known_leaves(self, message):
         known_leaves = []
