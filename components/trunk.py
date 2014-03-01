@@ -330,7 +330,6 @@ class Trunk(tornado.web.Application):
                 }
             )
             if response["result"] == "success":
-                print(response)
                 one_load = response["measurements"]
                 one_load["result"] = "success"
             else:
