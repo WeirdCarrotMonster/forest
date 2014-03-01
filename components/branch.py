@@ -83,7 +83,7 @@ class Branch(tornado.web.Application):
                 {"$set": {"port": new_leaf.fcgi_port}}
             )
 
-    def status_report(self):
+    def status_report(self, message):
         # Память
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()
