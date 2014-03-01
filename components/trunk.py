@@ -3,7 +3,6 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
-import pymongo
 from components.shadow import encode, decode
 from components.common import check_arguments, get_connection, \
     LogicError, Warning
@@ -22,6 +21,7 @@ class Trunk(tornado.web.Application):
             "login": "html/login.html",
         }
         self.auth_urls = {
+            "": "html/index.html",
             "dashboard": "html/dashboard.html",
             "leaves": "html/leaves.html",
             "fauna": "html/fauna.html"
@@ -29,7 +29,7 @@ class Trunk(tornado.web.Application):
 
         self.functions = {
             # Обработка состояний сервера
-            "dashboard_stats": self.dashboard_stats,
+            "forest_status": self.forest_status,
             "status_report": self.status_report,
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
@@ -76,8 +76,9 @@ class Trunk(tornado.web.Application):
         function = message.get('function', None)
 
         if function == "login_user":
-            response = self.login_user(message, user=user)
-            return response
+            return self.login_user(message, user=user)
+        if function == "forest_status":
+            return self.forest_status(message)
 
         if not user:
             raise LogicError("Not authenticated")
@@ -312,7 +313,7 @@ class Trunk(tornado.web.Application):
                 "leaves": leaves
             }
 
-    def dashboard_stats(self, message):
+    def forest_status(self, message):
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -321,26 +322,24 @@ class Trunk(tornado.web.Application):
         )
 
         loads = []
-        for owl in client.trunk.owls.find():
+        for branch in client.trunk.branches.find():
             response = self.send_message(
-                owl,
+                branch,
                 {
                     "function": "status_report"
                 }
             )
             if response["result"] == "success":
                 one_load = response["mesaurements"]
-                one_load["name"] = owl["name"]
-                one_load["verbose_name"] = owl["verbose_name"]
                 one_load["result"] = "success"
-                one_load["ip"] = owl["host"]
-                loads.append(one_load)
             else:
-                loads.append({
-                    "name": owl["name"],
-                    "result": "error",
-                    "ip": owl["host"]
-                })
+                one_load = {"result": "failure"}
+            one_load["name"] = branch["name"]
+            one_load["verbose_name"] = branch.get(
+                "verbose_name",
+                branch["name"]
+            )
+            loads.append(one_load)
 
         return {
             "result": "success",

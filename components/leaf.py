@@ -124,7 +124,7 @@ class Leaf():
         self.process = subprocess.Popen(
             cmd,
             env=my_env,
-            stderr=subprocess.PIPE,
+#            stderr=subprocess.PIPE,
             bufsize=1,
             close_fds=True,
             #preexec_fn=os.setpgrp # DIS SHIT
