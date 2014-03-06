@@ -49,16 +49,8 @@ class Branch(tornado.web.Application):
             name=leaf["name"],
             chdir=self.settings["chdir"],
             executable=self.settings["executable"],
-            fcgi_host=self.settings["host"],
-            fcgi_port=self.get_port(),
-            pidfile=os.path.join(
-                self.settings["pid_dir"],
-                leaf["name"] + '.pid'
-            ),
-            logfile=os.path.join(
-                self.settings["log_dir"],
-                leaf["name"] + '.log'
-            ),
+            host=self.settings["host"],
+            port=self.get_port(),
             env=leaf.get("env", {}),
             settings=leaf.get("settings", {})
         )
@@ -229,14 +221,8 @@ class Branch(tornado.web.Application):
                 name=leaf["name"],
                 chdir=self.settings["chdir"],
                 executable=self.settings["executable"],
-                fcgi_host=self.settings["host"],
-                fcgi_port=port,
-                pidfile=os.path.join(
-                    self.settings["pid_dir"],
-                    leaf["name"] + '.pid'),
-                logfile=os.path.join(
-                    self.settings["log_dir"],
-                    leaf["name"] + '.log'),
+                host=self.settings["host"],
+                port=port,
                 env=leaf.get("env", {}),
                 settings=leaf.get("settings", {})
             )

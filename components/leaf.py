@@ -20,11 +20,8 @@ class Leaf():
     def __init__(self,
                  name=None,
                  python_executable="python2.7",
-                 fcgi_method="threaded",
-                 fcgi_host="127.0.0.1",
-                 fcgi_port=3000,
-                 pidfile=None,
-                 logfile=None,
+                 host="127.0.0.1",
+                 port=3000,
                  executable=None,
                  chdir=None,
                  env={},
@@ -32,11 +29,8 @@ class Leaf():
                  ):
         self.name = name
         self.python_executable = python_executable
-        self.fcgi_method = fcgi_method
-        self.fcgi_host = fcgi_host
-        self.fcgi_port = fcgi_port
-        self.pidfile = pidfile
-        self.logfile = logfile
+        self.host = host
+        self.port = port
         self.chdir = chdir
         self.executable = executable
         self.launch_env = env
@@ -111,7 +105,7 @@ class Leaf():
             "uwsgi",
             "--chdir=" + self.chdir,
             "--module=wsgi:application",
-            "--fastcgi-socket={0}:{1}".format(self.fcgi_host, self.fcgi_port),
+            "--fastcgi-socket={0}:{1}".format(self.host, self.port),
             "--processes=4",
             "--master",
             "--buffer-size=65535"
