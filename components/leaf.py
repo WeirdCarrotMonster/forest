@@ -150,17 +150,15 @@ class Leaf():
             pass
 
     def restart(self):
-        self.stop()
-        self.start()
+        self.process.send_signal(signal.SIGHUP)
 
     def get_logs(self):
         self.update_logs_req_count()
         return self.logs
 
     def do_update_routine(self):
-        self.stop()
         self.update_database()
-        self.start()
+        self.restart()
 
     def status(self):
         if self.process is None:
