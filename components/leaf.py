@@ -21,19 +21,18 @@ class Leaf():
                  name=None,
                  python_executable="python2.7",
                  host="127.0.0.1",
-                 port=3000,
                  executable=None,
                  chdir=None,
                  env={},
                  settings={},
                  fastrouters=None,
                  keyfile=None,
-                 address=""
+                 address="",
+                 static=None
                  ):
         self.name = name
         self.python_executable = python_executable
         self.host = host
-        self.port = port
         self.chdir = chdir
         self.executable = executable
         self.launch_env = env
@@ -43,6 +42,7 @@ class Leaf():
         self.fastrouters = fastrouters or []
         self.keyfile = keyfile
         self.address = address
+        self.static = static
 
         self._thread = None
         self._queue = None
@@ -137,6 +137,12 @@ class Leaf():
 
         for router in self.fastrouters:
             cmd.append("--subscribe-to={0}:{1},5,SHA1:{2}".format(router, self.address,self.keyfile))
+
+        if self.static:
+            cmd.append("--static-map={0}={1}".format(
+                        self.static["mount"],
+                        os.path.join(self.chdir, self.static["dir"])
+                ))
 
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
         print(cmd)

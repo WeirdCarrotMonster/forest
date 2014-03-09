@@ -64,8 +64,9 @@ class Branch(tornado.web.Application):
             env=leaf.get("env", {}),
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
-            keyfile=self.settings.get("keyfile", None),
-            address=leaf.get("address")
+            keyfile=self.settings.get("keyfile"),
+            address=leaf.get("address"),
+            static=self.settings.get("static")
         )
         try:
             new_leaf.start()
@@ -211,7 +212,8 @@ class Branch(tornado.web.Application):
                 settings=leaf.get("settings", {}),
                 fastrouters=self.fastrouters,
                 keyfile=self.settings.get("keyfile", None),
-                address=leaf.get("address")
+                address=leaf.get("address"),
+                static=self.settings.get("static")
             )
             new_leaf.start()
             self.leaves.append(new_leaf)
