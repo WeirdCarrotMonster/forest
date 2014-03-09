@@ -303,6 +303,6 @@ class Branch(tornado.web.Application):
         run_parallel([leaf.update_database for leaf in self.leaves])
 
         for leaf in self.leaves:
-            leaf.restart()
+            leaf.graceful_restart()
 
         return result
