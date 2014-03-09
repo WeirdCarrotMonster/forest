@@ -15,9 +15,6 @@ class Branch(tornado.web.Application):
         super(Branch, self).__init__(**settings)
         self.settings = settings_dict
         self.leaves = []
-        self.settings["port_range"] = range(
-            self.settings["port_range_begin"],
-            self.settings["port_range_end"])
         
         client = get_connection(
             self.settings["mongo_host"],
@@ -64,7 +61,6 @@ class Branch(tornado.web.Application):
             chdir=self.settings["chdir"],
             executable=self.settings["executable"],
             host=self.settings["host"],
-            port=self.get_port(),
             env=leaf.get("env", {}),
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
@@ -76,21 +72,7 @@ class Branch(tornado.web.Application):
             self.leaves.append(new_leaf)
             new_leaf.init_database()
         except Exception:
-            self.return_port(new_leaf.fcgi_port)
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
-        else:
-            # Лист успешно запущен.
-            # Записываем порт, на котором он активирован
-            client = get_connection(
-                self.settings["mongo_host"],
-                self.settings["mongo_port"],
-                "admin",
-                "password"
-            )
-            client.trunk.leaves.update(
-                {"name": leaf["name"]},
-                {"$set": {"port": new_leaf.port}}
-            )
 
     def status_report(self, message):
         # Память
@@ -198,9 +180,6 @@ class Branch(tornado.web.Application):
             "result": "success"
         }
 
-    def get_port(self):
-        return self.settings["port_range"].pop()
-
     def return_port(self, port):
         self.settings["port_range"].append(port)
 
@@ -222,24 +201,12 @@ class Branch(tornado.web.Application):
                 leaf["name"], leaf.get("port")),
                 component="Branch"
             )
-            port = leaf.get("port")
-            if port in self.settings["port_range"]:
-                # Активируем на порту, который попадает в диапазон и свободен
-                self.settings["port_range"].remove(port)
-            else:
-                port = self.get_port()
-                client.trunk.leaves.update(
-                    {"name": leaf["name"]},
-                    {"$set": {"port": port}}
-                )
-                ports_reassigned |= True
 
             new_leaf = Leaf(
                 name=leaf["name"],
                 chdir=self.settings["chdir"],
                 executable=self.settings["executable"],
                 host=self.settings["host"],
-                port=port,
                 env=leaf.get("env", {}),
                 settings=leaf.get("settings", {}),
                 fastrouters=self.fastrouters,
@@ -248,13 +215,6 @@ class Branch(tornado.web.Application):
             )
             new_leaf.start()
             self.leaves.append(new_leaf)
-
-        if ports_reassigned:
-            client.trunk.events.insert({
-                "to": "trunk",
-                "from": "branch",
-                "message": "ports_reassigned"
-            })
 
     def cleanup(self):
         log_message("Shutting down leaves...", component="Branch")
