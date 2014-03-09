@@ -227,7 +227,6 @@ class Branch(tornado.web.Application):
         for leaf in self.leaves:
             known_leaves.append({
                 "name": leaf.name,
-                "port": leaf.port,
                 "env": leaf.launch_env,
                 "settings": leaf.settings,
                 "mem": leaf.mem_usage(),
