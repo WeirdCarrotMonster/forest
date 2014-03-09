@@ -143,8 +143,12 @@ class Leaf():
         except OSError:
             pass
 
-    def restart(self):
+    def graceful_restart(self):
         self.process.send_signal(signal.SIGHUP)
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def get_logs(self):
         self.update_logs_req_count()
@@ -152,7 +156,7 @@ class Leaf():
 
     def do_update_routine(self):
         self.update_database()
-        self.restart()
+        self.graceful_restart()
 
     def status(self):
         if self.process is None:
