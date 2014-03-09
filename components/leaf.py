@@ -6,7 +6,7 @@ from components.common import log_message
 import traceback
 import simplejson as json
 from threading import Thread
-from Queue import Queue
+from Queue import Queue, Empty
 import datetime
 
 
@@ -90,9 +90,22 @@ class Leaf():
         return mem/1024
 
     def update_logs_req_count(self):
-        # Старая логика - говно
-        # TODO: написать нормальный анализ
-        return 0
+        count = 0
+        try:
+            while True:
+                line = self._queue.get_nowait()
+                self.logs.append(line)
+                count += 1
+        except Empty:
+            pass
+        measurement_time = datetime.datetime.now()
+        time_delta = measurement_time - self._last_req_measurement
+        minutes = time_delta.days * 24 * 60 + time_delta.seconds / float(60)
+        if minutes > 5:
+            self._last_req_count = float(count) / float(minutes)
+        else:
+            self._last_req_count = \
+                (count + self._last_req_count * (5 - minutes))/float(5)
 
     def req_per_second(self):
         self.update_logs_req_count()

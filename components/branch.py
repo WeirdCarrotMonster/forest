@@ -72,7 +72,7 @@ class Branch(tornado.web.Application):
             )
             client.trunk.leaves.update(
                 {"name": leaf["name"]},
-                {"$set": {"port": new_leaf.fcgi_port}}
+                {"$set": {"port": new_leaf.port}}
             )
 
     def status_report(self, message):
@@ -245,7 +245,7 @@ class Branch(tornado.web.Application):
         for leaf in self.leaves:
             known_leaves.append({
                 "name": leaf.name,
-                "port": leaf.fcgi_port,
+                "port": leaf.port,
                 "env": leaf.launch_env,
                 "settings": leaf.settings,
                 "mem": leaf.mem_usage(),
