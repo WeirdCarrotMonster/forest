@@ -99,7 +99,7 @@ def cleanup(signum=None, frame=None):
         log_message("Got signum: {0}, frame {1}".format(signum, frame))
     try:
         log_message("Cleaning up...")
-        APPLICATION.shutdown_leaves()
+        APPLICATION.cleanup()
     except AttributeError:
         pass
     finally:

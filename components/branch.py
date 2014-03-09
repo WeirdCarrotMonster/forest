@@ -18,7 +18,19 @@ class Branch(tornado.web.Application):
         self.settings["port_range"] = range(
             self.settings["port_range_begin"],
             self.settings["port_range_end"])
-        self.init_leaves()
+        
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        self.fastrouters = []
+        for air in client.trunk.components.find({"type": "air"}):
+            self.fastrouters.append("{0}:{1}".format(air["ip"], air["fastrouter"]))
+
+        log_message("I know these fastrouters:{0}".format(self.fastrouters), 
+                    component="Branch")
 
         self.functions = {
             "restart_leaf": self.restart_leaf,
@@ -29,6 +41,8 @@ class Branch(tornado.web.Application):
             "update_state": self.update_state,
             "status_report": self.status_report
         }
+
+        self.init_leaves()
 
     def process_message(self, message):
         function = message.get('function', None)
@@ -52,7 +66,10 @@ class Branch(tornado.web.Application):
             host=self.settings["host"],
             port=self.get_port(),
             env=leaf.get("env", {}),
-            settings=leaf.get("settings", {})
+            settings=leaf.get("settings", {}),
+            fastrouters=self.fastrouters,
+            keyfile=self.settings.get("keyfile", None),
+            address=leaf.get("address")
         )
         try:
             new_leaf.start()
@@ -224,7 +241,10 @@ class Branch(tornado.web.Application):
                 host=self.settings["host"],
                 port=port,
                 env=leaf.get("env", {}),
-                settings=leaf.get("settings", {})
+                settings=leaf.get("settings", {}),
+                fastrouters=self.fastrouters,
+                keyfile=self.settings.get("keyfile", None),
+                address=leaf.get("address")
             )
             new_leaf.start()
             self.leaves.append(new_leaf)
@@ -236,7 +256,7 @@ class Branch(tornado.web.Application):
                 "message": "ports_reassigned"
             })
 
-    def shutdown_leaves(self):
+    def cleanup(self):
         log_message("Shutting down leaves...", component="Branch")
         run_parallel([leaf.stop for leaf in self.leaves])
 

@@ -25,7 +25,10 @@ class Leaf():
                  executable=None,
                  chdir=None,
                  env={},
-                 settings={}
+                 settings={},
+                 fastrouters=None,
+                 keyfile=None,
+                 address=""
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -37,6 +40,9 @@ class Leaf():
         self.settings = settings
         self.pid = 0
         self.process = None
+        self.fastrouters = fastrouters or []
+        self.keyfile = keyfile
+        self.address = address
 
         self._thread = None
         self._queue = None
@@ -118,7 +124,7 @@ class Leaf():
             "uwsgi",
             "--chdir=" + self.chdir,
             "--module=wsgi:application",
-            "--fastcgi-socket={0}:{1}".format(self.host, self.port),
+            "--socket={0}:0".format(self.host),
             "--processes=4",
             "--master",
             "--buffer-size=65535"
@@ -126,8 +132,12 @@ class Leaf():
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        log_message("Starting leaf {0}".format(self.name), component="Leaf")
 
+        for router in self.fastrouters:
+            cmd.append("--subscribe-to={0}:{1},5,SHA1:{2}".format(router, self.address,self.keyfile))
+
+        log_message("Starting leaf {0}".format(self.name), component="Leaf")
+        print(cmd)
         self.process = subprocess.Popen(
             cmd,
             env=my_env,
