@@ -58,14 +58,16 @@ class Leaf():
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        subprocess.Popen(
+        p = subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
             env=my_env,
             shell=False)
-        subprocess.Popen(
+        p.wait()
+        p = subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
             shell=False)
+        p.wait()
 
     def update_database(self):
         # Обновляем таблицы через south
