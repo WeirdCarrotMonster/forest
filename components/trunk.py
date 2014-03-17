@@ -38,7 +38,6 @@ class Trunk(tornado.web.Application):
             "add_branch": self.add_branch,
             "modify_branch": self.modify_branch,
             "list_branches": self.list_branches,
-            "add_owl": self.add_owl,
             # Работа с листьями
             "enable_leaf": self.enable_leaf,
             "disable_leaf": self.disable_leaf,
@@ -513,7 +512,7 @@ class Trunk(tornado.web.Application):
             "branch": branch["name"],
             "settings": leaf_settings
         })
-        # На данном этапе у листа отсутствует порт и настройки базы
+        # На данном этапе у листа отсутствуют настройки базы
         # Они будут заполнены позднее
 
         # Обращаемся к roots для создания новой базы
@@ -868,35 +867,6 @@ class Trunk(tornado.web.Application):
 
     def request_update(self, component):
         return self.send_message(component, {"function": "update_state"})
-
-    def add_owl(self, message):
-        # Проверяем наличие требуемых аргументов
-        owl = check_arguments(
-            message,
-            ['name', 'verbose_name', 'host', 'port', 'secret']
-        )
-
-        # Проверяем, нет ли филина с таким именем в базе
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-        owls = client.trunk.owls
-        if owls.find_one({"name": owl["name"]}):
-            return {
-                "result": "failure",
-                "message": "Owl with name '{0}' \
-                            already exists".format(owl["name"])
-            }
-
-        # Сохраняем филина в базе
-        owls.insert(owl)
-        return {
-            "result": "success",
-            "message": "Owl '{0}' successfully added".format(owl["name"])
-        }
 
     def list_branches(self, message):
         client = get_connection(

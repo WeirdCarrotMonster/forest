@@ -135,13 +135,16 @@ class Leaf():
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
 
         for router in self.fastrouters:
-            cmd.append("--subscribe-to={0}:{1},5,SHA1:{2}".format(router, self.address,self.keyfile))
+            cmd.append(
+                "--subscribe-to={0}:{1},5,SHA1:{2}".format(
+                    router,
+                    self.address, self.keyfile))
 
         if self.static:
             cmd.append("--static-map={0}={1}".format(
-                        self.static["mount"],
-                        os.path.join(self.chdir, self.static["dir"])
-                ))
+                self.static["mount"],
+                os.path.join(self.chdir, self.static["dir"])
+            ))
 
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
         print(cmd)

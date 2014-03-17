@@ -11,8 +11,7 @@ import simplejson as json
 from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
-from components.air import Air, get_leaves_proxy
-from components.owl import Owl
+from components.air import Air
 from components.common import CommonListener, TransparentListener, \
     WebSocketListener, log_message
 
@@ -20,30 +19,24 @@ if len(sys.argv) < 2:
     log_message(
         """
         Launch error: unknown number of arguments
-        Specify settings filename /and shell_config
-        To get working lighttpd include_shell config
+        Specify settings filename
         """
     )
     sys.exit(0)
 
 FILENAME = sys.argv[1]
 FOREST_DIR = os.path.dirname(os.path.realpath(__file__))
-PID_DIR = os.path.join(FOREST_DIR, 'pid')
 
 JSON_DATA = open(os.path.join(FOREST_DIR, FILENAME))
 SETTINGS = json.load(JSON_DATA)
 SETTINGS["settings"]["REALPATH"] = FOREST_DIR
 JSON_DATA.close()
 
-if len(sys.argv) == 3 and sys.argv[2] == "shell_config":
-    get_leaves_proxy(SETTINGS)
-    sys.exit(0)
-
 # Определяем слушателей по ролям
 LISTENERS = []
 loop = tornado.ioloop.IOLoop.instance()
 
-if not SETTINGS["role"] in ["roots", "trunk", "branch", "air", "owl"]:
+if not SETTINGS["role"] in ["roots", "trunk", "branch", "air"]:
     log_message(
         "Configuration error: unknown role '{0}'".format(SETTINGS["role"])
     )
@@ -62,6 +55,10 @@ if SETTINGS["role"] == "trunk":
     LISTENERS.append((r"/(.*)", TransparentListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
 
+    period_cbk = tornado.ioloop.PeriodicCallback(
+        APPLICATION.log_stats, 1000 * 60 * 10, loop)
+    period_cbk.start()
+
 if SETTINGS["role"] == "branch":
     LISTENERS.append((r"/", CommonListener))
     APPLICATION = Branch(SETTINGS["settings"], handlers=LISTENERS)
@@ -69,10 +66,6 @@ if SETTINGS["role"] == "branch":
 if SETTINGS["role"] == "air":
     LISTENERS.append((r"/", CommonListener))
     APPLICATION = Air(SETTINGS["settings"], handlers=LISTENERS)
-
-if SETTINGS["role"] == "owl":
-    LISTENERS.append((r"/", CommonListener))
-    APPLICATION = Owl(SETTINGS["settings"], handlers=LISTENERS)
 
 # Создаем и запускаем приложение
 log_message("Listening on: {0}:{1}".format(

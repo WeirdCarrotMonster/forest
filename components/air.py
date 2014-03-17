@@ -24,8 +24,7 @@ class Air(tornado.web.Application):
             "uwsgi",
             "--fastrouter=127.0.0.1:3000",
             "--fastrouter-subscription-server={0}:{1}".format(
-                self.settings["ip"], str(self.settings["fastrouter"])
-                ),
+                self.settings["ip"], str(self.settings["fastrouter"])),
             "--master"
         ]
 
@@ -49,9 +48,11 @@ class Air(tornado.web.Application):
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
         for branch in client.trunk.leaves.find():
-            keyfile = os.path.join(self.settings["keydir"], branch["address"] + ".pem")
+            keyfile = os.path.join(
+                self.settings["keydir"], branch["address"] + ".pem")
             if not os.path.isfile(keyfile):
-                log_message("Creating key for address: {0}".format(branch["address"]),
+                log_message(
+                    "Creating key for address: {0}".format(branch["address"]),
                     component="Air")
                 shutil.copyfile(default_key, keyfile)
 
@@ -76,36 +77,3 @@ class Air(tornado.web.Application):
     def reload_proxy(self):
         cmd = self.settings["proxy_restart_command"].split()
         subprocess.Popen(cmd, shell=False)
-
-
-def get_leaves_proxy(settings):
-    client = get_connection(
-        settings["settings"]["mongo_host"],
-        settings["settings"]["mongo_port"],
-        "admin",
-        "password"
-    )
-
-    leaves = client.trunk.leaves.find({
-        "active": True
-    })
-    for leaf in leaves:
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-        if not branch:
-            continue
-        address = leaf.get("address")
-        host = branch.get("host")
-        port = leaf.get("port")
-        if not all([address, host, port]):
-            continue
-        conf = '''
-$HTTP["host"] == "%s" {
-    fastcgi.server = ("/" => ((
-        "host" => "%s",
-        "port" => %s,
-        "check-local" => "disable",
-        "disable-time" => 1,
-        "fix-root-scriptname" => "enable"
-    )))
-}''' % (address, host, str(port))
-        print(conf)

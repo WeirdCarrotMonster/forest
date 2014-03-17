@@ -15,7 +15,7 @@ class Branch(tornado.web.Application):
         super(Branch, self).__init__(**settings)
         self.settings = settings_dict
         self.leaves = []
-        
+
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -24,9 +24,10 @@ class Branch(tornado.web.Application):
         )
         self.fastrouters = []
         for air in client.trunk.components.find({"type": "air"}):
-            self.fastrouters.append("{0}:{1}".format(air["ip"], air["fastrouter"]))
+            self.fastrouters.append(
+                "{0}:{1}".format(air["ip"], air["fastrouter"]))
 
-        log_message("I know these fastrouters:{0}".format(self.fastrouters), 
+        log_message("I know these fastrouters:{0}".format(self.fastrouters),
                     component="Branch")
 
         self.functions = {
@@ -49,6 +50,18 @@ class Branch(tornado.web.Application):
 
         return self.functions[function](message)
 
+    def __get_assigned_leaves(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        return client.trunk.leaves.find({
+            "branch": self.settings["name"],
+            "active": True
+        })
+
     def get_leaf(self, leaf_name):
         for leaf in self.leaves:
             if leaf.name == leaf_name:
@@ -64,7 +77,7 @@ class Branch(tornado.web.Application):
             env=leaf.get("env", {}),
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
-            keyfile=self.settings.get("keyfile"),
+            keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address"),
             static=self.settings.get("static")
         )
@@ -127,18 +140,9 @@ class Branch(tornado.web.Application):
         }
 
     def update_state(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
         # Составляем списки имеющихся листьев и требуемых
         current_leaves = [leaf.name for leaf in self.leaves]
-        db_leaves = [leaf for leaf in client.trunk.leaves.find({
-            "branch": self.settings["name"],
-            "active": True
-        })]
+        db_leaves = [leaf for leaf in self.__get_assigned_leaves()]
         db_leaves_names = [leaf["name"] for leaf in db_leaves]
 
         # Сравниваем списки листьев
@@ -181,41 +185,13 @@ class Branch(tornado.web.Application):
             "result": "success"
         }
 
-    def return_port(self, port):
-        self.settings["port_range"].append(port)
-
     def init_leaves(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-        leaves = client.trunk.leaves.find({
-            "branch": self.settings["name"],
-            "active": True
-        })
-
-        ports_reassigned = False
-        for leaf in leaves:
-            log_message("Found leaf {0} in configuration".format(leaf["name"]),
+        for leaf in self.__get_assigned_leaves():
+            log_message("Found leaf {0} in configuration\nPort: {1}".format(
+                leaf["name"], leaf.get("port")),
                 component="Branch"
             )
-
-            new_leaf = Leaf(
-                name=leaf["name"],
-                chdir=self.settings["chdir"],
-                executable=self.settings["executable"],
-                host=self.settings["host"],
-                env=leaf.get("env", {}),
-                settings=leaf.get("settings", {}),
-                fastrouters=self.fastrouters,
-                keyfile=self.settings.get("keyfile", None),
-                address=leaf.get("address"),
-                static=self.settings.get("static")
-            )
-            new_leaf.start()
-            self.leaves.append(new_leaf)
+            self.add_leaf(leaf)
 
     def cleanup(self):
         log_message("Shutting down leaves...", component="Branch")
