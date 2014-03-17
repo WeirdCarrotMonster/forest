@@ -114,49 +114,6 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
-    def log_stats(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-
-        leaves_list = client.trunk.leaves.find()
-        leaves = {}
-        for leaf in leaves_list:
-            leaves[leaf["name"]] = leaf
-
-        log = {}
-
-        for branch in client.trunk.branches.find():
-            response = self.send_message(
-                branch,
-                {
-                    "function": "known_leaves"
-                }
-            )
-
-            if response["result"] == "success":
-                for leaf in response["leaves"]:
-                    log[leaf["name"]] = leaf["mem"]
-            else:
-                pass
-
-        logs_document = client.trunk.logs.find_one({"type": "memory"})
-        if not logs_document:
-            client.trunk.logs.insert({"type": "memory", "values": []})
-            logs = []
-        else:
-            logs = logs_document["values"]
-
-        if len(logs) > 100:
-            logs = logs[-99:]
-
-        logs.append(log)
-        client.trunk.logs.update(
-            {"type": "memory"}, {"$set": {"values": logs}})
-
     def get_memory_logs(self, message):
         client = get_connection(
             self.settings["mongo_host"],
@@ -992,28 +949,6 @@ class Trunk(tornado.web.Application):
             "result": "success",
             "message": "Successfully updated branch"
         }
-
-    def read_events(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-        need_air_restart = False
-        accepted = []
-        for event in client.trunk.events.find({"to": "trunk"}):
-            accepted.append(event)
-            if event["message"] == "ports_reassigned":
-                need_air_restart |= True
-
-        for event in accepted:
-            client.trunk.events.remove({"_id": event["_id"]})
-
-        # TODO: перенести перезапуск прокси в отдельный метод
-        if need_air_restart:
-            air = self.get_air()
-            self.send_message(air, {"function": "update_state"})
 
     def get_branch(self, branch_type):
         client = get_connection(

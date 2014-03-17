@@ -37,7 +37,6 @@ class Leaf():
         self.executable = executable
         self.launch_env = env
         self.settings = settings
-        self.pid = 0
         self.process = None
         self.fastrouters = fastrouters or []
         self.keyfile = keyfile

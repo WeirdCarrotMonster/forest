@@ -59,17 +59,8 @@ if SETTINGS["role"] == "roots":
 if SETTINGS["role"] == "trunk":
     LISTENERS.append((r'/static/(.*)', tornado.web.StaticFileHandler,
                       {'path': os.path.join(FOREST_DIR, 'static')}))
-    LISTENERS.append((r"/websocket", WebSocketListener))
     LISTENERS.append((r"/(.*)", TransparentListener))
     APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
-
-    period_cbk = tornado.ioloop.PeriodicCallback(
-        APPLICATION.log_stats, 1000 * 60 * 10, loop)
-    period_cbk.start()
-    period_cbk2 = tornado.ioloop.PeriodicCallback(
-        APPLICATION.read_events, 1000 * 5, loop)
-    period_cbk2.start()
-
 
 if SETTINGS["role"] == "branch":
     LISTENERS.append((r"/", CommonListener))

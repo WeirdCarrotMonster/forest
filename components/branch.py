@@ -198,8 +198,7 @@ class Branch(tornado.web.Application):
 
         ports_reassigned = False
         for leaf in leaves:
-            log_message("Found leaf {0} in configuration\nPort: {1}".format(
-                leaf["name"], leaf.get("port")),
+            log_message("Found leaf {0} in configuration".format(leaf["name"]),
                 component="Branch"
             )
 
