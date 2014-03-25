@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import tornado.web
 import tornado.websocket
 import simplejson as json
@@ -11,11 +11,16 @@ import traceback
 import os
 from multiprocessing import Process
 from pymongo import MongoReplicaSetClient
+import pymongo
 
 
 def get_connection(host, port, user, password):
-    con = MongoReplicaSetClient(host, port, replicaSet="forest")
-    con.admin.authenticate(user, password)
+    try:
+        con = MongoReplicaSetClient(host, port, replicaSet="forest")
+        con.admin.authenticate(user, password)
+    except pymongo.errors.ConfigurationError:
+        con = pymongo.MongoClient(host, port)
+        con.admin.authenticate(user, password)
     return con
 
 
@@ -52,51 +57,6 @@ def check_arguments(message, required_args, optional_args=None):
     for arg in optional_args or []:
         data[arg[0]] = message.get(arg[0], arg[1])
     return data
-
-
-class WebSocketListener(tornado.websocket.WebSocketHandler):
-    def open(self):
-        log_message("Socket opened")
-
-    def get_current_user(self):
-        return self.get_secure_cookie("user")
-
-    def on_message(self, socket_message):
-        try:
-            message = json.loads(
-                socket_message
-            )
-        except ValueError:
-            self.write_message(json.dumps(
-                {
-                    "result": "failure",
-                    "message": "Failed to decode message",
-                    "details": traceback.format_exc()
-                }, default=json_util.default))
-            return
-
-        try:
-            response = self.application.process_message(
-                message,
-                socket=self,
-                user=self.get_current_user()
-            )
-        except Exception:
-            response = {
-                "result": "failure",
-                "message": "Internal server error",
-                "details": traceback.format_exc()
-            }
-        self.write_message(json.dumps(response, default=json_util.default))
-
-    def send_message(self, message):
-        try:
-            self.write_message(json.dumps(message))
-        except:
-            pass
-
-    def on_close(self):
-        log_message("Socket closed")
 
 
 class CommonListener(tornado.web.RequestHandler):
@@ -146,6 +106,7 @@ class TransparentListener(tornado.web.RequestHandler):
         # Вот тут выдаются страницы
         # Все те, что не статика
         # Потому что мне так велел велоцираптор иисус
+        log_message("Page request: {0}".format(page))
         try:
             response = self.application.process_page(
                 page,
@@ -164,6 +125,7 @@ class TransparentListener(tornado.web.RequestHandler):
         # Потому что мне так велел летающий макаронный монстр с фрикадельками
         try:
             message = json.loads(self.request.body)
+            log_message("API request: {}".format(message.get("function", None)))
         except ValueError:
             self.finish(json.dumps(
                 {
@@ -177,7 +139,8 @@ class TransparentListener(tornado.web.RequestHandler):
             response = self.application.process_message(
                 message,
                 handler=self,
-                user=self.get_current_user()
+                user=self.get_current_user(),
+                inner=self.application.settings["secret"] == message["secret"]
             )
         except ArgumentMissing, arg:
             response = {

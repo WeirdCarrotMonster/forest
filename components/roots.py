@@ -3,31 +3,14 @@ from __future__ import print_function
 import MySQLdb
 import string
 import random
-import tornado.web
 from components.common import log_message, get_connection
 
 
-class Roots(tornado.web.Application):
+class Roots():
 
-    def __init__(self, settings_dict, **settings):
-        super(Roots, self).__init__(**settings)
-        self.settings = settings_dict
-
-        self.functions = {
-            "update_state": self.update_state,
-            "status_report": self.status_report
-        }
-
-    def process_message(self, message):
-        function = message.get('function', None)
-
-        if not function in self.functions:
-            return {
-                "result": "failure",
-                "message": "No function or unknown one called"
-            }
-
-        return self.functions[function](message)
+    def __init__(self, settings):
+        self.settings = settings
+        self.update_state(None)
 
     def status_report(self, message):
         return {

@@ -1,0 +1,39 @@
+{
+    "connections":
+    {
+        "host": "127.0.0.1",
+        "port": 1234
+    },
+    "roles": {
+        "roots": {
+            "mysql_user": "root",
+            "mysql_pass": "password",
+            "mysql_host": "127.0.0.1",
+            "mysql_port": 3306
+        },
+        "branch": {
+            "host": "127.0.0.1",
+            "chdir": "/home/wcm/espresso",
+            "executable": "/home/wcm/espresso/manage.py",
+            "keyfile": "/home/wcm/forest/keys/private.pem",
+            "species": {
+                "espresso": {
+                    "type": "git",
+                    "path": "/home/wcm/espresso"
+                }
+            }
+        },
+        "air": {
+            "keydir": "/home/wcm/forest/keys",
+            "host": "127.0.0.1",
+            "fastrouter": 3333
+        }
+    },
+    "settings":
+    {
+        "name": "main",
+        "secret": "gk9)o24z7!@n@w^k%4ceidaj0n7n1#-ts$mw)2qrf=)e&k&gl%",
+        "mongo_host": "127.0.0.1",
+        "mongo_port": 27017
+    }
+}

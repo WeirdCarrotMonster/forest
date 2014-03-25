@@ -7,16 +7,22 @@ from components.shadow import encode, decode
 from components.common import check_arguments, get_connection, \
     LogicError, Warning
 import hashlib
+import traceback
 
 
 class Trunk(tornado.web.Application):
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
-        self.settings["cookie_secret"] = 'asdfasdf'
-        self.socket = None
+        self.settings["cookie_secret"] = "asdasd"
         self.handler = None
         self.logs = []
+
+        # Компоненты
+        self.branch = None
+        self.air = None
+        self.roots = None
+
         self.safe_urls = {
             "login": "html/login.html",
         }
@@ -29,14 +35,10 @@ class Trunk(tornado.web.Application):
 
         self.functions = {
             # Обработка состояний сервера
-            "forest_status": self.forest_status,
-            "status_report": self.status_report,
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
             "get_memory_logs": self.get_memory_logs,
             # Работа с ветвями
-            "add_branch": self.add_branch,
-            "modify_branch": self.modify_branch,
             "list_branches": self.list_branches,
             # Работа с листьями
             "enable_leaf": self.enable_leaf,
@@ -48,12 +50,37 @@ class Trunk(tornado.web.Application):
             "get_leaf_logs": self.get_leaf_logs
         }
 
+    def publish_self(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        components = client.trunk.components
+        instance = components.find_one({"name": self.settings["name"]})
+
+        about = {
+            "name": self.settings["name"],
+            "host": self.settings["host"],
+            "port": self.settings["port"],
+            "secret": self.settings["secret"],
+            "roles": {}
+        }
+        if self.branch:
+            about["roles"]["branch"] = self.branch.settings
+        if self.air:
+            about["roles"]["air"] = self.air.settings
+        if self.roots:
+            about["roles"]["roots"] = self.roots.settings
+
+        if not instance:
+            components.insert(about)
+
+        components.update({"name": self.settings["name"]}, about)
+
     def log_event(self, event, event_type="info"):
-        if self.socket:
-            event["type"] = event_type
-            self.socket.send_message(event)
-        else:
-            self.logs.append(event)
+        self.logs.append(event)
 
     def process_page(self, page, user):
         if page in self.safe_urls.keys():
@@ -67,11 +94,9 @@ class Trunk(tornado.web.Application):
 
         raise Exception("I'm sorry, Dave. I'm afraid I can't do that.")
 
-    def process_message(self, message, socket=None, handler=None, user=None):
-        self.socket = socket
+    def process_message(self, message, handler=None, user=None, inner=False):
         self.handler = handler
         self.logs = []
-        response = None
         function = message.get('function', None)
 
         if function == "login_user":
@@ -79,7 +104,7 @@ class Trunk(tornado.web.Application):
         if function == "forest_status":
             return self.forest_status(message)
 
-        if not user:
+        if not (user or inner):
             raise LogicError("Not authenticated")
 
         # Далее - функции только для залогиненых
@@ -92,22 +117,31 @@ class Trunk(tornado.web.Application):
         response["type"] = "result"
         return response
 
-    @staticmethod
-    def send_message(receiver, contents):
+    def send_message(self, receiver, contents):
+        print("asdasdas")
         try:
-            http_client = tornado.httpclient.HTTPClient()
-            post_data = json.dumps(contents)
-            body = encode(post_data, receiver["secret"])
-            response = json.loads(
-                decode(http_client.fetch(
-                    "http://{0}:{1}".format(
-                        receiver["host"], receiver["port"]),
-                    method='POST',
-                    body=body,
-                    allow_ipv6=True
-                ).body, receiver["secret"]))
+            if receiver["name"] != self.settings["name"]:
+                http_client = tornado.httpclient.HTTPClient()
+                contents["secret"] = receiver["secret"]
+                post_data = json.dumps(contents)
+                print("==================")
+                print(post_data)
+                print("==================")
+                body = encode(post_data, receiver["secret"])
+                response = json.loads(
+                    decode(http_client.fetch(
+                        "http://{0}:{1}".format(
+                            receiver["host"], receiver["port"]),
+                        method='POST',
+                        body=body,
+                        allow_ipv6=True
+                    ).body, receiver["secret"]))
+                print(response)
+            else:
+                response = self.process_message(contents, inner=True)
             return response
         except Exception as e:
+            print(traceback.format_exc())
             return {
                 "result": "failure",
                 "message": e.message
@@ -166,12 +200,6 @@ class Trunk(tornado.web.Application):
                     "result": "error",
                     "message": "Wrong credentials"
                 }
-        elif self.socket:
-            return {
-                "type": "login",
-                "result": "error",
-                "message": "Websocket authentication is not supported"
-            }
         return {
             "type": "result",
             "result": "error",
@@ -195,7 +223,9 @@ class Trunk(tornado.web.Application):
         success = False
         failure = False
 
-        for branch in client.trunk.branches.find():
+        components = client.trunk.components
+
+        for branch in components.find({"roles.branch": {"$exists": True}}):
             self.log_event({
                 "component": "branch",
                 "name": branch["name"],
@@ -204,7 +234,7 @@ class Trunk(tornado.web.Application):
             response = self.send_message(
                 branch,
                 {
-                    "function": "known_leaves"
+                    "function": "branch.known_leaves"
                 }
             )
 
@@ -269,176 +299,6 @@ class Trunk(tornado.web.Application):
                 "leaves": leaves
             }
 
-    def forest_status(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-
-        loads = []
-        for branch in client.trunk.branches.find():
-            response = self.send_message(
-                branch,
-                {
-                    "function": "status_report"
-                }
-            )
-            if response["result"] == "success":
-                one_load = response["measurements"]
-                one_load["result"] = "success"
-            else:
-                one_load = {"result": "failure"}
-            one_load["name"] = branch["name"]
-            one_load["verbose_name"] = branch.get(
-                "verbose_name",
-                branch["name"]
-            )
-            loads.append(one_load)
-
-        return {
-            "result": "success",
-            "message": "Done",
-            "servers": loads
-        }
-
-    def status_report(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-
-        loads = []
-        for owl in client.trunk.owls.find():
-            response = self.send_message(
-                owl,
-                {
-                    "function": "status_report"
-                }
-            )
-            if response["result"] == "success":
-                one_load = response["mesaurements"]
-                one_load["name"] = owl["name"]
-                one_load["verbose_name"] = owl["verbose_name"]
-                one_load["result"] = "success"
-                loads.append(one_load)
-            else:
-                loads.append({
-                    "name": owl["name"],
-                    "result": "error"
-                })
-
-        for branch in client.trunk.branches.find():
-            response = self.send_message(
-                branch,
-                {
-                    "function": "status_report"
-                }
-            )
-
-            if response["result"] == "success":
-                if response["role"] == "branch":
-                    branch_result = {
-                        "result": "success",
-                        "name": branch["name"],
-                        "role": "branch"
-                    }
-                else:
-                    branch_result = {
-                        "result": "warning",
-                        "name": branch["name"],
-                        "role": response["role"],
-                        "error": "Specified role 'branch' doesn't \
-                                  match response '{0}'".format(response["role"])
-                    }
-            else:
-                branch_result = {
-                    "result": "error",
-                    "name": branch["name"],
-                    "role": "branch",
-                    "error": "Request failed. Is component secret key valid?",
-                    "message": response["message"]
-                }
-
-            self.log_event(branch_result)
-
-        for root in self.settings["roots"].keys():
-            response = self.send_message(
-                self.settings["roots"][root],
-                {
-                    "function": "status_report"
-                }
-            )
-
-            if response["result"] == "success":
-                if response["role"] == "roots":
-                    root_result = {
-                        "result": "success",
-                        "name": root,
-                        "role": "roots"
-                    }
-                else:
-                    root_result = {
-                        "result": "warning",
-                        "name": root,
-                        "role": response["role"],
-                        "error": "Specified role 'roots' doesn't \
-                                  match response '{0}'".format(response["role"])
-                    }
-            else:
-                root_result = {
-                    "result": "error",
-                    "name": root,
-                    "role": "roots",
-                    "error": "Request failed. Is component secret key valid?",
-                    "message": response["message"]
-                }
-
-            self.log_event(root_result)
-
-        for air in self.settings["air"].keys():
-            response = self.send_message(
-                self.settings["air"][air],
-                {
-                    "function": "status_report"
-                }
-            )
-
-            if response["result"] == "success":
-                if response["role"] == "air":
-                    air_result = {
-                        "result": "success",
-                        "name": air,
-                        "role": "air"
-                    }
-                else:
-                    air_result = {
-                        "result": "warning",
-                        "name": air,
-                        "role": response["role"],
-                        "error": "Specified role 'air' doesn't \
-                                  match response '{0}'".format(response["role"])
-                    }
-            else:
-                air_result = {
-                    "result": "error",
-                    "name": air,
-                    "role": "air",
-                    "error": "Request failed. Is component secret key valid?",
-                    "message": response["message"]
-                }
-
-            self.log_event(air_result)
-
-        return {
-            "result": "success",
-            "message": "Done",
-            "loads": loads
-        }
-
     def update_repo(self, message):
         # Проверяем наличие требуемых аргументов
         repo_data = check_arguments(message, ['type'])
@@ -461,7 +321,7 @@ class Trunk(tornado.web.Application):
                 response = self.send_message(
                     branch,
                     {
-                        "function": "update_repository"
+                        "function": "branch.update_repository"
                     }
                 )
             result[response["result"]].append({
@@ -503,7 +363,6 @@ class Trunk(tornado.web.Application):
                             '{0}'".format(leaf_data["type"])
             }
 
-        # Записываем лист в базе
         leaves.insert({
             "name": leaf_data["name"],
             "active": True,
@@ -512,38 +371,9 @@ class Trunk(tornado.web.Application):
             "branch": branch["name"],
             "settings": leaf_settings
         })
-        # На данном этапе у листа отсутствуют настройки базы
-        # Они будут заполнены позднее
 
-        # Обращаемся к roots для создания новой базы
-        root = self.get_root()
-        response = self.request_update(root)
-
-        self.log_event({
-            "status": "info",
-            "component": "roots",
-            "name": root["name"],
-            "response": response
-        })
-
-        # Посылаем branch сигнал об обновлении состояния
-        self.log_event({
-            "status": "info",
-            "component": "branch",
-            "name": branch["name"],
-            "message": "Asking branch to start leaf"
-        })
-
-        response = self.request_update(branch)
-
-        self.log_event({
-            "status": "info",
-            "component": "branch",
-            "name": branch["name"],
-            "response": response
-        })
-
-        # Обращаемся к air для публикации листа
+        self.update_roots()
+        self.update_branches()
         self.update_air()
 
         response = {
@@ -597,10 +427,7 @@ class Trunk(tornado.web.Application):
             }
         )
 
-        # Обращаемся к branch для обновления состояния
-        self.request_update(branch)
-
-        # Обращаемся к air для публикации листа
+        self.update_branches()
         self.update_air()
 
         return {
@@ -636,12 +463,7 @@ class Trunk(tornado.web.Application):
             }
         )
 
-        # Обращаемся к branch для удаления листа
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-        if branch:
-            self.request_update(branch)
-
-        # Обращаемся к air для де-публикации листа
+        self.update_branches()
         self.update_air()
 
         return {
@@ -671,14 +493,11 @@ class Trunk(tornado.web.Application):
                            '{0}'".format(leaf["branch"]))
 
         # Ищем ветви, старую и новую
-        branches = client.trunk.branches
-        old_branch = branches.find_one({"name": leaf["branch"]})
-        new_branch = branches.find_one({"name": leaf_data["destination"]})
-
-        if new_branch["type"] != leaf["type"]:
-            raise LogicError("Can't move leaf with type \
-                             '{0}' to branch with type '{1}'\
-                             ".format(leaf["type"], new_branch["type"]))
+        components = client.trunk.components
+        new_branch = components.find_one({
+            "name": leaf_data["destination"],
+            "roles.branch.species.{0}".format(leaf["type"]): {"$exists": True}
+        })
 
         if not new_branch:
             raise LogicError("Destination branch not found")
@@ -686,19 +505,13 @@ class Trunk(tornado.web.Application):
         leaves.update(
             {"name": leaf_data["name"]},
             {
-                "$set": {"branch": new_branch["name"]},
-                "$unset": {"port": 1}
+                "$set": {"branch": new_branch["name"]}
             }
         )
 
         # Обращаемся к новому branch'у для переноса листа
-        if old_branch:
-            self.send_message(old_branch, {"function": "update_state"})
-        self.send_message(new_branch, {"function": "update_state"})
-
-        # Обращаемся к air для публикации листа
-        air = self.get_air()
-        self.send_message(air, {"function": "update_state"})
+        self.update_branches()
+        self.update_air()
 
         return {
             "result": "success",
@@ -736,8 +549,7 @@ class Trunk(tornado.web.Application):
         )
 
         # Обращаемся к air для публикации листа
-        air = self.get_air()
-        self.send_message(air, {"function": "update_state"})
+        self.update_air()
 
         return {
             "result": "success",
@@ -780,13 +592,7 @@ class Trunk(tornado.web.Application):
         )
 
         if leaf.get("active", False):
-            # Обновляем настройки на самой ветви
-            branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-            if not branch:
-                raise LogicError("Internal error: \
-                                  leaf hosted on unknown branch")
-
-            self.send_message(branch, {"function": "update_state"})
+            self.update_branches()
 
         return {
             "result": "success",
@@ -809,66 +615,58 @@ class Trunk(tornado.web.Application):
             raise LogicError("Leaf with name \
                               {0} not found".format(leaf_data["name"]))
 
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
+        branch = client.trunk.components.find_one({"name": leaf["branch"]})
         if not branch:
             raise LogicError("Leaf hosted on unknown branch")
 
         post_data = {
-            "function": "get_leaf_logs",
+            "function": "branch.get_leaf_logs",
             "name": leaf["name"]
         }
         response = self.send_message(branch, post_data)
+
         if response["result"] != "success":
             raise LogicError("Failed to get logs from branch")
-
         return {
             "result": "success",
             "logs": response["logs"]
         }
 
-    def add_branch(self, message):
-        # Проверяем наличие требуемых аргументов
-        branch_data = check_arguments(
-            message,
-            ['name', 'host', 'port', 'secret', 'type']
-        )
-
-        # Проверяем, нет ветви с таким именем в базе
+    def update_air(self):
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
             "admin",
             "password"
         )
-        branches = client.trunk.branches
-        branch = branches.find_one({"name": branch_data["name"]})
-        if branch:
-            raise LogicError("Branch with name \
-                              '{0}' already exists".format(branch_data["name"]))
+        components = client.trunk.components
+        for component in components.find({"roles.air": {"$exists": True}}):
+            self.send_message(component, "air.update_state")
 
-        # Сохраняем ветку в базе
-        branch = {
-            "name": branch_data["name"],
-            "type": branch_data["type"],
-            "host": branch_data["host"],
-            "port": branch_data["port"],
-            "secret": branch_data["secret"]
-        }
-        branches.insert(branch)
-        return {
-            "result": "success",
-            "message": "Branch '{0}' \
-                        successfully added".format(branch_data["name"])
-        }
+    def update_branches(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        components = client.trunk.components
+        for branch in components.find({"roles.branch": {"$exists": True}}):
+            self.send_message(branch, {"function": "branch.update_state"})
 
-    def update_air(self):
-        air = self.get_air()
-        return self.send_message(air, {"function": "update_state"})
-
-    def request_update(self, component):
-        return self.send_message(component, {"function": "update_state"})
+    def update_roots(self):
+        client = get_connection(
+            self.settings["mongo_host"],
+            self.settings["mongo_port"],
+            "admin",
+            "password"
+        )
+        components = client.trunk.components
+        root = components.find_one({"roles.roots": {"$exists": True}})
+        return self.send_message(root, {"function": "roots.update_state"})
 
     def list_branches(self, message):
+        # TODO: переписать с аггрегацией
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
@@ -877,65 +675,33 @@ class Trunk(tornado.web.Application):
         )
 
         branches = []
-        for branch in client.trunk.branches.find():
-            branches.append({"name": branch["name"], "type": branch["type"]})
+        components = client.trunk.components
+        for branch in components.find({"roles.branch": {"$exists": True}}):
+            branches.append({
+                "name": branch["name"],
+                "type": branch["roles"]["branch"]["species"].keys()
+            })
 
         return {
             "result": "success",
             "branches": branches
         }
 
-    def modify_branch(self, message):
-        # =========================================
-        # Проверяем наличие требуемых аргументов
-        # =========================================
-        branch_data = check_arguments(message, ['name', "args"])
-
-        # =========================================
-        # Проверка на наличие ветви с таким именем
-        # =========================================
+    def get_branch(self, species):
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
             "admin",
             "password"
         )
-        if not client.trunk.branches.find_one({"name": branch_data["name"]}):
-            return {
-                "result": "failure",
-                "component": "branch",
-                "message": "Branch with specified name not found"
-            }
-        # =========================================
-        # Гордо переписываем все, что сказано
-        # =========================================
-        client.trunk.branches.update(
-            {"name": branch_data["name"]},
-            {
-                "$set": branch_data["args"],
-            }
-        )
-        return {
-            "result": "success",
-            "message": "Successfully updated branch"
-        }
+        components = client.trunk.components
+        return components.find_one({
+            "roles.branch": {"$exists": True},
+            "roles.branch.species.{0}".format(species): {"$exists": True}
+        })
 
-    def get_branch(self, branch_type):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            "admin",
-            "password"
-        )
-        branches = client.trunk.branches
-        return branches.find_one({"type": branch_type})
-
-    def get_root(self, name="main"):
-        root = self.settings["roots"][name]
-        root["name"] = name
-        return root
-
-    def get_air(self, name="main"):
-        air = self.settings["air"][name]
-        air["name"] = name
-        return air
+    def cleanup(self):
+        if self.branch:
+            self.branch.cleanup()
+        if self.air:
+            self.air.cleanup()

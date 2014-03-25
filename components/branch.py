@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import os
-import tornado.web
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
@@ -10,10 +9,9 @@ import traceback
 import psutil
 
 
-class Branch(tornado.web.Application):
-    def __init__(self, settings_dict, **settings):
-        super(Branch, self).__init__(**settings)
-        self.settings = settings_dict
+class Branch():
+    def __init__(self, settings):
+        self.settings = settings
         self.leaves = []
 
         client = get_connection(
@@ -23,32 +21,12 @@ class Branch(tornado.web.Application):
             "password"
         )
         self.fastrouters = []
-        for air in client.trunk.components.find({"type": "air"}):
-            self.fastrouters.append(
-                "{0}:{1}".format(air["ip"], air["fastrouter"]))
-
-        log_message("I know these fastrouters:{0}".format(self.fastrouters),
-                    component="Branch")
-
-        self.functions = {
-            "restart_leaf": self.restart_leaf,
-            "get_leaf_logs": self.get_leaf_logs,
-            "status_report": self.status_report,
-            "known_leaves": self.known_leaves,
-            "update_repository": self.update_repo,
-            "update_state": self.update_state,
-            "status_report": self.status_report
-        }
-
+        components = client.trunk.components
+        for component in components.find({"roles.air": {"$exists": True}}):
+            host = component["host"]
+            port = component["roles"]["air"]["fastrouter"]
+            self.fastrouters.append("{0}:{1}".format(host, port))
         self.init_leaves()
-
-    def process_message(self, message):
-        function = message.get('function', None)
-
-        if not function in self.functions:
-            raise LogicError("No function or unknown one called")
-
-        return self.functions[function](message)
 
     def __get_assigned_leaves(self):
         client = get_connection(
@@ -69,6 +47,7 @@ class Branch(tornado.web.Application):
         return None
 
     def add_leaf(self, leaf):
+        # TODO: переписывать адрес MySQL-сервера, выбирая его из базы
         new_leaf = Leaf(
             name=leaf["name"],
             chdir=self.settings["chdir"],
@@ -187,8 +166,8 @@ class Branch(tornado.web.Application):
 
     def init_leaves(self):
         for leaf in self.__get_assigned_leaves():
-            log_message("Found leaf {0} in configuration\nPort: {1}".format(
-                leaf["name"], leaf.get("port")),
+            log_message("Found leaf {0} in configuration".format(
+                leaf["name"]),
                 component="Branch"
             )
             self.add_leaf(leaf)

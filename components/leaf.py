@@ -23,8 +23,8 @@ class Leaf():
                  host="127.0.0.1",
                  executable=None,
                  chdir=None,
-                 env={},
-                 settings={},
+                 env=None,
+                 settings=None,
                  fastrouters=None,
                  keyfile=None,
                  address="",
@@ -35,8 +35,8 @@ class Leaf():
         self.host = host
         self.chdir = chdir
         self.executable = executable
-        self.launch_env = env
-        self.settings = settings
+        self.launch_env = env or {}
+        self.settings = settings or {}
         self.process = None
         self.fastrouters = fastrouters or []
         self.keyfile = keyfile
@@ -60,12 +60,16 @@ class Leaf():
         p = subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
             env=my_env,
-            shell=False)
+            shell=False,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE)
         p.wait()
         p = subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
-            shell=False)
+            shell=False,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE)
         p.wait()
 
     def update_database(self):
@@ -76,7 +80,9 @@ class Leaf():
         subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
-            shell=False)
+            shell=False,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE)
 
     def set_settings(self, settings):
         self.settings = settings
@@ -147,7 +153,6 @@ class Leaf():
             ))
 
         log_message("Starting leaf {0}".format(self.name), component="Leaf")
-        print(cmd)
         self.process = subprocess.Popen(
             cmd,
             env=my_env,

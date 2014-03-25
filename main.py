@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import sys
 import os
 import signal
@@ -12,8 +12,7 @@ from components.trunk import Trunk
 from components.roots import Roots
 from components.branch import Branch
 from components.air import Air
-from components.common import CommonListener, TransparentListener, \
-    WebSocketListener, log_message
+from components.common import TransparentListener, log_message
 
 if len(sys.argv) < 2:
     log_message(
@@ -29,65 +28,66 @@ FOREST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 JSON_DATA = open(os.path.join(FOREST_DIR, FILENAME))
 SETTINGS = json.load(JSON_DATA)
-SETTINGS["settings"]["REALPATH"] = FOREST_DIR
 JSON_DATA.close()
 
 # Определяем слушателей по ролям
-LISTENERS = []
 loop = tornado.ioloop.IOLoop.instance()
 
-if not SETTINGS["role"] in ["roots", "trunk", "branch", "air"]:
-    log_message(
-        "Configuration error: unknown role '{0}'".format(SETTINGS["role"])
-    )
-    sys.exit(0)
+LISTENERS = [
+    # Слушаем статику на случай, если не выдаем её чем-нибудь другим
+    (r'/static/(.*)',
+     tornado.web.StaticFileHandler,
+     {'path': os.path.join(FOREST_DIR, 'static')}),
+    (r"/(.*)", TransparentListener)
+]
+base_settings = SETTINGS["settings"]
+trunk_settings = SETTINGS["connections"]
+trunk_settings.update(base_settings)
+trunk_settings["REALPATH"] = FOREST_DIR
+APPLICATION = Trunk(trunk_settings, handlers=LISTENERS)
+log_message("Setting role: {0}".format(SETTINGS["roles"].keys()))
 
-APPLICATION = None
-log_message("Setting role: {0}".format(SETTINGS["role"]))
+# TODO: Переписать этот цикл при возможности. Страшно смотреть
+for role, role_settings in SETTINGS["roles"].items():
+    if not role in ["roots", "branch", "air"]:
+        log_message("Unknown role: {0}".format(role))
+        sys.exit(1)
+    role_settings.update(base_settings)
+    if role == "branch":
+        branch = Branch(role_settings)
+        APPLICATION.branch = branch
+        APPLICATION.functions["branch.update_state"] = branch.update_state
+        APPLICATION.functions["branch.update_repository"] = branch.update_repo
+        APPLICATION.functions["branch.known_leaves"] = branch.known_leaves
+        APPLICATION.functions["branch.get_leaf_logs"] = branch.get_leaf_logs
+    elif role == "air":
+        air = Air(role_settings)
+        APPLICATION.air = air
+        APPLICATION.functions["air.update_state"] = air.update_state
+    elif role == "roots":
+        roots = Roots(role_settings)
+        APPLICATION.roots = roots
+        APPLICATION.functions["roots.update_state"] = roots.update_state
 
-if SETTINGS["role"] == "roots":
-    LISTENERS.append((r"/", CommonListener))
-    APPLICATION = Roots(SETTINGS["settings"], handlers=LISTENERS)
-
-if SETTINGS["role"] == "trunk":
-    LISTENERS.append((r'/static/(.*)', tornado.web.StaticFileHandler,
-                      {'path': os.path.join(FOREST_DIR, 'static')}))
-    LISTENERS.append((r"/(.*)", TransparentListener))
-    APPLICATION = Trunk(SETTINGS["settings"], handlers=LISTENERS)
-
-    period_cbk = tornado.ioloop.PeriodicCallback(
-        APPLICATION.log_stats, 1000 * 60 * 10, loop)
-    period_cbk.start()
-
-if SETTINGS["role"] == "branch":
-    LISTENERS.append((r"/", CommonListener))
-    APPLICATION = Branch(SETTINGS["settings"], handlers=LISTENERS)
-
-if SETTINGS["role"] == "air":
-    LISTENERS.append((r"/", CommonListener))
-    APPLICATION = Air(SETTINGS["settings"], handlers=LISTENERS)
-
-# Создаем и запускаем приложение
+APPLICATION.publish_self()
+# Запускаем приложение
 log_message("Listening on: {0}:{1}".format(
-    SETTINGS["connections"]["address"],
+    SETTINGS["connections"]["host"],
     SETTINGS["connections"]["port"])
 )
 APPLICATION.listen(
     SETTINGS["connections"]["port"],
-    SETTINGS["connections"]["address"]
+    SETTINGS["connections"]["host"]
 )
 
 
 def cleanup(signum=None, frame=None):
     if signum:
-        log_message("Got signum: {0}, frame {1}".format(signum, frame))
-    try:
-        log_message("Cleaning up...")
-        APPLICATION.cleanup()
-    except AttributeError:
-        pass
-    finally:
-        log_message("Done!")
+        log_message("Got signum: {0}".format(signum))
+
+    log_message("Cleaning up...")
+    APPLICATION.cleanup()
+    log_message("Done!")
     sys.exit(0)
 
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
