@@ -136,11 +136,13 @@ class TransparentListener(tornado.web.RequestHandler):
             return
 
         try:
+            # TODO: валидацию понадежнее
+            message_secret = message.get("secret")
             response = self.application.process_message(
                 message,
                 handler=self,
                 user=self.get_current_user(),
-                inner=self.application.settings["secret"] == message["secret"]
+                inner=self.application.settings["secret"] == message_secret
             )
         except ArgumentMissing, arg:
             response = {

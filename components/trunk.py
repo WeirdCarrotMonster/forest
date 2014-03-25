@@ -118,15 +118,11 @@ class Trunk(tornado.web.Application):
         return response
 
     def send_message(self, receiver, contents):
-        print("asdasdas")
         try:
             if receiver["name"] != self.settings["name"]:
                 http_client = tornado.httpclient.HTTPClient()
                 contents["secret"] = receiver["secret"]
                 post_data = json.dumps(contents)
-                print("==================")
-                print(post_data)
-                print("==================")
                 body = encode(post_data, receiver["secret"])
                 response = json.loads(
                     decode(http_client.fetch(
@@ -136,12 +132,10 @@ class Trunk(tornado.web.Application):
                         body=body,
                         allow_ipv6=True
                     ).body, receiver["secret"]))
-                print(response)
             else:
                 response = self.process_message(contents, inner=True)
             return response
         except Exception as e:
-            print(traceback.format_exc())
             return {
                 "result": "failure",
                 "message": e.message
@@ -641,7 +635,7 @@ class Trunk(tornado.web.Application):
         )
         components = client.trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
-            self.send_message(component, "air.update_state")
+            self.send_message(component, {"function": "air.update_state"})
 
     def update_branches(self):
         client = get_connection(
