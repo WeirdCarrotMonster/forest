@@ -26,10 +26,10 @@ def get_connection(host, port, user, password, auth=True):
 
 def get_settings_connection(settings, auth=True):
     return get_connection(
-        settings["mongo_host"],
-        settings["mongo_port"],
-        settings["mongo_user"],
-        settings["mongo_pass"],
+        settings.get("mongo_host", "127.0.0.1"),
+        settings.get("mongo_port", 27017),
+        settings.get("mongo_user", "admin"),
+        settings.get("mongo_pass", "password"),
         auth=auth
     )
 
