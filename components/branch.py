@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
-    run_parallel, LogicError, get_settings_connection
+    run_parallel, LogicError, get_default_database
 import traceback
 import psutil
 
@@ -14,18 +14,26 @@ class Branch():
         self.settings = settings
         self.leaves = []
 
-        client = get_settings_connection(self.settings)
+        trunk = get_default_database(self.settings)
         self.fastrouters = []
-        components = client.trunk.components
+        self.roots = []
+        components = trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
             host = component["host"]
             port = component["roles"]["air"]["fastrouter"]
             self.fastrouters.append("{0}:{1}".format(host, port))
+
+        # TODO: находить плижайший корень, предпочтительно себя
+        for component in components.find({"roles.roots": {"$exists": True}}):
+            self.roots.append(
+                (component["roles"]["roots"]["mysql_host"],
+                 component["roles"]["roots"]["mysql_port"])
+            )
         self.init_leaves()
 
     def __get_assigned_leaves(self):
-        client = get_settings_connection(self.settings)
-        return client.trunk.leaves.find({
+        trunk = get_default_database(self.settings)
+        return trunk.leaves.find({
             "branch": self.settings["name"],
             "active": True
         })
@@ -39,12 +47,17 @@ class Branch():
     def add_leaf(self, leaf):
         # TODO: переписывать адрес MySQL-сервера, выбирая его из базы
         repo = self.settings["species"][leaf.get("type")]
+
+        leaf_env = leaf.get("env", {})
+        leaf_env["db_host"] = self.roots[0][0]
+        leaf_env["db_port"] = self.roots[0][1]
+
         new_leaf = Leaf(
             name=leaf["name"],
             chdir=repo["path"],
             executable=repo["executable"],
             host=self.settings["host"],
-            env=leaf.get("env", {}),
+            env=leaf_env,
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),

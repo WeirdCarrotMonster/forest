@@ -3,7 +3,7 @@ from __future__ import print_function
 import MySQLdb
 import string
 import random
-from components.common import log_message, get_settings_connection
+from components.common import log_message, get_default_database
 
 
 class Roots():
@@ -59,12 +59,12 @@ class Roots():
         return bool(result[0][0])
 
     def update_state(self, message):
-        client = get_settings_connection(self.settings)
-        to_prepare = client.trunk.leaves.find({"env": {'$exists': False}})
+        trunk = get_default_database(self.settings)
+        to_prepare = trunk.leaves.find({"env": {'$exists': False}})
         for leaf in to_prepare:
             env = self.prepare_database(leaf["name"])
             if env:
-                client.trunk.leaves.update(
+                trunk.leaves.update(
                     {"name": leaf["name"]},
                     {"$set": {"env": env}}
                 )

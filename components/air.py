@@ -3,7 +3,7 @@ import subprocess
 import os
 import shutil
 import signal
-from components.common import get_settings_connection, log_message
+from components.common import get_default_database, log_message
 
 
 class Air():
@@ -34,10 +34,10 @@ class Air():
         self.process.wait()
 
     def update_state(self, message):
-        client = get_settings_connection(self.settings)
+        trunk = get_default_database(self.settings)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
-        for branch in client.trunk.leaves.find():
+        for branch in trunk.leaves.find():
             keyfile = os.path.join(
                 self.settings["keydir"], branch["address"] + ".pem")
             if not os.path.isfile(keyfile):

@@ -4,7 +4,7 @@ import simplejson as json
 import tornado.httpclient
 import tornado.template
 from components.shadow import encode, decode
-from components.common import check_arguments, get_settings_connection, \
+from components.common import check_arguments, get_default_database, \
     LogicError, Warning, authenticate_user
 
 
@@ -49,9 +49,8 @@ class Trunk(tornado.web.Application):
         }
 
     def publish_self(self):
-        client = get_settings_connection(self.settings)
-        components = client.trunk.components
-        instance = components.find_one({"name": self.settings["name"]})
+        trunk = get_default_database(self.settings)
+        instance = trunk.components.find_one({"name": self.settings["name"]})
 
         about = {
             "name": self.settings["name"],
@@ -68,9 +67,9 @@ class Trunk(tornado.web.Application):
             about["roles"]["roots"] = self.roots.settings
 
         if not instance:
-            components.insert(about)
+            trunk.components.insert(about)
 
-        components.update({"name": self.settings["name"]}, about)
+        trunk.components.update({"name": self.settings["name"]}, about)
 
     def log_event(self, event, event_type="info"):
         self.logs.append(event)
@@ -135,9 +134,9 @@ class Trunk(tornado.web.Application):
             }
 
     def get_memory_logs(self, message):
-        client = get_settings_connection(self.settings)
-        values = client.trunk.logs.find_one({"type": "memory"}).get("values")
-        keys = [leaf["name"] for leaf in client.trunk.leaves.find()]
+        trunk = get_default_database(self.settings)
+        values = trunk.logs.find_one({"type": "memory"}).get("values")
+        keys = [leaf["name"] for leaf in trunk.leaves.find()]
 
         return {
             "type": "result",
@@ -180,9 +179,9 @@ class Trunk(tornado.web.Application):
         }
 
     def check_leaves(self, message):
-        client = get_settings_connection(self.settings)
+        trunk = get_default_database(self.settings)
 
-        leaves_list = client.trunk.leaves.find()
+        leaves_list = trunk.leaves.find()
         leaves = {}
         for leaf in leaves_list:
             leaves[leaf["name"]] = leaf
@@ -191,7 +190,7 @@ class Trunk(tornado.web.Application):
         success = False
         failure = False
 
-        components = client.trunk.components
+        components = trunk.components
 
         for branch in components.find({"roles.branch": {"$exists": True}}):
             self.log_event({
@@ -277,11 +276,9 @@ class Trunk(tornado.web.Application):
             "warning": [],
         }
 
-        client = get_settings_connection(self.settings)
+        trunk = get_default_database(self.settings)
 
-        components = client.trunk.components
-
-        for branch in components.find({
+        for branch in trunk.components.find({
                 "roles.branch": {"$exists": True},
                 "roles.branch.species.%s" % repo_type: {"$exists": True}}):
             response = self.send_message(
@@ -302,8 +299,8 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'address', 'type'])
         leaf_settings = message.get("settings", {})
 
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
 
         # Проверяем наличие листа с таким именем
         if leaves.find_one({"name": leaf_data["name"]}):
@@ -345,11 +342,12 @@ class Trunk(tornado.web.Application):
         return response
 
     def enable_leaf(self, message):
+        # TODO: адаптировать
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
 
         # Проверяем, есть ли лист с таким именем в базе
         leaf = leaves.find_one({"name": leaf_data["name"]})
@@ -363,11 +361,7 @@ class Trunk(tornado.web.Application):
             )
 
         # Ищем подходящую ветку для листа
-        messages = []
-        branch = client.trunk.branches.find_one({"name": leaf["branch"]})
-        if not branch:
-            branch = self.get_branch(leaf["type"])
-            messages.append("Original branch not found; moving to new branch")
+        branch = self.get_branch(leaf["type"])
         if not branch:
             raise LogicError("No available branches \
                               of type '{0}'".format(leaf["type"]))
@@ -396,8 +390,8 @@ class Trunk(tornado.web.Application):
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
@@ -428,8 +422,8 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'destination'])
 
         # Ищем лист в базе
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
@@ -440,7 +434,7 @@ class Trunk(tornado.web.Application):
                            '{0}'".format(leaf["branch"]))
 
         # Ищем ветви, старую и новую
-        components = client.trunk.components
+        components = trunk.components
         new_branch = components.find_one({
             "name": leaf_data["destination"],
             "roles.branch.species.{0}".format(leaf["type"]): {"$exists": True}
@@ -470,8 +464,8 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'address'])
 
         # Ищем лист в базе
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
@@ -481,7 +475,7 @@ class Trunk(tornado.web.Application):
             raise LogicError("Leaf is already on address \
                               '{0}'".format(leaf["address"]))
 
-        client.trunk.leaves.update(
+        trunk.leaves.update(
             {"name": leaf_data["name"]},
             {
                 "$set": {
@@ -512,14 +506,14 @@ class Trunk(tornado.web.Application):
                     "message": "Failed to save settings"
                 }
 
-        client = get_settings_connection(self.settings)
-        leaves = client.trunk.leaves
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
                               {0} not found".format(leaf_data["name"]))
 
-        client.trunk.leaves.update(
+        trunk.leaves.update(
             {"name": leaf_data["name"]},
             {
                 "$set": {
@@ -541,13 +535,13 @@ class Trunk(tornado.web.Application):
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_settings_connection(self.settings)
-        leaf = client.trunk.leaves.find_one({"name": leaf_data["name"]})
+        trunk = get_default_database(self.settings)
+        leaf = trunk.leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
                               {0} not found".format(leaf_data["name"]))
 
-        branch = client.trunk.components.find_one({"name": leaf["branch"]})
+        branch = trunk.components.find_one({"name": leaf["branch"]})
         if not branch:
             raise LogicError("Leaf hosted on unknown branch")
 
@@ -565,29 +559,29 @@ class Trunk(tornado.web.Application):
         }
 
     def update_air(self):
-        client = get_settings_connection(self.settings)
-        components = client.trunk.components
+        trunk = get_default_database(self.settings)
+        components = trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
             self.send_message(component, {"function": "air.update_state"})
 
     def update_branches(self):
-        client = get_settings_connection(self.settings)
-        components = client.trunk.components
+        trunk = get_default_database(self.settings)
+        components = trunk.components
         for branch in components.find({"roles.branch": {"$exists": True}}):
             self.send_message(branch, {"function": "branch.update_state"})
 
     def update_roots(self):
-        client = get_settings_connection(self.settings)
-        components = client.trunk.components
+        trunk = get_default_database(self.settings)
+        components = trunk.components
         root = components.find_one({"roles.roots": {"$exists": True}})
         return self.send_message(root, {"function": "roots.update_state"})
 
     def list_branches(self, message):
         # TODO: переписать с аггрегацией
-        client = get_settings_connection(self.settings)
+        trunk = get_default_database(self.settings)
 
         branches = []
-        components = client.trunk.components
+        components = trunk.components
         for branch in components.find({"roles.branch": {"$exists": True}}):
             branches.append({
                 "name": branch["name"],
@@ -600,8 +594,8 @@ class Trunk(tornado.web.Application):
         }
 
     def get_branch(self, species):
-        client = get_settings_connection(self.settings)
-        components = client.trunk.components
+        trunk = get_default_database(self.settings)
+        components = trunk.components
         return components.find_one({
             "roles.branch": {"$exists": True},
             "roles.branch.species.{0}".format(species): {"$exists": True}

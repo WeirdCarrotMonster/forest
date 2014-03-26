@@ -34,13 +34,9 @@ def get_settings_connection(settings, auth=True):
     )
 
 
-def get_default_database(host, port, user, password):
-    try:
-        con = MongoReplicaSetClient(host, port, replicaSet="forest")
-    except pymongo.errors.ConfigurationError:
-        con = pymongo.MongoClient(host, port)
-    con.admin.authenticate(user, password)
-    return con.trunk
+def get_default_database(settings):
+    connection = get_settings_connection(settings)
+    return connection[settings.get("database", "trunk")]
 
 
 def authenticate_user(settings, user, password):

@@ -39,6 +39,7 @@
         "mongo_host": "127.0.0.1",
         "mongo_port": 27017,
         "mongo_user": "admin",
-        "mongo_pass": "password"
+        "mongo_pass": "password",
+        "database": "trunk"
     }
 }
