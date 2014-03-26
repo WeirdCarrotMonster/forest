@@ -47,27 +47,31 @@ trunk_settings["REALPATH"] = FOREST_DIR
 APPLICATION = Trunk(trunk_settings, handlers=LISTENERS)
 log_message("Setting role: {0}".format(SETTINGS["roles"].keys()))
 
-# TODO: Переписать этот цикл при возможности. Страшно смотреть
-for role, role_settings in SETTINGS["roles"].items():
-    if not role in ["roots", "branch", "air"]:
-        log_message("Unknown role: {0}".format(role))
-        sys.exit(1)
+if "air" in SETTINGS["roles"].keys():
+    role_settings = SETTINGS["roles"]["air"]
     role_settings.update(base_settings)
-    if role == "branch":
-        branch = Branch(role_settings)
-        APPLICATION.branch = branch
-        APPLICATION.functions["branch.update_state"] = branch.update_state
-        APPLICATION.functions["branch.update_repository"] = branch.update_repo
-        APPLICATION.functions["branch.known_leaves"] = branch.known_leaves
-        APPLICATION.functions["branch.get_leaf_logs"] = branch.get_leaf_logs
-    elif role == "air":
-        air = Air(role_settings)
-        APPLICATION.air = air
-        APPLICATION.functions["air.update_state"] = air.update_state
-    elif role == "roots":
-        roots = Roots(role_settings)
-        APPLICATION.roots = roots
-        APPLICATION.functions["roots.update_state"] = roots.update_state
+
+    air = Air(role_settings)
+    APPLICATION.air = air
+    APPLICATION.functions["air.update_state"] = air.update_state        
+
+if "roots" in SETTINGS["roles"].keys():
+    role_settings = SETTINGS["roles"]["roots"]
+    role_settings.update(base_settings)
+    roots = Roots(role_settings)
+    APPLICATION.roots = roots
+    APPLICATION.functions["roots.update_state"] = roots.update_state
+
+if "branch" in SETTINGS["roles"].keys():
+    role_settings = SETTINGS["roles"]["branch"]
+    role_settings.update(base_settings)
+
+    branch = Branch(role_settings)
+    APPLICATION.branch = branch
+    APPLICATION.functions["branch.update_state"] = branch.update_state
+    APPLICATION.functions["branch.update_repository"] = branch.update_repo
+    APPLICATION.functions["branch.known_leaves"] = branch.known_leaves
+    APPLICATION.functions["branch.get_leaf_logs"] = branch.get_leaf_logs
 
 APPLICATION.publish_self()
 # Запускаем приложение

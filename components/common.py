@@ -41,7 +41,7 @@ def get_default_database(settings):
 def authenticate_user(settings, user, password):
     connection = get_settings_connection(settings, auth=False)
     try:
-        connection.trunk.authenticate(user, password)
+        connection.admin.authenticate(user, password)
         return True
     except pymongo.errors.OperationFailure:
         return False
