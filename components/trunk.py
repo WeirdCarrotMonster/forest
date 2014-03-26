@@ -4,7 +4,7 @@ import simplejson as json
 import tornado.httpclient
 import tornado.template
 from components.shadow import encode, decode
-from components.common import check_arguments, get_connection, \
+from components.common import check_arguments, get_settings_connection, \
     LogicError, Warning, authenticate_user
 
 
@@ -49,12 +49,7 @@ class Trunk(tornado.web.Application):
         }
 
     def publish_self(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         components = client.trunk.components
         instance = components.find_one({"name": self.settings["name"]})
 
@@ -140,12 +135,7 @@ class Trunk(tornado.web.Application):
             }
 
     def get_memory_logs(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         values = client.trunk.logs.find_one({"type": "memory"}).get("values")
         keys = [leaf["name"] for leaf in client.trunk.leaves.find()]
 
@@ -169,14 +159,7 @@ class Trunk(tornado.web.Application):
         password = user_data["password"]
 
         if self.handler:
-            client = get_connection(
-                self.settings["mongo_host"],
-                self.settings["mongo_port"],
-                self.settings["mongo_user"],
-                self.settings["mongo_pass"]
-            )
-
-            if authenticate_user(client, username, password):
+            if authenticate_user(self.settings, username, password):
                 self.handler.set_secure_cookie("user", username)
                 return {
                     "type": "login",
@@ -197,12 +180,7 @@ class Trunk(tornado.web.Application):
         }
 
     def check_leaves(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
 
         leaves_list = client.trunk.leaves.find()
         leaves = {}
@@ -299,12 +277,7 @@ class Trunk(tornado.web.Application):
             "warning": [],
         }
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
 
         components = client.trunk.components
 
@@ -329,12 +302,7 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'address', 'type'])
         leaf_settings = message.get("settings", {})
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
 
         # Проверяем наличие листа с таким именем
@@ -380,12 +348,7 @@ class Trunk(tornado.web.Application):
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
 
         # Проверяем, есть ли лист с таким именем в базе
@@ -433,12 +396,7 @@ class Trunk(tornado.web.Application):
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
@@ -470,12 +428,7 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'destination'])
 
         # Ищем лист в базе
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
@@ -517,12 +470,7 @@ class Trunk(tornado.web.Application):
         leaf_data = check_arguments(message, ['name', 'address'])
 
         # Ищем лист в базе
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
@@ -564,12 +512,7 @@ class Trunk(tornado.web.Application):
                     "message": "Failed to save settings"
                 }
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaves = client.trunk.leaves
         leaf = leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
@@ -598,12 +541,7 @@ class Trunk(tornado.web.Application):
         # Проверяем наличие требуемых аргументов
         leaf_data = check_arguments(message, ['name'])
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         leaf = client.trunk.leaves.find_one({"name": leaf_data["name"]})
         if not leaf:
             raise LogicError("Leaf with name \
@@ -627,46 +565,26 @@ class Trunk(tornado.web.Application):
         }
 
     def update_air(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         components = client.trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
             self.send_message(component, {"function": "air.update_state"})
 
     def update_branches(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         components = client.trunk.components
         for branch in components.find({"roles.branch": {"$exists": True}}):
             self.send_message(branch, {"function": "branch.update_state"})
 
     def update_roots(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         components = client.trunk.components
         root = components.find_one({"roles.roots": {"$exists": True}})
         return self.send_message(root, {"function": "roots.update_state"})
 
     def list_branches(self, message):
         # TODO: переписать с аггрегацией
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
 
         branches = []
         components = client.trunk.components
@@ -682,12 +600,7 @@ class Trunk(tornado.web.Application):
         }
 
     def get_branch(self, species):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         components = client.trunk.components
         return components.find_one({
             "roles.branch": {"$exists": True},

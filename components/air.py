@@ -3,7 +3,7 @@ import subprocess
 import os
 import shutil
 import signal
-from components.common import get_connection, log_message
+from components.common import get_settings_connection, log_message
 
 
 class Air():
@@ -34,12 +34,7 @@ class Air():
         self.process.wait()
 
     def update_state(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
         for branch in client.trunk.leaves.find():

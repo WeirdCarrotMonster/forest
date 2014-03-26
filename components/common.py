@@ -24,6 +24,16 @@ def get_connection(host, port, user, password, auth=True):
     return con
 
 
+def get_settings_connection(settings, auth=True):
+    return get_connection(
+        settings["mongo_host"],
+        settings["mongo_port"],
+        settings["mongo_user"],
+        settings["mongo_pass"],
+        auth=auth
+    )
+
+
 def get_default_database(host, port, user, password):
     try:
         con = MongoReplicaSetClient(host, port, replicaSet="forest")
@@ -33,7 +43,8 @@ def get_default_database(host, port, user, password):
     return con.trunk
 
 
-def authenticate_user(connection, user, password):
+def authenticate_user(settings, user, password):
+    connection = get_settings_connection(settings, auth=False)
     try:
         connection.trunk.authenticate(user, password)
         return True

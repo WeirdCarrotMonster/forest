@@ -4,7 +4,7 @@ import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
-    run_parallel, LogicError, get_connection
+    run_parallel, LogicError, get_settings_connection
 import traceback
 import psutil
 
@@ -14,12 +14,7 @@ class Branch():
         self.settings = settings
         self.leaves = []
 
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         self.fastrouters = []
         components = client.trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
@@ -29,12 +24,7 @@ class Branch():
         self.init_leaves()
 
     def __get_assigned_leaves(self):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         return client.trunk.leaves.find({
             "branch": self.settings["name"],
             "active": True

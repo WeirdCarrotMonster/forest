@@ -3,7 +3,7 @@ from __future__ import print_function
 import MySQLdb
 import string
 import random
-from components.common import log_message, get_connection
+from components.common import log_message, get_settings_connection
 
 
 class Roots():
@@ -59,12 +59,7 @@ class Roots():
         return bool(result[0][0])
 
     def update_state(self, message):
-        client = get_connection(
-            self.settings["mongo_host"],
-            self.settings["mongo_port"],
-            self.settings["mongo_user"],
-            self.settings["mongo_pass"]
-        )
+        client = get_settings_connection(self.settings)
         to_prepare = client.trunk.leaves.find({"env": {'$exists': False}})
         for leaf in to_prepare:
             env = self.prepare_database(leaf["name"])
