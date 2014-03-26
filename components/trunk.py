@@ -5,7 +5,7 @@ import tornado.httpclient
 import tornado.template
 from components.shadow import encode, decode
 from components.common import check_arguments, get_default_database, \
-    LogicError, Warning, authenticate_user
+    LogicError, authenticate_user
 
 
 class Trunk(tornado.web.Application):
