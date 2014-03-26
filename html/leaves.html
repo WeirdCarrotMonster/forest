@@ -39,7 +39,7 @@
             <div class="container unit-white">
             	<div class="units-row units-row-end">
 	            	<div class="add-leaf unit-centered unit-90">
-	            		<a class="big orange baron" ng-click="add_leaf_show=true" href="">Добавить лист</a>
+	            		<a class="button-empty" ng-click="add_leaf_show=true" href="">Добавить лист</a>
 	            		<form class="forms forms-inline add-leaf-form" ng-show="add_leaf_show">
 	            			<input ng-model="new_leaf_name" type="text" placeholder="Название" />
 	            			<input ng-model="new_leaf_address" type="text" placeholder="URL" />
@@ -61,7 +61,7 @@
                             <section class="units-row-end">
                                 <section class="unit-50" ng-if="leaf.working" ng-class="{disabled: !leaf.active}">
                                     <p class="normal">
-                                        <strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>
+                                        <strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br><br>
                                     </p>
                                     <p>
                                         <a href="http://{{ leaf.address }}" class="green">{{ leaf.address }}</a><br>

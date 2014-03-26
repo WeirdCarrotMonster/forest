@@ -78,7 +78,8 @@ strong {
 }
 
 .add-leaf {
-	padding-top: 1.65em
+	padding: 30px 0;
+	text-transform: uppercase;
 }
 
 /* =Pop-up
@@ -203,6 +204,12 @@ input[type].button-small {
 
 .baron {
 	font-family: 'Baron', Helvetica, Arial, Tahoma, sans-serif;
+}
+
+.button-empty {
+	padding: 10px 15px;
+	border: 2px solid #1fbba6
+	
 }
 
 /* =Navigation
