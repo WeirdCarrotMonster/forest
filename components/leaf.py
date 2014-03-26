@@ -28,7 +28,8 @@ class Leaf():
                  fastrouters=None,
                  keyfile=None,
                  address="",
-                 static=None
+                 static=None,
+                 leaf_type=None
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -42,6 +43,7 @@ class Leaf():
         self.keyfile = keyfile
         self.address = address
         self.static = static
+        self.type = leaf_type
 
         self._thread = None
         self._queue = None

@@ -60,7 +60,9 @@
                             <header class="units-row-end unit-header"><h1><a href="" ng-click="openLogs(leaf)">{{ leaf.name }}</a></h1></header>
                             <section class="units-row-end">
                                 <section class="unit-50" ng-if="leaf.working" ng-class="{disabled: !leaf.active}">
-                                    <p class="normal"><strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>Port: {{ leaf.port }}</p>
+                                    <p class="normal">
+                                        <strong>на {{ leaf.branch }}</strong><br>{{ leaf.host }}<br>
+                                    </p>
                                     <p>
                                         <a href="http://{{ leaf.address }}" class="green">{{ leaf.address }}</a><br>
                                     </p>

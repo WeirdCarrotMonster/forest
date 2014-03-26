@@ -37,8 +37,8 @@ class Air():
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
-            "admin",
-            "password"
+            self.settings["mongo_user"],
+            self.settings["mongo_pass"]
         )
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")

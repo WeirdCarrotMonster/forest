@@ -14,14 +14,31 @@ from pymongo import MongoReplicaSetClient
 import pymongo
 
 
-def get_connection(host, port, user, password):
+def get_connection(host, port, user, password, auth=True):
     try:
         con = MongoReplicaSetClient(host, port, replicaSet="forest")
-        con.admin.authenticate(user, password)
     except pymongo.errors.ConfigurationError:
         con = pymongo.MongoClient(host, port)
+    if auth:
         con.admin.authenticate(user, password)
     return con
+
+
+def get_default_database(host, port, user, password):
+    try:
+        con = MongoReplicaSetClient(host, port, replicaSet="forest")
+    except pymongo.errors.ConfigurationError:
+        con = pymongo.MongoClient(host, port)
+    con.admin.authenticate(user, password)
+    return con.trunk
+
+
+def authenticate_user(connection, user, password):
+    try:
+        connection.trunk.authenticate(user, password)
+        return True
+    except pymongo.errors.OperationFailure:
+        return False
 
 
 def run_parallel(fns):

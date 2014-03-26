@@ -17,8 +17,8 @@ class Branch():
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
-            "admin",
-            "password"
+            self.settings["mongo_user"],
+            self.settings["mongo_pass"]
         )
         self.fastrouters = []
         components = client.trunk.components
@@ -32,8 +32,8 @@ class Branch():
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
-            "admin",
-            "password"
+            self.settings["mongo_user"],
+            self.settings["mongo_pass"]
         )
         return client.trunk.leaves.find({
             "branch": self.settings["name"],
@@ -48,17 +48,19 @@ class Branch():
 
     def add_leaf(self, leaf):
         # TODO: переписывать адрес MySQL-сервера, выбирая его из базы
+        repo = self.settings["species"][leaf.get("type")]
         new_leaf = Leaf(
             name=leaf["name"],
-            chdir=self.settings["chdir"],
-            executable=self.settings["executable"],
+            chdir=repo["path"],
+            executable=repo["executable"],
             host=self.settings["host"],
             env=leaf.get("env", {}),
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address"),
-            static=self.settings.get("static")
+            static=repo["static"],
+            leaf_type=leaf.get("type")
         )
         try:
             new_leaf.start()
@@ -225,21 +227,24 @@ class Branch():
         }
 
     def update_repo(self, message):
-        try:
-            path = self.settings["repository"]["path"]
-            repo_type = self.settings["repository"]["type"]
-        except KeyError:
+        check_arguments(message, ["type"])
+        repo_name = message["type"]
+
+        if not repo_name in self.settings["species"].keys():
             return {
-                "result": "warning",
-                "message": "No repository present"
+                "result": "failure",
+                "message": "Unknown repo type"
             }
+
+        repo_path = self.settings["species"][repo_name]["path"]
+        repo_type = self.settings["species"][repo_name]["type"]
 
         try:
             if repo_type == "git":
                 cmd = [
                     "git",
-                    "--git-dir={0}/.git".format(path),
-                    "--work-tree={0}".format(path),
+                    "--git-dir={0}/.git".format(repo_path),
+                    "--work-tree={0}".format(repo_path),
                     "pull"
                 ]
                 output = check_output(cmd, stderr=STDOUT)
@@ -255,9 +260,11 @@ class Branch():
                 "message": traceback.format_exc()
             }
 
-        run_parallel([leaf.update_database for leaf in self.leaves])
+        to_update = [leaf for leaf in self.leaves if leaf.type == repo_type]
 
-        for leaf in self.leaves:
+        run_parallel([leaf.update_database for leaf in to_update])
+
+        for leaf in to_update:
             leaf.graceful_restart()
 
         return result

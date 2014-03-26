@@ -62,8 +62,8 @@ class Roots():
         client = get_connection(
             self.settings["mongo_host"],
             self.settings["mongo_port"],
-            "admin",
-            "password"
+            self.settings["mongo_user"],
+            self.settings["mongo_pass"]
         )
         to_prepare = client.trunk.leaves.find({"env": {'$exists': False}})
         for leaf in to_prepare:
