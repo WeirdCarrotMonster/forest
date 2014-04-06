@@ -154,11 +154,13 @@ class Branch():
             if leaf["name"] in to_update:
                 leaf_running = self.get_leaf(leaf["name"])
                 if leaf.get("settings", {}) != leaf_running.settings or \
-                   leaf["env"] != leaf_running.launch_env:
+                   leaf["env"] != leaf_running.launch_env or \
+                   leaf["address"] != leaf_running.address:
                     log_message("Leaf {0} configuration changed, reloading\
                                 ".format(leaf["name"]), component="Branch")
                     leaf_running.settings = leaf["settings"]
                     leaf_running.env = leaf["env"]
+                    leaf_running.address = leaf["address"]
                     leaf_running.restart()
             elif leaf["name"] in to_append:
                 log_message("Adding leaf {0}".format(leaf["name"]),

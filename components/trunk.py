@@ -486,6 +486,7 @@ class Trunk(tornado.web.Application):
 
         # Обращаемся к air для публикации листа
         self.update_air()
+        self.update_branches()
 
         return {
             "result": "success",
