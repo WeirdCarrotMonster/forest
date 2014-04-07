@@ -142,11 +142,19 @@ class Leaf():
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
 
+        address = []
+        if type(self.address) == str:
+            address.append(self.address)
+        elif type(self.address) == list:
+            for addr in self.address:
+                address.append(addr)
+
         for router in self.fastrouters:
-            cmd.append(
-                "--subscribe-to={0}:{1},5,SHA1:{2}".format(
+            for addr in address:
+                cmd.append(
+                    "--subscribe-to={0}:{1},5,SHA1:{2}".format(
                     router,
-                    self.address, self.keyfile))
+                    addr, self.keyfile))
 
         if self.static:
             cmd.append("--static-map={0}={1}".format(

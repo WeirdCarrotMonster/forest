@@ -16,7 +16,7 @@ import pymongo
 def get_connection(host, port, user, password, auth=True):
     try:
         con = MongoReplicaSetClient(host, port, replicaSet="forest")
-    except pymongo.errors.ConfigurationError:
+    except pymongo.errors.ConfigurationError, pymongo.errors.ConnectionFailure:
         con = pymongo.MongoClient(host, port)
     if auth:
         con.admin.authenticate(user, password)
