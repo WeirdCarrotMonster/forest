@@ -7,6 +7,7 @@ from components.common import log_message, check_arguments, \
     run_parallel, LogicError, get_default_database
 import traceback
 import psutil
+import datetime
 
 
 class Branch():
@@ -37,6 +38,21 @@ class Branch():
             "branch": self.settings["name"],
             "active": True
         })
+
+    def save_leaf_logs(self):
+        trunk = get_default_database(self.settings)
+
+        for leaf in self.leaves:
+            logs = leaf.update_logs_req_count()
+            for log in logs:
+                trunk.logs.insert({
+                    "component_name": self.settings["name"],
+                    "component_type": "branch",
+                    "log_source": leaf.name,
+                    "log_type": "leaf.event",
+                    "content": log,
+                    "added": datetime.datetime.now()
+                })
 
     def get_leaf(self, leaf_name):
         for leaf in self.leaves:

@@ -105,11 +105,12 @@ class Leaf():
         return mem/1024
 
     def update_logs_req_count(self):
+        logs = []
         count = 0
         try:
             while True:
                 line = self._queue.get_nowait()
-                self.logs.append(line)
+                logs.append(line)
                 count += 1
         except Empty:
             pass
@@ -121,6 +122,7 @@ class Leaf():
         else:
             self._last_req_count = \
                 (count + self._last_req_count * (5 - minutes))/float(5)
+        return logs
 
     def req_per_second(self):
         self.update_logs_req_count()

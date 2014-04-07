@@ -72,6 +72,9 @@ if "branch" in SETTINGS["roles"].keys():
     APPLICATION.functions["branch.update_repository"] = branch.update_repo
     APPLICATION.functions["branch.known_leaves"] = branch.known_leaves
     APPLICATION.functions["branch.get_leaf_logs"] = branch.get_leaf_logs
+    logging_callback = tornado.ioloop.PeriodicCallback(
+        APPLICATION.branch.save_leaf_logs, 1000 * 5, loop)
+    logging_callback.start()
 
 APPLICATION.publish_self()
 # Запускаем приложение

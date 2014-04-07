@@ -542,21 +542,18 @@ class Trunk(tornado.web.Application):
             raise LogicError("Leaf with name \
                               {0} not found".format(leaf_data["name"]))
 
-        branch = trunk.components.find_one({"name": leaf["branch"]})
-        if not branch:
-            raise LogicError("Leaf hosted on unknown branch")
+        logs_raw = trunk.logs.find({
+            "log_type": "leaf.event",
+            "log_source": leaf["name"]
+        }).sort("added", -1).limit(100)
 
-        post_data = {
-            "function": "branch.get_leaf_logs",
-            "name": leaf["name"]
-        }
-        response = self.send_message(branch, post_data)
+        logs = []
+        for log in logs_raw:
+            logs.insert(0, log["content"])
 
-        if response["result"] != "success":
-            raise LogicError("Failed to get logs from branch")
         return {
             "result": "success",
-            "logs": response["logs"]
+            "logs": logs
         }
 
     def update_air(self):
