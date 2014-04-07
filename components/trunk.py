@@ -86,15 +86,20 @@ class Trunk(tornado.web.Application):
 
         raise Exception("I'm sorry, Dave. I'm afraid I can't do that.")
 
-    def process_message(self, message, handler=None, user=None, inner=False):
+    def process_message(self,
+                        message,
+                        handler=None,
+                        user=None,
+                        inner=False,
+                        callback=None):
         self.handler = handler
         self.logs = []
         function = message.get('function', None)
 
         if function == "login_user":
-            return self.login_user(message, user=user)
+            callback(self.login_user(message, user=user))
         if function == "forest_status":
-            return self.forest_status(message)
+            callback(self.forest_status(message))
 
         if not (user or inner):
             raise LogicError("Not authenticated")
@@ -107,7 +112,10 @@ class Trunk(tornado.web.Application):
         if len(self.logs) > 0:
             response["logs"] = self.logs
         response["type"] = "result"
-        return response
+        if callback:
+            callback(response)
+        else:
+            return response
 
     def send_message(self, receiver, contents):
         try:

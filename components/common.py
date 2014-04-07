@@ -2,7 +2,7 @@
 
 from __future__ import print_function, unicode_literals
 import tornado.web
-import tornado.websocket
+import tornado.gen
 import simplejson as json
 from datetime import datetime
 from bson import json_util
@@ -11,6 +11,8 @@ import os
 from multiprocessing import Process
 from pymongo import MongoReplicaSetClient
 import pymongo
+import random
+import string
 
 
 def get_connection(host, port, user, password, auth=True):
@@ -98,6 +100,7 @@ class TransparentListener(tornado.web.RequestHandler):
         except Exception as e:
             self.finish(e.message)
 
+    @tornado.gen.coroutine
     def post(self, stuff):
         # Вот тут обрабатывается API
         # Строго через POST
@@ -117,12 +120,15 @@ class TransparentListener(tornado.web.RequestHandler):
         try:
             # TODO: валидацию понадежнее
             message_secret = message.get("secret")
-            response = self.application.process_message(
+            key = ''.join(random.choice(string.digits) for _ in range(9))
+            self.application.process_message(
                 message,
                 handler=self,
                 user=self.get_current_user(),
-                inner=self.application.settings["secret"] == message_secret
+                inner=self.application.settings["secret"] == message_secret,
+                callback=(yield tornado.gen.Callback(key))
             )
+            response = yield tornado.gen.Wait(key)
         except ArgumentMissing as arg:
             response = {
                 "result": "failure",
