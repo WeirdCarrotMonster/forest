@@ -53,7 +53,7 @@ if "air" in SETTINGS["roles"].keys():
 
     air = Air(role_settings)
     APPLICATION.air = air
-    APPLICATION.functions["air.update_state"] = air.update_state        
+    APPLICATION.functions["air.update_state"] = air.update_state
 
 if "roots" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["roots"]

@@ -123,17 +123,17 @@ class TransparentListener(tornado.web.RequestHandler):
                 user=self.get_current_user(),
                 inner=self.application.settings["secret"] == message_secret
             )
-        except ArgumentMissing, arg:
+        except ArgumentMissing as arg:
             response = {
                 "result": "failure",
                 "message": "Missing argument: {0}".format(arg.message)
             }
-        except LogicError, arg:
+        except LogicError as arg:
             response = {
                 "result": "failure",
                 "message": "{0}".format(arg.message)
             }
-        except Warning, arg:
+        except Warning as arg:
             response = {
                 "result": "warning",
                 "message": "{0}".format(arg.message)
