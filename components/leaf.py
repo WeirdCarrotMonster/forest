@@ -143,7 +143,7 @@ class Leaf():
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
 
         address = []
-        if type(self.address) == str:
+        if type(self.address) in [str, unicode]:
             address.append(self.address)
         elif type(self.address) == list:
             for addr in self.address:
