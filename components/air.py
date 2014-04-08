@@ -18,7 +18,8 @@ class Air():
             "--fastrouter=127.0.0.1:3000",
             "--fastrouter-subscription-server={0}:{1}".format(
                 self.settings["host"], str(self.settings["fastrouter"])),
-            "--master"
+            "--master",
+            "--subscriptions-sign-check={0}".format(self.settings["keydir"])
         ]
 
         self.process = subprocess.Popen(
