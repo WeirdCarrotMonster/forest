@@ -3,7 +3,6 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
-from components.shadow import encode, decode
 from components.common import check_arguments, get_default_database, \
     LogicError, authenticate_user
 
@@ -98,8 +97,7 @@ class Trunk(tornado.web.Application):
 
         if function == "login_user":
             callback(self.login_user(message, user=user))
-        if function == "forest_status":
-            callback(self.forest_status(message))
+            return
 
         if not (user or inner):
             raise LogicError("Not authenticated")
