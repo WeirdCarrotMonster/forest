@@ -121,15 +121,15 @@ class Trunk(tornado.web.Application):
                 http_client = tornado.httpclient.HTTPClient()
                 contents["secret"] = receiver["secret"]
                 post_data = json.dumps(contents)
-                body = encode(post_data, receiver["secret"])
+                body = post_data
                 response = json.loads(
-                    decode(http_client.fetch(
+                    http_client.fetch(
                         "http://{0}:{1}".format(
                             receiver["host"], receiver["port"]),
                         method='POST',
                         body=body,
                         allow_ipv6=True
-                    ).body, receiver["secret"]))
+                    ).body, receiver["secret"])
             else:
                 response = self.process_message(contents, inner=True)
             return response
@@ -549,9 +549,8 @@ class Trunk(tornado.web.Application):
                               {0} not found".format(leaf_data["name"]))
 
         logs_raw = trunk.logs.find({
-            "log_type": "leaf.event",
             "log_source": leaf["name"]
-        }).sort("added", -1).limit(100)
+        }).sort("added", -1).limit(200)
 
         logs = []
         for log in logs_raw:

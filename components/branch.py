@@ -84,7 +84,17 @@ class Branch():
         try:
             new_leaf.start()
             self.leaves.append(new_leaf)
-            new_leaf.init_database()
+            db_logs = new_leaf.init_database()
+            trunk = get_default_database(self.settings)
+            for log in db_logs:
+                trunk.logs.insert({
+                    "component_name": self.settings["name"],
+                    "component_type": "branch",
+                    "log_source": new_leaf.name,
+                    "log_type": "leaf.initdb",
+                    "content": log,
+                    "added": datetime.datetime.now()
+                })
         except Exception:
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
 
@@ -231,22 +241,6 @@ class Branch():
             "message": "restarted leaf {0}".format(leaf_data["name"])
         }
 
-    def get_leaf_logs(self, message):
-        leaf_data = check_arguments(message, ["name"])
-
-        logs = None
-        leaf = self.get_leaf(leaf_data["name"])
-        if leaf:
-            logs = leaf.get_logs()
-        else:
-            raise LogicError("Leaf with name {0} not found".format(
-                leaf_data["name"]))
-
-        return {
-            "result": "success",
-            "logs": logs
-        }
-
     def update_repo(self, message):
         check_arguments(message, ["type"])
         repo_name = message["type"]
@@ -283,7 +277,18 @@ class Branch():
 
         to_update = [leaf for leaf in self.leaves if leaf.type == repo_type]
 
-        run_parallel([leaf.update_database for leaf in to_update])
+        trunk = get_default_database(self.settings)
+        for leaf in to_update:
+            logs = leaf.update_database()
+            for log in logs:
+                trunk.logs.insert({
+                    "component_name": self.settings["name"],
+                    "component_type": "branch",
+                    "log_source": leaf.name,
+                    "log_type": "leaf.updatedb",
+                    "content": log,
+                    "added": datetime.datetime.now()
+                })
 
         for leaf in to_update:
             leaf.graceful_restart()

@@ -59,32 +59,48 @@ class Leaf():
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        p = subprocess.Popen(
+        logs = []
+        proc = subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
-        p.wait()
-        p = subprocess.Popen(
+        proc.wait()
+        for line in iter(proc.stdout.readline, ''):
+            logs.append(line)
+        for line in iter(proc.stderr.readline, ''):
+            logs.append(line)
+
+        proc = subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
-        p.wait()
+        proc.wait()
+        for line in iter(proc.stdout.readline, ''):
+            logs.append(line)
+        for line in iter(proc.stderr.readline, ''):
+            logs.append(line)
+        return logs
 
     def update_database(self):
         # Обновляем таблицы через south
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        subprocess.Popen(
+        proc = subprocess.Popen(
             [self.python_executable, self.executable, "migrate"],
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
+        proc.wait()
+        logs = []
+        for line in iter(proc.stderr.readline, ''):
+            logs.append(line)
+        return logs
 
     def set_settings(self, settings):
         self.settings = settings
