@@ -16,7 +16,7 @@ def enqueue_output(out, queue):
     out.close()
 
 
-class Leaf():
+class Leaf(object):
     def __init__(self,
                  name=None,
                  python_executable="python2.7",

@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Модуль реализует сущность ветви, отвечающую за
+запуск приложений, обновление репозиториев и логгирование
+процессов.
+"""
 from __future__ import print_function, unicode_literals
 import os
 from subprocess import CalledProcessError, check_output, STDOUT
@@ -10,7 +15,10 @@ import psutil
 import datetime
 
 
-class Branch():
+class Branch(object):
+    """
+    Класс ветви, служащий для запуска приложений и логгирования их вывода
+    """
     def __init__(self, settings):
         self.settings = settings
         self.leaves = []
@@ -24,7 +32,6 @@ class Branch():
             port = component["roles"]["air"]["fastrouter"]
             self.fastrouters.append("{0}:{1}".format(host, port))
 
-        # TODO: находить плижайший корень, предпочтительно себя
         for component in components.find({"roles.roots": {"$exists": True}}):
             self.roots.append(
                 (component["roles"]["roots"]["mysql_host"],
@@ -33,6 +40,9 @@ class Branch():
         self.init_leaves()
 
     def __get_assigned_leaves(self):
+        """
+        Метод получения всех листьев, назначенных на данную ветвь
+        """
         trunk = get_default_database(self.settings)
         return trunk.leaves.find({
             "branch": self.settings["name"],
@@ -40,6 +50,9 @@ class Branch():
         })
 
     def save_leaf_logs(self):
+        """
+        Метод логгирования событий листьев
+        """
         trunk = get_default_database(self.settings)
 
         for leaf in self.leaves:
@@ -55,12 +68,18 @@ class Branch():
                 })
 
     def get_leaf(self, leaf_name):
+        """
+        Получает лист по его имени
+        """
         for leaf in self.leaves:
             if leaf.name == leaf_name:
                 return leaf
         return None
 
     def add_leaf(self, leaf):
+        """
+        Запускает лист и добавляет его в список запущенных
+        """
         # TODO: переписывать адрес MySQL-сервера, выбирая его из базы
         repo = self.settings["species"][leaf.get("type")]
 
@@ -99,6 +118,9 @@ class Branch():
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
 
     def status_report(self, message):
+        """
+        Метод генерации отчета о состоянии сервера
+        """
         # Память
         mem = psutil.virtual_memory()
         swap = psutil.swap_memory()
@@ -112,14 +134,14 @@ class Branch():
 
             total_seconds = float(contents[0])
 
-            MINUTE = 60
-            HOUR = MINUTE * 60
-            DAY = HOUR * 24
+            minute = 60
+            hour = minute * 60
+            day = hour * 24
 
-            days = int(total_seconds / DAY)
-            hours = int((total_seconds % DAY) / HOUR)
-            minutes = int((total_seconds % HOUR) / MINUTE)
-            seconds = int(total_seconds % MINUTE)
+            days = int(total_seconds / day)
+            hours = int((total_seconds % day) / hour)
+            minutes = int((total_seconds % hour) / minute)
+            seconds = int(total_seconds % minute)
         except:
             days = 0
             hours = 0
@@ -150,6 +172,9 @@ class Branch():
         }
 
     def update_state(self, message):
+        """
+        Метод обновления состояния ветви
+        """
         # Составляем списки имеющихся листьев и требуемых
         current_leaves = [leaf.name for leaf in self.leaves]
         db_leaves = [leaf for leaf in self.__get_assigned_leaves()]
@@ -198,6 +223,9 @@ class Branch():
         }
 
     def init_leaves(self):
+        """
+        Метод инициализации листьев при запуске
+        """
         for leaf in self.__get_assigned_leaves():
             log_message("Found leaf {0} in configuration".format(
                 leaf["name"]),
@@ -206,10 +234,16 @@ class Branch():
             self.add_leaf(leaf)
 
     def cleanup(self):
+        """
+        Метод выключения листьев при остановке
+        """
         log_message("Shutting down leaves...", component="Branch")
         run_parallel([leaf.stop for leaf in self.leaves])
 
     def known_leaves(self, message):
+        """
+        Метод, возвращающий состояние работающих листьев
+        """
         known_leaves = []
         for leaf in self.leaves:
             known_leaves.append({
@@ -225,6 +259,9 @@ class Branch():
         }
 
     def restart_leaf(self, message):
+        """
+        Метод перезапуска листа
+        """
         leaf_data = check_arguments(message, ["name"])
         leaf = self.get_leaf(leaf_data["name"])
         if leaf:
@@ -242,6 +279,9 @@ class Branch():
         }
 
     def update_repo(self, message):
+        """
+        Метод обновления репозитория
+        """
         check_arguments(message, ["type"])
         repo_name = message["type"]
 
