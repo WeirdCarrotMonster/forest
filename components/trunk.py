@@ -129,7 +129,7 @@ class Trunk(tornado.web.Application):
                         method='POST',
                         body=body,
                         allow_ipv6=True
-                    ).body, receiver["secret"])
+                    ).body)
             else:
                 response = self.process_message(contents, inner=True)
             return response
