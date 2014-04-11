@@ -84,7 +84,7 @@ function Leaves($scope, $http, $timeout) {
     $scope.acceptableBranches = function(leaf) {
         var result = [];
         angular.forEach($scope.branches, function(value, key){
-            if(value.type == leaf.type){
+            if(value.type.indexOf(leaf.type) >= 0){
                 result.push(value.name);
             }
         }, result);
