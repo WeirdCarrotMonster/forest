@@ -29,16 +29,8 @@ function Leaves($scope, $http, $timeout) {
             ]
         },
         {
-            name: "clients",
-            settings: [
-                {
-                    verbose: "Ограничение филиалов",
-                    name: "unit-limit",
-                    type: "input-int",
-                    min_value: 1,
-                    max_value: 100
-                }
-            ]
+            name: "bonus",
+            settings: []
         }
     ];
     $scope.add_leaf_show = false;
