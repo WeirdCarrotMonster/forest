@@ -41,7 +41,12 @@ class Branch(object):
 
     def __get_assigned_leaves(self):
         """
-        Метод получения всех листьев, назначенных на данную ветвь
+        Метод получения всех листьев, назначенных на данную ветвь.
+        Отношение листа к верви определяется соответствием значения поля 
+        branch листа имени данной ветви
+
+        @rtype: list
+        @return: Список всех листьев, назначенных на данную ветвь
         """
         trunk = get_default_database(self.settings)
         return trunk.leaves.find({
@@ -51,7 +56,9 @@ class Branch(object):
 
     def save_leaf_logs(self):
         """
-        Метод логгирования событий листьев
+        Метод логгирования событий листьев.
+        Читает накопившиеся события из потока чтения событий
+        и сохраняет их в коллекцию logs MongoDB
         """
         trunk = get_default_database(self.settings)
 
@@ -70,6 +77,11 @@ class Branch(object):
     def get_leaf(self, leaf_name):
         """
         Получает лист по его имени
+
+        @type leaf_name: unicode
+        @param leaf_name: Имя искомого листа
+        @rtype: Leaf
+        @return: Лист по искомому имени
         """
         for leaf in self.leaves:
             if leaf.name == leaf_name:
@@ -79,6 +91,9 @@ class Branch(object):
     def add_leaf(self, leaf):
         """
         Запускает лист и добавляет его в список запущенных
+
+        @type leaf: dict
+        @param leaf: Словарь настроек листа
         """
         # TODO: переписывать адрес MySQL-сервера, выбирая его из базы
         repo = self.settings["species"][leaf.get("type")]
@@ -117,9 +132,14 @@ class Branch(object):
         except Exception:
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
 
-    def status_report(self, message):
+    def status_report(self, **kwargs):
         """
         Метод генерации отчета о состоянии сервера
+        Отчет включает данные о нагрузке на 15, 5 и 1 минуту,
+        свободной памяти и аптайме сервера
+
+        @rtype: dict
+        @return: Данные о состоянии сервера
         """
         # Память
         mem = psutil.virtual_memory()
@@ -171,9 +191,14 @@ class Branch(object):
             "measurements": measurements
         }
 
-    def update_state(self, message):
+    def update_state(self, **kwargs):
         """
-        Метод обновления состояния ветви
+        Метод обновления состояния ветви.
+        Обновление включает поиск новых листьев, поиск листьев с
+        изменившейся конфигурацией, а так же листьев, требующих остановки
+
+        @rtype: dict
+        @return: Результат обновления состояния
         """
         # Составляем списки имеющихся листьев и требуемых
         current_leaves = [leaf.name for leaf in self.leaves]
@@ -224,7 +249,8 @@ class Branch(object):
 
     def init_leaves(self):
         """
-        Метод инициализации листьев при запуске
+        Метод инициализации листьев при запуске.
+        Выбирает назначенные на данную ветвь листья и запускает их
         """
         for leaf in self.__get_assigned_leaves():
             log_message("Found leaf {0} in configuration".format(
@@ -235,14 +261,17 @@ class Branch(object):
 
     def cleanup(self):
         """
-        Метод выключения листьев при остановке
+        Метод выключения листьев при остановке.
         """
         log_message("Shutting down leaves...", component="Branch")
         run_parallel([leaf.stop for leaf in self.leaves])
 
     def known_leaves(self, message):
         """
-        Метод, возвращающий состояние работающих листьев
+        Метод, возвращающий состояние работающих листьев.
+
+        @rtype: dict
+        @return: Данные о функционирующих листьях
         """
         known_leaves = []
         for leaf in self.leaves:
@@ -260,7 +289,13 @@ class Branch(object):
 
     def restart_leaf(self, message):
         """
-        Метод перезапуска листа
+        Метод перезапуска листа.
+        Выполняет грубый перезапуск листа, останавливая его и запуская снова
+
+        @type message: dict
+        @param message: Данные листа для перезапуска
+        @rtype: dict
+        @return: Результат перезапуска
         """
         leaf_data = check_arguments(message, ["name"])
         leaf = self.get_leaf(leaf_data["name"])
@@ -280,7 +315,12 @@ class Branch(object):
 
     def update_repo(self, message):
         """
-        Метод обновления репозитория
+        Метод обновления репозитория.
+
+        @type message: dict
+        @param message: Данные репозитория для обновления
+        @rtype: dict
+        @return: Результат обновления репозитория и логи обновления
         """
         check_arguments(message, ["type"])
         repo_name = message["type"]
