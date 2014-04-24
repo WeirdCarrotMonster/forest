@@ -8,8 +8,13 @@ import signal
 import tornado.ioloop
 import tornado.web
 import simplejson as json
+
 from components.trunk import Trunk
-from components.roots import Roots
+try:
+    from components.roots import Roots    
+    ROOTS_CAPABLE = True
+except ImportError:
+    ROOTS_CAPABLE = False
 from components.branch import Branch
 from components.air import Air
 from components.common import TransparentListener, log_message
@@ -56,6 +61,9 @@ if "air" in SETTINGS["roles"].keys():
     APPLICATION.functions["air.update_state"] = air.update_state
 
 if "roots" in SETTINGS["roles"].keys():
+    if not ROOTS_CAPABLE:
+        raise Exception("Instance is configured to work as Roots, "
+                        "but not capable to do so.")
     role_settings = SETTINGS["roles"]["roots"]
     role_settings.update(base_settings)
     roots = Roots(role_settings)

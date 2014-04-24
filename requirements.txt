@@ -1,4 +1,6 @@
 simplejson
+bson
+json-util
 tornado
 psutil
 pymongo
