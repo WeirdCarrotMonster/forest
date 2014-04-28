@@ -178,6 +178,10 @@ Page elements
     background: #e84c3c;
 }
 
+.statusbusy {
+    background: gray;
+}
+
 
 /* ---------------------------------------------
 Navigation
@@ -332,5 +336,25 @@ Icons
 }
 
 .log_enabled {
-    background: green;
+    background: #1fbba6;
+    color: #353945 !important;
+}
+
+textarea:focus, input:focus{
+    outline: 0;
+}
+
+.width-165 {
+    width: 165px;
+}
+
+.input-search {
+    border: 1px solid #1fbba6;
+    color: #e6e6e7;
+    padding: 5px 15px;
+    font-family: 'baron_neueregular';
+    font-size: 18px;
+    display: inline-block;
+    border-radius: 3px;
+    text-decoration: none;
 }

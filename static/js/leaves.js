@@ -16,6 +16,33 @@ function Leaves($scope, $routeSegment, $http, loader) {
         });
     }
     $scope.loadLeaves();
+
+    $scope.search = "";
+
+    $scope.toggleLeaf = function(leaf) {
+        if (leaf.busy != undefined && !leaf.busy){
+            return 0;
+        }
+        leaf.busy = true;
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "toggle_leaf",
+                name: leaf.name
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                $scope.leaves[$scope.leaves.indexOf(leaf)] = data["leaf"];
+            }else{
+                leaf.busy = false;
+            }
+        }).
+        error(function(data, status, headers, config) {
+            leaf.busy = false;
+        });
+    }
 }
 
 function Leaf($scope, $routeSegment, loader) {

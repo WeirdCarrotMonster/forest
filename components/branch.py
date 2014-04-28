@@ -191,7 +191,7 @@ class Branch(object):
             "measurements": measurements
         }
 
-    def update_state(self, **kwargs):
+    def update_state(self, *args, **kwargs):
         """
         Метод обновления состояния ветви.
         Обновление включает поиск новых листьев, поиск листьев с

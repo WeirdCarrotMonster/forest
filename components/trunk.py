@@ -35,6 +35,7 @@ class Trunk(tornado.web.Application):
             # Новый лес
             "get_leaves": self.get_leaves,
             "get_leaf_logs": self.get_leaf_logs,
+            "toggle_leaf": self.toggle_leaf,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
@@ -110,6 +111,7 @@ class Trunk(tornado.web.Application):
             raise LogicError("No function or unknown one called")
 
         response = self.functions[function](message)
+
         if len(self.logs) > 0:
             response["logs"] = self.logs
         response["type"] = "result"
@@ -175,6 +177,34 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "logs": logs
+        }
+
+    def toggle_leaf(self, message):
+        leaf_data = check_arguments(message, ['name'])
+
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "$set": {
+                    "active": not leaf["active"]
+                }
+            }
+        )
+
+        self.update_branches()
+        self.update_air()
+
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+        leaf["urls"] = leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
+
+        return {
+            "result": "success",
+            "leaf": leaf
         }
 
     def get_memory_logs(self, message):

@@ -1,11 +1,12 @@
 <div class="leaves">
     <div class="controls">
-        <a href="#" class="btn btn-middle btn-green"><i class="fa fa-plus"></i> Добавить лист</a>
+        <a href="#" class="btn btn-middle btn-green width-165"><i class="fa fa-plus"></i> Добавить лист</a>
+        <input type="text" class="input-search width-165" placeholder="Поиск" ng-model="search"/>
     </div>
     <ul>
-        <li ng-repeat="leaf in leaves" class="leaf">
+        <li ng-repeat="leaf in leaves | filter:search" class="leaf">
             <h3>
-                <a href="" class="icon-status" ng-class="{statuson: leaf.active, statusoff: !leaf.active}">
+                <a href="" ng-click="toggleLeaf(leaf)" class="icon-status" ng-class="{statuson: leaf.active, statusoff: !leaf.active, statusbusy: leaf.busy}">
                     <i class="fa" ng-class="{facheck: leaf.active, fatimes: !leaf.active}"></i>
                 </a>
                 <span><a class="link" href="#leaves/{{leaf.name}}/logs">{{leaf.name}}</a></span>
