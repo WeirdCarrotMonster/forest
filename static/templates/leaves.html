@@ -1,0 +1,26 @@
+<div class="leaves">
+    <div class="controls">
+        <a href="#" class="btn btn-middle btn-green"><i class="fa fa-plus"></i> Добавить лист</a>
+    </div>
+    <ul>
+        <li ng-repeat="leaf in leaves" class="leaf">
+            <h3>
+                <a href="" class="icon-status" ng-class="{statuson: leaf.active, statusoff: !leaf.active}">
+                    <i class="fa" ng-class="{facheck: leaf.active, fatimes: !leaf.active}"></i>
+                </a>
+                <span><a class="link" href="#leaves/{{leaf.name}}/logs">{{leaf.name}}</a></span>
+            </h3>
+            <p class="desc">
+                {{leaf.desc}}
+            </p>
+            <div class="urls">
+                <i class="triangle"></i>
+                <ul>
+                    <li ng-repeat="url in leaf.urls">
+                        <a class="link" href="http://{{url}}">{{url}}</a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    </ul>
+</div>

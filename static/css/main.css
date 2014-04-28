@@ -1,246 +1,336 @@
-/* =Imports
------------------------------------------------------------------------------*/
+/* ---------------------------------------------
+Fonts
+-----------------------------------------------*/
 
-@import "vendor/reset.css" all;
-@import "vendor/kube.native.css" all;
-@import "vendor/animate.css" all;
-@import "kube.css" all;
-@import "../fonts/fonts.css" all;
-@import "../fonts/font-awesome.css" all;
+@font-face {
+    font-family: 'baron_neueregular';
+    src: url('../fonts/baron_neue-webfont.eot');
+    src: url('../fonts/baron_neue-webfont.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/baron_neue-webfont.woff') format('woff'),
+    url('../fonts/baron_neue-webfont.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
 
-/* =Main
------------------------------------------------------------------------------*/
-
-body, html {
-	width: 100%;
-	height: 100%;
 }
+
+/* ---------------------------------------------
+Typography
+-----------------------------------------------*/
+
 body {
-	background: #e6e6e7;
-	color: #000;
-	font: 0.8em 'Helvetica Neue', Helvetica, Arial, Tahoma, sans-serif;
+    background: #e6e6e7;
+    font-size: 14px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #353945;
 }
 
-a {
-	border-bottom: 1px solid rgba(31, 187, 166, 0.3);
-	color: #1fbba6;
-	text-decoration: none;
-	-webkit-transition: all 0.15s;
-	-moz-transition: all 0.15s;
-	-ms-transition: all 0.15s;
-	-o-transition: all 0.15s;
-	transition: all 0.15s;
-}
-a:hover {
-	border-color: transparent;
-	color: #1fbba6;
+p.desc {
+    font-size: 12px;
+    line-height: 1.7em;
 }
 
-input[type] {
-	margin: 5px 0;
-	padding: 5px 7px;
-	outline: none;
-	font-size: 1em;
-	font-family: "Helvetica Neue", Helvetica, Arial, Tahoma, sans-serif;
-}
-input[type]:focus {
-	border-color: #1fbba6;
-	box-shadow: none;
+ul.logs {
+    font-size: 12px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    line-height: 18px;
+    margin: 20px 0 0 0;
+    padding: 0;
+    list-style: none;
 }
 
-h1 {
-	color: #1fbba6;
-	text-transform: uppercase;
-	font: bold 2.2em 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-}
-strong {
-	color: #9e9e9e;
+ul.logs li {
+    margin-bottom: 6px;
+    display: block;
 }
 
-.add-leaf-form {
-	margin-top: 1em;
-	padding: 20px;
-	background: #fafafa;
+/* ---------------------------------------------
+Links
+-----------------------------------------------*/
+
+a.link {
+    color: #1fbba6;
+    border-bottom: 1px solid rgba(31, 187, 166, 0.3);
+    text-decoration: none;
 }
 
-/* =Layout
------------------------------------------------------------------------------*/
-
-.container {
-	position: relative;
-	margin: 0 auto;
-	min-height: 100%;
-	max-width: 1170px;
-	width: 100%;
-}
-.unit-header {
-	padding: 15px 0;
+a.link:hover {
+    color: #e84c3c;
+    border-bottom: 1px solid rgba(232, 76, 60, 0.3);
 }
 
-.add-leaf {
-	padding: 30px 0;
-	text-transform: uppercase;
+.second-level-content a.link {
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* =Pop-up
------------------------------------------------------------------------------*/
-.pop-up {
-	position:fixed;
-	top: 0;
-	padding-top: 10%;
-	height: 100%;
-	background: rgba(0,0,0,0.6);
-	text-transform: uppercase;
-	font-family: 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-}
-	.pop-up > * {
-		position: relative;
-	}
-		.pop-up-close {
-			position: absolute;
-			top: -30px;
-			right: -25px;
-			display: block;
-			border: none;
-			color: #fff;
-			font-size: 20px;
-		}
-
-/* =Positions
------------------------------------------------------------------------------*/
-
-.right {
-	float: right;
-	text-align: right;
-}
-.left {
-	float: left;
-	text-align: left;
+.leaf .urls a.link {
+    color: #353945;
+    border-bottom: 1px solid rgba(53, 57, 60, 0.3);
 }
 
-/* =Colors
------------------------------------------------------------------------------*/
-
-.unit-white {
-	background: #fff;
-}
-.unit-green {
-	background: #1fbba6;
+.leaf .urls a.link:hover {
+    color: #e84c3c;
+    border-bottom: 1px solid rgba(232, 76, 60, 0.3);
 }
 
-.green {
-	border-color: rgba(31, 187, 166, 0.3);
-	color: #1fbba6;
-}
-.orange {
-	border-color: rgba(224, 130, 59, 0.3);
-	color: #e0823b;
-}
-.blue {
-	border-color: rgba(91, 180, 214, 0.3);
-	color: #5bb4d6;
+/* ---------------------------------------------
+Layout
+-----------------------------------------------*/
+
+.global-nav {
+    background: #1fbba6;
+    color: #fff;
+    padding: 20px 30px;
+    width: 170px;
+    position: fixed;
+    height: 100%;
+    z-index: 99;
 }
 
-/* =Text-size
------------------------------------------------------------------------------*/
-
-.big {
-	vertical-align: middle;
-	font-size: 2em;
-}
-.medium {
-	vertical-align: middle;
-	font-size: 1.6em;
-}
-.normal {
-	vertical-align: middle;
-	font-size: 1.2em;
+.first-level-content {
+    background: #fff;
+    padding: 20px 30px;
+    margin-left: 230px;
+    width: 400px;
+    z-index: 100;
+    position: relative;
 }
 
-/* =Other
------------------------------------------------------------------------------*/
-
-.border-right {
-	border-right: 1px solid #e6e6e7;
-}
-.border-bottom {
-	border-bottom: 1px solid #e6e6e7;
-}
-
-/* =Elements
------------------------------------------------------------------------------*/
-
-.button {
-	display: block;
-	padding: 10px 5px;
-	background: #1fbba6;
-	color: #fff;
-	text-align: center;
-	text-decoration: none;
-	text-transform: uppercase;
-	font-family: 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-}
-.button:hover {
-	background: #32b0a0;
+.second-level-content {
+    position: fixed;
+    top: 0;
+    color: #fff;
+    width: 100%;
+    height: 100%;
+    background: #353945;
+    z-index: 98;
+    overflow-y: scroll;
 }
 
-input[type].button-small {
-  text-decoration: none;
-  color: #fff;
-  text-align: center;
-  font-family: 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-  background: #1fbba6;
-  line-height: 1;
-  padding: .7em 1.5em .6em 1.5em;
-  font-size: 1em;
-  border: 0;
-  outline: none;
+.second-level-content .inside-content {
+    padding: 20px 20px 20px 720px;
 }
 
-.button-small :hover {
-  color: #000;
-  background: #e0e0e0;
+/* ---------------------------------------------
+Page elements
+-----------------------------------------------*/
+
+.leaf .urls {
+    background: #e6e6e7;
+    padding: 10px 20px;
+    position: relative;
+    display: inline-block;
 }
 
-.baron {
-	font-family: 'Baron', Helvetica, Arial, Tahoma, sans-serif;
+.leaf .urls ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    line-height: 22px;
 }
 
-.button-empty {
-	padding: 10px 15px;
-	border: 2px solid #1fbba6
-	
+.urls i.triangle {
+    width: 0px;
+    height: 0px;
+    border-style: solid;
+    border-width: 0 7px 8px 7px;
+    border-color: transparent transparent #e6e6e7 transparent;
+    position: absolute;
+    top: -8px;
+    left: 20px;
 }
 
-/* =Navigation
------------------------------------------------------------------------------*/
-
-.nav {
-	margin-top: 18px;
+.leaves ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
 }
-	.nav li {
-		float: left;
-		margin-left: 2.5em;
-    }
-		.nav a {
-			display: block;
-			border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-			color: #fff;
-			text-decoration: none;
-			text-transform: uppercase;
-			font: 1.7em 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-		}
-		.nav a:hover {
-			border-bottom-color: transparent;
-		}
 
-/* =Footer
------------------------------------------------------------------------------*/
-
-.footer {
-	width: 100%;
+.leaf {
+    border-bottom: 1px solid #e6e6e7;
+    padding: 0 0 20px 0;
 }
-	.footer p {
-		text-align: left;
-		font: 1.2em 'Baron', Helvetica, Arial, Tahoma, sans-serif;
-	}
+
+.leaf h3 {
+    font-size: 24px;
+    font-family: 'baron_neueregular';
+    font-weight: normal;
+    line-height: 24px;
+    margin: 10px 0 10px 0;
+}
+
+.leaf .icon-status {
+    font-size: 12px;
+    display: inline-block;
+    line-height: 22px;
+    width: 22px;
+    text-align: center;
+    color: #fff;
+    height: 22px;
+    vertical-align: middle;
+}
+
+.statuson {
+    background: #1fbba6;
+}
+
+.statusoff {
+    background: #e84c3c;
+}
+
+
+/* ---------------------------------------------
+Navigation
+-----------------------------------------------*/
+
+.global-nav nav.vertical {
+    font-family: 'baron_neueregular';
+    margin-top: 30px;
+}
+
+.global-nav nav.vertical ul {
+    list-style: none;
+    padding: 0;
+    font-size: 18px;
+    margin: 0 -30px;
+}
+
+.global-nav nav.vertical ul li {
+    display: block;
+}
+
+.global-nav nav.vertical ul li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 0 30px;
+    display: block;
+    height: 42px;
+    line-height: 42px;
+    position: relative;
+}
+
+.global-nav nav.vertical ul li a i.triangle {
+    width: 0px;
+    height: 0px;
+    border-style: solid;
+    border-width: 21px 12px 21px 0;
+    border-color: transparent #ffffff transparent transparent;
+    position: absolute;
+    right: 0;
+    top: 0;
+    display: none;
+}
+
+.global-nav nav.vertical ul li a:hover i.triangle {
+    display: block;
+}
+
+.global-nav nav.vertical ul li a:hover {
+    background: #353945;
+    color: #fff;
+}
+
+nav.horizontal {
+    margin-bottom: 15px;
+}
+
+nav.horizontal ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+nav.horizontal ul li {
+    display: inline-block;
+    margin-right: 15px;
+}
+
+.second-level-content nav.first-level-nav {
+    font-size: 24px;
+    font-family: 'baron_neueregular';
+    text-transform: lowercase;
+}
+
+nav.pills {
+    margin-top: 15px;
+    text-transform: uppercase;
+}
+
+nav.pills ul li a {
+    display: block;
+    padding: 5px 10px;
+}
+
+.second-level-content nav.pills {
+    margin-left: -10px;
+}
+
+.second-level-content nav.pills ul li a {
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    border: 1px solid transparent;
+}
+
+.second-level-content nav.pills ul li a:hover {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+
+/* ---------------------------------------------
+Buttons
+-----------------------------------------------*/
+
+.btn {
+    display: inline-block;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.btn-middle {
+    padding: 5px 15px;
+    font-family: 'baron_neueregular';
+    font-size: 18px;
+}
+
+.btn-small {
+}
+
+.btn-green {
+    border: 1px solid #1fbba6;
+    color: #1fbba6;
+}
+
+.btn-green:hover {
+    background: #1fbba6;
+    color: #fff;
+}
+
+.btn-100 {
+    width: 100%;
+    padding: 10px 0;
+    display: block;
+    text-align: center;
+}
+
+.btn-monospase {
+    font-family: 'Consolas', 'Courier New', monospace;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+/* ---------------------------------------------
+Icons
+-----------------------------------------------*/
+
+.fatimes:before {
+    content: "\f00d";
+}
+
+.facheck:before {
+    content: "\f00c";
+}
+
+.log_enabled {
+    background: green;
+}

@@ -1,64 +1,76 @@
 <!DOCTYPE html>
-<html ng-app="forest">
+<html ng-app="Forest">
+
     <head>
         <meta charset="utf-8">
-        <title>Forest — Дашборд</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-        <link href='http://fonts.googleapis.com/css?family=Philosopher&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
-        <link rel="stylesheet" type="text/css" href="/static/css/kube.css" />
-        <link rel="stylesheet" type="text/css" href="/static/style.css" />
-        <script type="text/javascript" src="/static/js/jquery-1.10.2.min.js"></script>
+        <title>Лесное хозяйство «Благородный код»</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="/static/css/normalize.css" />
+        <link rel="stylesheet" type="text/css" href="/static/css/main.css" />
+        <link rel="stylesheet" type="text/css" href="/static/css/font-awesome.min.css" />
+        <link rel="stylesheet" type="text/css" href="/static/css/animate.css" />
         <script type="text/javascript" src="/static/js/angular.min.js"></script>
-        <script src="http://d3js.org/d3.v3.min.js"></script>
-        <script src="/static/js/line-chart.min.js"></script>
-        <script type="text/javascript" src="/static/js/main.js"></script>
-        <script type="text/javascript" src="/static/js/dashboard.js"></script>
+        <script type="text/javascript" src="/static/js/angular-route.min.js"></script>
+        <script type="text/javascript" src="/static/js/angular-animate.min.js"></script>
+        <script type="text/javascript" src="/static/js/angular-route-segment.min.js"></script>
+        <script type="text/javascript" src="/static/js/jquery-2.1.0.min.js"></script>
+        <script type="text/javascript" src="/static/js/routing.js"></script>
+        <script type="text/javascript" src="/static/js/leaves.js"></script>
     </head>
 
-    <body ng-controller="Dashboard">
+    <body>
 
-        <div class="page">
-            <div class="content">
-                <div id="header">
-                    <img class="logo" src="/static/images/logo.png" alt="Forest" />
-                </div>
-                <div class="main-menu">
-                    <ul>
-                        <li><a href="#">Воздух</a></li>
-                        <li><a href="/leaves">Листья</a></li>
-                        <li><a href="#">Ветки</a></li>
-                        <li><a href="#">Корни</a></li>
-                    </ul>
-                </div>
-                <div id="monitor">
-                    <div class="units-row units-row-end one-server" ng-repeat="server in servers">
-                        <div class="unit-20">
-                            <h3>VPS Hetzner <br />«{{ server.verbose_name }}»</h3>
-                            <p class="ip-address green">{{ server.ip }}</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Занятая память</h4>
-                            <p class="number-big {{ getLoadClass(server.mem_used,server.mem_total) }}">{{ getNiceLookingPercent(server.mem_used,server.mem_total) }}%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Подкачка</h4>
-                            <p class="number-big {{ getLoadClass(server.swap_used,server.swap_total) }}">{{ getNiceLookingPercent(server.swap_used,server.swap_total) }}%</p>
-                        </div>
-                        <div class="unit-20">
-                            <h4>Нагрузка</h4>
-                            <p class="number-big green">{{ (server.load_5 * 100) }}%</p>
-                        </div>
-                        <div class="unit-20">
-                            <p class="text-info">Аптайм составляет {{ server.uptime_days }} дней {{ server.uptime_hours }} часов.</p>
-                        </div>
-                    </div>
-                </div>
-                <div style="height: 400px;">
-                    <linechart data="data" options="options"></linechart>
-                </div>
-            </div>
-        </div>
+        <aside class="global-nav">
+            <header class="logo">
+                <a href="#"><img src="/static/images/logo.png" alt="Лесное хозяйство «Благородный лес»" /></a>
+            </header>
+            <nav class="vertical">
+                <ul>
+                    <li>
+                        <a href="#/air">
+                            <i class="fa fa-cloud fa-fw"></i>
+                            <i class="triangle animated fadeInRight"></i>
+                            <span>Воздух</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#/branches">
+                            <i class="fa fa-pagelines fa-fw"></i>
+                            <i class="triangle animated fadeInRight"></i>
+                            <span>Ветви</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#/leaves">
+                            <i class="fa fa-leaf fa-fw"></i>
+                            <i class="triangle animated fadeInRight"></i>
+                            <span>Листья</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#/roots">
+                            <i class="fa fa-lemon-o fa-fw"></i>
+                            <i class="triangle animated fadeInRight"></i>
+                            <span>Корни</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#/fauna">
+                            <i class="fa fa-book fa-fw"></i>
+                            <i class="triangle animated fadeInRight"></i>
+                            <span>Фауна</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
 
+        <section app-view-segment="0" class="first-level-content">
+
+        </section>
+
+        <section app-view-segment="1" class="second-level-content animated fadeInLeft">
+        </section>
     </body>
 
 </html>

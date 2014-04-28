@@ -3,6 +3,7 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
+import pymongo
 from components.common import check_arguments, get_default_database, \
     LogicError, authenticate_user
 
@@ -31,6 +32,9 @@ class Trunk(tornado.web.Application):
         }
 
         self.functions = {
+            # Новый лес
+            "get_leaves": self.get_leaves,
+            "get_leaf_logs": self.get_leaf_logs,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
@@ -43,8 +47,7 @@ class Trunk(tornado.web.Application):
             "migrate_leaf": self.migrate_leaf,
             "create_leaf": self.add_leaf,
             "rehost_leaf": self.rehost_leaf,
-            "change_settings": self.change_settings,
-            "get_leaf_logs": self.get_leaf_logs
+            "change_settings": self.change_settings
         }
 
     def publish_self(self):
@@ -138,6 +141,41 @@ class Trunk(tornado.web.Application):
                 "result": "failure",
                 "message": e.message
             }
+
+    def get_leaves(self, message):
+        trunk = get_default_database(self.settings)
+
+        leaves = trunk.leaves.find().sort('name', pymongo.ASCENDING)
+        # TODO: генерировать список средствами MongoDB
+        leaves_list = [
+            {
+                "name": leaf.get("name"),
+                "desc": leaf.get("desc"),
+                "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")],
+                "type": leaf.get("type"),
+                "active": leaf.get("active")
+            } for leaf in leaves
+        ]
+        return { "result": "success", "leaves": leaves_list}
+
+    def get_leaf_logs(self, message):
+        # Проверяем наличие требуемых аргументов
+        leaf_data = check_arguments(message, ['name'])
+
+        trunk = get_default_database(self.settings)
+
+        logs_raw = trunk.logs.find({
+            "log_source": leaf_data["name"]
+        }).sort("added", -1).limit(200)
+
+        logs = []
+        for log in logs_raw:
+            logs.insert(0, log)
+
+        return {
+            "result": "success",
+            "logs": logs
+        }
 
     def get_memory_logs(self, message):
         trunk = get_default_database(self.settings)
@@ -536,29 +574,6 @@ class Trunk(tornado.web.Application):
             "result": "success",
             "message": "Successfully changed settings for leaf \
                         {0}".format(leaf_data["name"])
-        }
-
-    def get_leaf_logs(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name'])
-
-        trunk = get_default_database(self.settings)
-        leaf = trunk.leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                              {0} not found".format(leaf_data["name"]))
-
-        logs_raw = trunk.logs.find({
-            "log_source": leaf["name"]
-        }).sort("added", -1).limit(200)
-
-        logs = []
-        for log in logs_raw:
-            logs.insert(0, log["content"])
-
-        return {
-            "result": "success",
-            "logs": logs
         }
 
     def update_air(self):

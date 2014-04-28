@@ -1,241 +1,103 @@
-function Leaves($scope, $http, $timeout) {
-    $scope.leaves = [];
-    $scope.leaf_settings = "";
-    $scope.leaf_address = "";
-    $scope.settings_element = null;
-    $scope.logs_element = null;
-    $scope.logs_loaded = false;
-    $scope.logs = [];
-    $scope.branches = [];
-    $scope.types = [
-        {
-            name: "espresso",
-            settings: [
-                {
-                    verbose: "Стиль",
-                    name: "style",
-                    type: "select",
-                    choices: [
-                        {
-                            name: "Эспрессо",
-                            value: "espresso"
-                        },
-                        {
-                            name: "Кофелайк",
-                            value: "like-coffee"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            name: "bonus",
-            settings: []
-        }
-    ];
-    $scope.add_leaf_show = false;
-    $scope.new_leaf_type = null;
-    $scope.new_leaf_name = "";
-    $scope.new_leaf_address = "";
-
-    $scope.addLeaf = function(){
-        var settings = {};
-        $("#new_leaf_settings").children().each(function(){
-            settings[$(this).attr("data-key")] = $(this).val();
-        });
-
+function Leaves($scope, $routeSegment, $http, loader) {
+    $scope.loadLeaves = function () {
         $http({
             method: 'POST',
             url: '/',
             data: {
-                function: "create_leaf",
-                name: $scope.new_leaf_name,
-                address: $scope.new_leaf_address,
-                type: $scope.new_leaf_type.name,
-                settings: settings
+                function: "get_leaves"
             }
         }).
         success(function(data, status, headers, config) {
-            $scope.getLeavesData();
-            $scope.add_leaf_show = false;
+            if (data["result"] == "success"){
+                $scope.leaves = data["leaves"];
+            }
         }).
         error(function(data, status, headers, config) {
         });
-    };
+    }
+    $scope.loadLeaves();
+}
 
-    $scope.migrateLeaf = function(leaf) {
-        leaf.selectEnabled = false;
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "migrate_leaf",
-                name: leaf.name,
-                destination: leaf.new_branch
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.getLeavesData();
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
+function Leaf($scope, $routeSegment, loader) {
+    $scope.leafid = $routeSegment.$routeParams.leafid;
+}
 
-    $scope.acceptableBranches = function(leaf) {
-        var result = [];
-        angular.forEach($scope.branches, function(value, key){
-            if(value.type.indexOf(leaf.type) >= 0){
-                result.push(value.name);
-            }
-        }, result);
-        return result;
-    };
-
-    $scope.closeSettings = function() {
-        $scope.settings_element = null; 
-    };
-
-    $scope.closeLogs = function() {
-        $scope.logs_element = null;
-        $scope.logs_loaded = false;
-    };
-
-    $scope.openSettings = function(leaf) {
-        $scope.settings_element = leaf;
-        $scope.leaf_settings = JSON.stringify(leaf.settings, undefined, 2);
-        $scope.leaf_address = leaf.address;
-    };
-
-    $scope.openLogs = function(leaf) {
+function LeafLogs($scope, $routeSegment, $http, loader) {
+    $scope.loadLogs = function () {
         $http({
             method: 'POST',
             url: '/',
             data: {
                 function: "get_leaf_logs",
-                name: leaf.name
+                name: $scope.$parent.leafid
             }
         }).
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
                 $scope.logs = data["logs"];
-                $scope.logs_loaded = true;
             }
         }).
         error(function(data, status, headers, config) {
         });
-        $scope.logs_element = leaf;
-    };
+    }
+    $scope.loadLogs()
 
-    $scope.saveSettings = function() {
-        var changed = false;
-        if ($scope.settings_element.settings != JSON.parse($scope.leaf_settings)){
-            changed = true;
-            $http({
-                method: 'POST',
-                url: '/',
-                data: {
-                    function: "change_settings",
-                    name: $scope.settings_element.name,
-                    settings: $scope.leaf_settings
-                }
-            }).
-            success(function(data, status, headers, config) {
-                $scope.closeSettings();
-                $scope.getLeavesData();
-            }).
-            error(function(data, status, headers, config) {
-            });
+    $scope.log_types = ["leaf.event", "leaf.initdb"];
+
+    $scope.log_enabled = function(log_type) {
+        return $scope.log_types.indexOf(log_type) != -1;
+    }
+
+    $scope.toggle_log_type = function(log_type) {
+        if ($scope.log_types.indexOf(log_type) != -1){
+            $scope.log_types.splice($scope.log_types.indexOf(log_type), 1);
+        }else{
+            $scope.log_types.push(log_type);
         }
-        if ($scope.settings_element.address != $scope.leaf_address){
-            changed = true;
-            $http({
-                method: 'POST',
-                url: '/',
-                data: {
-                    function: "rehost_leaf",
-                    name: $scope.settings_element.name,
-                    address: $scope.leaf_address
+    }
+}
+
+function LeafSettings($scope, $routeSegment, loader) {
+    $scope.settings = {
+        custom: {
+            bonus_urls: [
+                "bonus.noblecode.ru"
+            ],
+            bonus_id: 12,
+            bonus_token: "sdfds8f6sdf6sdfhghdsj",
+            style: "likecrm"
+        },
+        common: {
+            urls: [
+                "izh.like-crm.ru"
+            ]
+        },
+        template: {
+            custom: {
+                bonus_urls: {
+                    type: "list",
+                    elements: "string"
+                },
+                bonus_id: {
+                    type: "int"
+                },
+                bonus_token: {
+                    type: "string"
+                },
+                style: {
+                    type: "select",
+                    values: [
+                        {text: "Coffee Like", value: "likecrm"},
+                        {text: "Espresso", value: "espresso"}
+                    ]
                 }
-            }).
-            success(function(data, status, headers, config) {
-                $scope.closeSettings();
-                $scope.getLeavesData();
-            }).
-            error(function(data, status, headers, config) {
-            });
+            },
+            common: {
+                urls: {
+                    type: "list",
+                    elements: "string"
+                }
+            }
         }
-        if (!changed)$scope.closeSettings();
-    };
-
-    $scope.enableLeaf = function(leaf) {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "enable_leaf",
-                name: leaf.name
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.getLeavesData();
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-
-    $scope.disableLeaf = function(leaf) {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "disable_leaf",
-                name: leaf.name
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.getLeavesData();
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-
-    $scope.getLeavesData = function() {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "check_leaves"
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.leaves = [];
-            var a = $.map(data["leaves"], function(value, index) {
-               value["name"] = index;
-               return [value];
-            });
-            a.sort(function(a,b){return a.name > b.name});
-            while (a.length > 0){
-                $scope.leaves.push(a.splice(0, 2));
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-
-    $scope.getBranches = function() {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "list_branches"
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.branches = data["branches"];
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-    $scope.getBranches();
-    $scope.getLeavesData();
+    }
 }
