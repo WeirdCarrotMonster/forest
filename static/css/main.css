@@ -362,3 +362,7 @@ textarea:focus, input:focus{
 .input-settings {
     color: black;
 }
+
+.red {
+    color: red;
+}

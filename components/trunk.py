@@ -35,6 +35,7 @@ class Trunk(tornado.web.Application):
             "get_leaves": self.get_leaves,
             "get_leaf_logs": self.get_leaf_logs,
             "toggle_leaf": self.toggle_leaf,
+            "get_leaf_settings": self.get_leaf_settings,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
@@ -211,8 +212,10 @@ class Trunk(tornado.web.Application):
 
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
+        species = trunk.species
 
         leaf = leaves.find_one({"name": leaf_data["name"]})
+        leaf_type = species.find_one({"name": leaf["type"]})
 
         return {
             "result": "success",
@@ -220,6 +223,16 @@ class Trunk(tornado.web.Application):
                 "custom": leaf.get("settings", {}),
                 "common": {
                     "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
+                },
+                "template": {
+                    "common": {
+                        "urls": {
+                            "type": "list",
+                            "elements": "string",
+                            "verbose": "Адреса"
+                        }
+                    },
+                    "custom": leaf_type["settings"]
                 }
             }
         }

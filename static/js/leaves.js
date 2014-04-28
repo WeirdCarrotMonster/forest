@@ -84,52 +84,23 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
     }
 }
 
-function LeafSettings($scope, $routeSegment, loader) {
-    $scope.settings = {
-        custom: {
-            bonus_urls: [
-                "bonus.noblecode.ru"
-            ],
-            bonus_id: 12,
-            bonus_token: "sdfds8f6sdf6sdfhghdsj",
-            style: "likecrm"
-        },
-        common: {
-            urls: [
-                "izh.like-crm.ru"
-            ]
-        },
-        template: {
-            custom: {
-                bonus_urls: {
-                    type: "list",
-                    elements: "string",
-                    verbose: "URL системы Bonus"
-                },
-                bonus_id: {
-                    type: "int",
-                    verbose: "ID в системе Bonus"
-                },
-                bonus_token: {
-                    type: "string",
-                    verbose: "Токен в системе Bonus"
-                },
-                style: {
-                    type: "select",
-                    values: [
-                        {text: "Coffee Like", value: "likecrm"},
-                        {text: "Espresso", value: "espresso"}
-                    ],
-                    verbose: "Стиль"
-                }
-            },
-            common: {
-                urls: {
-                    type: "list",
-                    elements: "string",
-                    verbose: "Адреса"
-                }
+function LeafSettings($scope, $routeSegment, $http, loader) {
+    $scope.loadSettings = function () {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "get_leaf_settings",
+                name: $scope.$parent.leafid
             }
-        }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                $scope.settings = data["settings"];
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
     }
+    $scope.loadSettings();
 }
