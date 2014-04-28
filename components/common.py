@@ -98,6 +98,10 @@ class TransparentListener(tornado.web.RequestHandler):
                       response), 'r') as page_file:
                 self.finish(page_file.read())
         except Exception as e:
+            if e.message == 401:
+                self.redirect('/login', permanent = True)
+            elif e.message == 404:
+                self.redirect('/', permanent = True)
             self.finish(e.message)
 
     @tornado.gen.coroutine

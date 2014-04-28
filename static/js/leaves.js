@@ -103,26 +103,31 @@ function LeafSettings($scope, $routeSegment, loader) {
             custom: {
                 bonus_urls: {
                     type: "list",
-                    elements: "string"
+                    elements: "string",
+                    verbose: "URL системы Bonus"
                 },
                 bonus_id: {
-                    type: "int"
+                    type: "int",
+                    verbose: "ID в системе Bonus"
                 },
                 bonus_token: {
-                    type: "string"
+                    type: "string",
+                    verbose: "Токен в системе Bonus"
                 },
                 style: {
                     type: "select",
                     values: [
                         {text: "Coffee Like", value: "likecrm"},
                         {text: "Espresso", value: "espresso"}
-                    ]
+                    ],
+                    verbose: "Стиль"
                 }
             },
             common: {
                 urls: {
                     type: "list",
-                    elements: "string"
+                    elements: "string",
+                    verbose: "Адреса"
                 }
             }
         }

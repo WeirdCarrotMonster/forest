@@ -25,8 +25,7 @@ class Trunk(tornado.web.Application):
             "login": "html/login.html",
         }
         self.auth_urls = {
-            "": "html/index.html",
-            "dashboard": "html/dashboard.html",
+            "": "html/dashboard.html",
             "leaves": "html/leaves.html",
             "fauna": "html/fauna.html"
         }
@@ -85,9 +84,9 @@ class Trunk(tornado.web.Application):
             return self.auth_urls[page]
 
         if page in self.auth_urls.keys() and not user:
-            raise Exception("Who's there?")
+            raise Exception(401)
 
-        raise Exception("I'm sorry, Dave. I'm afraid I can't do that.")
+        raise Exception(404)
 
     def process_message(self,
                         message,
@@ -206,6 +205,46 @@ class Trunk(tornado.web.Application):
             "result": "success",
             "leaf": leaf
         }
+
+    def get_leaf_settings(self, message):
+        leaf_data = check_arguments(message, ['name'])
+
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+
+        leaf = leaves.find_one({"name": leaf_data["name"]})
+
+        return {
+            "result": "success",
+            "settings": {
+                "custom": leaf.get("settings", {}),
+                "common": {
+                    "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
+                }
+            }
+        }
+
+    def set_leaf_settings(self, message):
+        leaf_data = check_arguments(message, ['name', 'settings'])
+
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+
+        leaves.update(
+            {"name": leaf_data["name"]},
+            {
+                "$set": {
+                    "settings": leaf_data["settings"]["custom"],
+                    "urls": leaf_data["settings"]["common"]["urls"]
+                }
+            }
+        )
+
+        self.update_branches()
+
+        return {
+            "result": "success"
+        }        
 
     def get_memory_logs(self, message):
         trunk = get_default_database(self.settings)

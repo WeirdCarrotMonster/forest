@@ -358,3 +358,7 @@ textarea:focus, input:focus{
     border-radius: 3px;
     text-decoration: none;
 }
+
+.input-settings {
+    color: black;
+}
