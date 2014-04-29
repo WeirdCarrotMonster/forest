@@ -39,13 +39,15 @@ class Air():
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
         for branch in trunk.leaves.find():
-            keyfile = os.path.join(
-                self.settings["keydir"], branch["address"] + ".pem")
-            if not os.path.isfile(keyfile):
-                log_message(
-                    "Creating key for address: {0}".format(branch["address"]),
-                    component="Air")
-                shutil.copyfile(default_key, keyfile)
+            address = branch["address"] if type(branch["address"]) == list else [branch["address"]]
+            for add in address:
+                keyfile = os.path.join(
+                    self.settings["keydir"], add + ".pem")
+                if not os.path.isfile(keyfile):
+                    log_message(
+                        "Creating key for address: {0}".format(add),
+                        component="Air")
+                    shutil.copyfile(default_key, keyfile)
 
     def status_report(self, message):
         return {

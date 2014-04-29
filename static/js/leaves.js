@@ -1,4 +1,4 @@
-function Leaves($scope, $routeSegment, $http, loader) {
+function Leaves($scope, $routeSegment, $http, $rootScope, loader) {
     $scope.loadLeaves = function () {
         $http({
             method: 'POST',
@@ -16,6 +16,9 @@ function Leaves($scope, $routeSegment, $http, loader) {
         });
     }
     $scope.loadLeaves();
+    $rootScope.$on('leavesUpdateRequired', function(event, args) {
+        $scope.loadLeaves();
+    });
 
     $scope.search = "";
 
@@ -103,6 +106,11 @@ function LeafSettings($scope, $routeSegment, $http, loader) {
                     $scope.settings.custom[key] = Array();
                 }
             }
+            for (var key in $scope.settings.template.common){
+                if ($scope.settings.template.common[key].type == "list" && $scope.settings.common[key] == undefined){
+                    $scope.settings.common[key] = Array();
+                }
+            }
         }).
         error(function(data, status, headers, config) {
         });
@@ -122,6 +130,84 @@ function LeafSettings($scope, $routeSegment, $http, loader) {
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
                 
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+    }
+}
+
+function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
+    $scope.loadSpecies = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "get_species"
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                $scope.species = data["species"];
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+    }
+    $scope.loadSpecies();
+
+    $scope.loadSettingsTemplate = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "get_default_settings",
+                type: $scope.leaf_type
+            }
+        }).
+        success(function(data, status, headers, config) {
+            $scope.settings = {
+                custom: {},
+                common: {}
+            };
+            if (data["result"] == "success"){
+                $scope.template = data["settings"];
+            }
+            for (var key in $scope.template.custom){
+                if ($scope.template.custom[key].type == "list"){
+                    $scope.settings.custom[key] = Array();
+                }
+            }
+            for (var key in $scope.template.common){
+                if ($scope.template.common[key].type == "list"){
+                    $scope.settings.common[key] = Array();
+                }
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+    }
+
+    $scope.leaf_type = undefined;
+    $scope.leaf_name = "";
+    $scope.leaf_description = "";
+
+    $scope.saveLeaf = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "create_leaf",
+                name: $scope.leaf_name,
+                type: $scope.leaf_type,
+                desc: $scope.leaf_description,
+                settings: $scope.settings
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                $rootScope.$emit('leavesUpdateRequired', {});
+                window.location = '#/leaves/' + $scope.leaf_name +'/logs'
             }
         }).
         error(function(data, status, headers, config) {

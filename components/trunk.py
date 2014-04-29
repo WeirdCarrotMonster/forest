@@ -37,6 +37,9 @@ class Trunk(tornado.web.Application):
             "toggle_leaf": self.toggle_leaf,
             "get_leaf_settings": self.get_leaf_settings,
             "set_leaf_settings": self.set_leaf_settings,
+            "get_default_settings": self.get_default_settings,
+            "get_species": self.get_species,
+            "create_leaf": self.create_leaf,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
@@ -47,7 +50,6 @@ class Trunk(tornado.web.Application):
             "enable_leaf": self.enable_leaf,
             "disable_leaf": self.disable_leaf,
             "migrate_leaf": self.migrate_leaf,
-            "create_leaf": self.add_leaf,
             "rehost_leaf": self.rehost_leaf,
             "change_settings": self.change_settings
         }
@@ -154,7 +156,7 @@ class Trunk(tornado.web.Application):
             {
                 "name": leaf.get("name"),
                 "desc": leaf.get("desc"),
-                "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")],
+                "urls": leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
                 "type": leaf.get("type"),
                 "active": leaf.get("active")
             } for leaf in leaves
@@ -259,6 +261,72 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success"
         }        
+
+    def get_default_settings(self, message):
+        settings_data = check_arguments(message, ['type'])
+        trunk = get_default_database(self.settings)
+
+        leaf_type = trunk.species.find_one({"name": settings_data["type"]})
+
+        return {
+            "result": "success",
+            "settings": {
+                "common": {
+                    "urls": {
+                        "type": "list",
+                        "elements": "string",
+                        "verbose": "Адреса"
+                    }
+                },
+                "custom": leaf_type.get("settings", {})
+            }
+        }
+
+    def get_species(self, message):
+        trunk = get_default_database(self.settings)
+
+        species = []
+        for specie in trunk.species.find():
+            species.append(specie["name"])
+
+        return {
+            "result": "success",
+            "species": species
+        }
+
+    def create_leaf(self, message):
+        leaf_data = check_arguments(message, ['name', 'desc', 'type', 'settings'])
+
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+
+        if leaves.find_one({"name": leaf_data["name"]}):
+            raise LogicError("Leaf with name '{0}' \
+                              already exists".format(leaf_data["name"]))
+
+        # TODO: проверка адреса
+
+        # Дополнительная проверка на наличие подходящей ветви
+        # TODO: анализ нагрузки и более тщательный выбор
+        branch = self.get_branch(leaf_data["type"])
+
+        leaves.insert({
+            "name": leaf_data["name"],
+            "desc": leaf_data["desc"],
+            "type": leaf_data["type"],
+            "active": True,
+            "address": leaf_data["settings"]["common"]["urls"],
+            "branch": branch["name"] if branch else "",
+            "settings": leaf_data["settings"]["custom"]
+        })
+
+        self.update_roots()
+        self.update_branches()
+        self.update_air()
+
+        return {
+            "result": "success"
+        }
 
     def get_memory_logs(self, message):
         trunk = get_default_database(self.settings)

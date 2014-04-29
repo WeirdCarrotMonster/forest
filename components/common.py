@@ -97,6 +97,7 @@ class TransparentListener(tornado.web.RequestHandler):
             with open(os.path.join(self.application.settings["REALPATH"],
                       response), 'r') as page_file:
                 self.finish(page_file.read())
+            return
         except Exception as e:
             if e.message == 401:
                 self.redirect('/login', permanent = True)

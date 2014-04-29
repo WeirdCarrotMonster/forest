@@ -17,6 +17,10 @@ Fonts
 Typography
 -----------------------------------------------*/
 
+html, body {
+    height: 100%;
+}
+
 body {
     background: #e6e6e7;
     font-size: 14px;
@@ -41,6 +45,19 @@ ul.logs {
 ul.logs li {
     margin-bottom: 6px;
     display: block;
+}
+
+.second-level-content h3 {
+    font-size: 14px;
+    font-weight: normal;
+    margin: 0 0 10px 0;
+}
+
+.second-level-content h2 {
+    font-size: 24px;
+    font-family: 'baron_neueregular';
+    text-transform: lowercase;
+    margin: 0 0 20px 0;
 }
 
 /* ---------------------------------------------
@@ -73,6 +90,21 @@ a.link:hover {
     border-bottom: 1px solid rgba(232, 76, 60, 0.3);
 }
 
+.second-level-content a.link-icon {
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+a.link-icon:hover {
+    opacity: 0.7;
+}
+
+.second-level-content a.link-icon span {
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
 /* ---------------------------------------------
 Layout
 -----------------------------------------------*/
@@ -89,11 +121,11 @@ Layout
 
 .first-level-content {
     background: #fff;
-    padding: 20px 30px;
     margin-left: 230px;
-    width: 400px;
+    width: 460px;
     z-index: 100;
     position: relative;
+    min-height: 100%;
 }
 
 .second-level-content {
@@ -113,6 +145,11 @@ Layout
 
 .width-165 {
     width: 165px;
+}
+
+.noscroll {
+    opacity: 0.6;
+    overflow-y: hidden;
 }
 
 /* ---------------------------------------------
@@ -142,6 +179,10 @@ Page elements
     position: absolute;
     top: -8px;
     left: 20px;
+}
+
+.leaves {
+    padding: 20px 30px;
 }
 
 .leaves ul {
@@ -183,7 +224,12 @@ Page elements
 }
 
 .statusbusy {
-    background: gray;
+    background: #72757d;
+}
+
+.settings-group {
+    padding: 20px 0;
+    border-bottom: 1px solid #72757d;
 }
 
 
@@ -281,7 +327,7 @@ nav.pills ul li a {
 }
 
 .second-level-content nav.pills ul li a:hover {
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(31, 187, 166, 0.3);
 }
 
 
@@ -314,6 +360,7 @@ Buttons & Forms
 .btn-middle {
     padding: 5px 15px;
     font-family: 'baron_neueregular';
+    text-transform: lowercase;
     font-size: 18px;
 }
 
@@ -352,14 +399,79 @@ Buttons & Forms
     border-radius: 3px;
     text-decoration: none;
     color: #1fbba6;
+    text-transform: lowercase;
 }
 
-.input-settings {
-    color: black;
+.second-level-content .input-settings {
+    width: 200px;
+    padding: 0 10px;
+    height: 30px;
+    line-height: 30px;
+    border: 1px solid #86888f;
+    background: inherit;
+    border-radius: 3px;
+}
+
+select.select-settings {
+    padding:3px;
+    border-radius:3px;
+    padding: 0 10px;
+    width: 220px;
+    height: 32px;
+    border: 1px solid #86888f;
+    outline: none;
+    display: inline-block;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: #353945;
+    cursor: pointer;
+}
+
+input[type="text"] {
+    border-radius: 3px;
 }
 
 textarea:focus, input:focus{
     outline: 0;
+}
+
+ul.input-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+ul.input-list li {
+    margin-bottom: 10px;
+}
+
+.btn-remove {
+    color: #c0392b;
+    text-decoration: none;
+}
+
+.save-settings {
+    margin-top: 20px;
+}
+
+.add-leaf label {
+    display: block;
+    margin: 0 0 20px 0;
+}
+
+.add-leaf label input {
+    margin-top: 5px;
+    display: block;
+}
+
+.add-leaf label select {
+    margin-top: 5px;
+    display: block;
+}
+
+.add-leaf select {
+    display: block;
 }
 
 /* ---------------------------------------------
@@ -375,10 +487,9 @@ Icons
 }
 
 .log_enabled {
-    background: #1fbba6;
-    color: #353945 !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 .red {
-    color: red;
+    color: #c0392b;
 }

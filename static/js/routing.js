@@ -18,6 +18,7 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
         .when('/leaves', 'leaves')
         .when('/roots', 'roots')
         .when('/fauna', 'fauna')
+        .when('/leaves/add', 'leaves.add')
         .when('/leaves/:leafid', 'leaves.leaf')
         .when('/leaves/:leafid/settings', 'leaves.leaf.settings')
         .when('/leaves/:leafid/logs', 'leaves.leaf.logs')
@@ -31,6 +32,15 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
             controller: Leaves,
             templateUrl: '/static/templates/leaves.html'
         })
+
+        .within()
+
+        .segment('add', {
+            controller: LeafAdd,
+            templateUrl: '/static/templates/leaf-add.html'
+        })
+
+        .up()
 
         .within()
 
@@ -56,8 +66,9 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
             templateUrl: '/static/templates/leaf-settings.html'
         })
 
+
     $routeProvider.otherwise({redirectTo: '/'});
-}) ;
+});
 
 forest.value('loader', {show: false});
 
