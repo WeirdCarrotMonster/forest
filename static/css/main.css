@@ -111,6 +111,10 @@ Layout
     padding: 20px 20px 20px 720px;
 }
 
+.width-165 {
+    width: 165px;
+}
+
 /* ---------------------------------------------
 Page elements
 -----------------------------------------------*/
@@ -282,8 +286,24 @@ nav.pills ul li a {
 
 
 /* ---------------------------------------------
-Buttons
+Buttons & Forms
 -----------------------------------------------*/
+
+*::-webkit-input-placeholder {
+    color: #e6e6e7;
+}
+*:-moz-placeholder {
+    /* FF 4-18 */
+    color: #e6e6e7;
+}
+*::-moz-placeholder {
+    /* FF 19+ */
+    color: #e6e6e7;
+}
+*:-ms-input-placeholder {
+    /* IE 10+ */
+    color: #e6e6e7;
+}
 
 .btn {
     display: inline-block;
@@ -323,6 +343,25 @@ Buttons
     font-size: 12px;
 }
 
+.input-search {
+    border: 1px solid #e6e6e7;
+    padding: 5px 15px;
+    font-family: 'baron_neueregular';
+    font-size: 18px;
+    display: inline-block;
+    border-radius: 3px;
+    text-decoration: none;
+    color: #1fbba6;
+}
+
+.input-settings {
+    color: black;
+}
+
+textarea:focus, input:focus{
+    outline: 0;
+}
+
 /* ---------------------------------------------
 Icons
 -----------------------------------------------*/
@@ -338,29 +377,6 @@ Icons
 .log_enabled {
     background: #1fbba6;
     color: #353945 !important;
-}
-
-textarea:focus, input:focus{
-    outline: 0;
-}
-
-.width-165 {
-    width: 165px;
-}
-
-.input-search {
-    border: 1px solid #1fbba6;
-    color: #e6e6e7;
-    padding: 5px 15px;
-    font-family: 'baron_neueregular';
-    font-size: 18px;
-    display: inline-block;
-    border-radius: 3px;
-    text-decoration: none;
-}
-
-.input-settings {
-    color: black;
 }
 
 .red {

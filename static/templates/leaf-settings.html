@@ -1,0 +1,46 @@
+<div>
+    <div ng-repeat="(key, value) in settings.common">
+        <h1>{{ settings["template"]["common"][key]["verbose"] }}</h1>
+        <div ng-switch on='settings["template"]["common"][key]["type"]'>
+            <div ng-switch-when="list">
+                <ul>
+                    <li ng-repeat='val in settings["common"][key]'>
+                        <input class="input-settings" ng-model="val">
+                        <a href class="fa fatimes red" ng-click='settings["common"][key].splice($index, 1)'></a>
+                    </li>
+                    <li>
+                        <a href="" class="fa fa-plus btn-green" href ng-click='settings["common"][key].push("")'></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div ng-repeat="(key, value) in settings.template.custom">
+        <h1>{{ settings.template.custom[key]["verbose"] }}</h1>
+        <div ng-switch on='settings["template"]["custom"][key]["type"]'>
+            <div ng-switch-when="string">
+                <input class="input-settings" type="text" ng-model='settings.custom[key]'/>
+            </div>
+            <div ng-switch-when="int">
+                <input class="input-settings" type="number" ng-model='settings.custom[key]' onkeyup="this.value = this.value.replace(/[^0-9]/, '')"/>
+            </div>
+            <div ng-switch-when="select">
+                <select class="input-settings" ng-model='settings["custom"][key]' ng-options='choice.value as choice.text for choice in settings["template"]["custom"][key]["values"]'>
+                </select>
+            </div>
+            <div ng-switch-when="list">
+                <ul>
+                    <li ng-repeat='val in settings["custom"][key]'>
+                        <input class="input-settings" ng-model="val">
+                        <a href class="fa fatimes red" ng-click='settings["custom"][key].splice($index, 1)'></a>
+                    </li>
+                    <li>
+                        <a href="" class="fa fa-plus btn-green" href ng-click='settings["custom"][key].push("")'></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <a href="" class="btn btn-middle bnt-green" ng-click="saveSettings()">Сохранить настройки</a>
+    {{ settings.common }}
+</div>

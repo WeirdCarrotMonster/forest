@@ -98,9 +98,33 @@ function LeafSettings($scope, $routeSegment, $http, loader) {
             if (data["result"] == "success"){
                 $scope.settings = data["settings"];
             }
+            for (var key in $scope.settings.template.custom){
+                if ($scope.settings.template.custom[key].type == "list" && $scope.settings.custom[key] == undefined){
+                    $scope.settings.custom[key] = Array();
+                }
+            }
         }).
         error(function(data, status, headers, config) {
         });
     }
     $scope.loadSettings();
+
+    $scope.saveSettings = function() {
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "set_leaf_settings",
+                name: $scope.$parent.leafid,
+                settings: $scope.settings
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+    }
 }

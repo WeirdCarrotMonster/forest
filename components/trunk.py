@@ -36,6 +36,7 @@ class Trunk(tornado.web.Application):
             "get_leaf_logs": self.get_leaf_logs,
             "toggle_leaf": self.toggle_leaf,
             "get_leaf_settings": self.get_leaf_settings,
+            "set_leaf_settings": self.set_leaf_settings,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
             "check_leaves": self.check_leaves,
