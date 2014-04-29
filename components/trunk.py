@@ -147,6 +147,15 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
+    def __get_default_settings(self):
+        return {
+            "urls": {
+                "type": "list",
+                "elements": "string",
+                "verbose": "Адреса"
+            }
+        }
+
     def get_leaves(self, message):
         trunk = get_default_database(self.settings)
 
@@ -228,13 +237,7 @@ class Trunk(tornado.web.Application):
                     "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
                 },
                 "template": {
-                    "common": {
-                        "urls": {
-                            "type": "list",
-                            "elements": "string",
-                            "verbose": "Адреса"
-                        }
-                    },
+                    "common": self.__get_default_settings(),
                     "custom": leaf_type["settings"]
                 }
             }
@@ -246,6 +249,7 @@ class Trunk(tornado.web.Application):
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
 
+        # TODO: переписать с итерацией по дефолтным настройкам
         leaves.update(
             {"name": leaf_data["name"]},
             {
@@ -271,13 +275,7 @@ class Trunk(tornado.web.Application):
         return {
             "result": "success",
             "settings": {
-                "common": {
-                    "urls": {
-                        "type": "list",
-                        "elements": "string",
-                        "verbose": "Адреса"
-                    }
-                },
+                "common": self.__get_default_settings(),
                 "custom": leaf_type.get("settings", {})
             }
         }
