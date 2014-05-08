@@ -42,7 +42,6 @@ class Trunk(tornado.web.Application):
             "create_leaf": self.create_leaf,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
-            "check_leaves": self.check_leaves,
             "get_memory_logs": self.get_memory_logs,
             # Работа с ветвями
             "list_branches": self.list_branches,
@@ -148,11 +147,19 @@ class Trunk(tornado.web.Application):
             }
 
     def __get_default_settings(self):
+        trunk = get_default_database(self.settings)
+        branches = trunk.components.find({"roles.branch": {"$exists": True}})
+
         return {
             "urls": {
                 "type": "list",
                 "elements": "string",
                 "verbose": "Адреса"
+            },
+            "branch": {
+                "type": "checkbox_list",
+                "values": [branch["name"] for branch in branches],
+                "verbose": "Ветви"
             }
         }
 
@@ -167,7 +174,8 @@ class Trunk(tornado.web.Application):
                 "desc": leaf.get("desc"),
                 "urls": leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
                 "type": leaf.get("type"),
-                "active": leaf.get("active")
+                "active": leaf.get("active"),
+                "branch": leaf.get("branch") if type(leaf.get("branch")) == list else [leaf.get("branch")]
             } for leaf in leaves
         ]
         return { "result": "success", "leaves": leaves_list}
@@ -178,10 +186,12 @@ class Trunk(tornado.web.Application):
 
         trunk = get_default_database(self.settings)
 
-        logs_raw = trunk.logs.find({
+        log_filter = {
             "log_source": leaf_data["name"]
-        }).sort("added", -1).limit(200)
+        }
 
+        logs_raw = trunk.logs.find(log_filter).sort("added", -1).limit(200)
+        
         logs = []
         for log in logs_raw:
             logs.insert(0, log)
@@ -211,12 +221,19 @@ class Trunk(tornado.web.Application):
         self.update_branches()
         self.update_air()
 
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        leaf["urls"] = leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
+        leaf_raw = leaves.find_one({"name": leaf_data["name"]})
+        leaf_response = {
+            "name": leaf_raw.get("name"),
+            "desc": leaf_raw.get("desc"),
+            "urls": leaf_raw.get("address") if type(leaf_raw.get("address")) == list else [leaf_raw.get("address")],
+            "type": leaf_raw.get("type"),
+            "active": leaf_raw.get("active"),
+            "branch": leaf_raw.get("branch") if type(leaf_raw.get("branch")) == list else [leaf_raw.get("branch")]
+        }
 
         return {
             "result": "success",
-            "leaf": leaf
+            "leaf": leaf_response
         }
 
     def get_leaf_settings(self, message):
@@ -234,7 +251,8 @@ class Trunk(tornado.web.Application):
             "settings": {
                 "custom": leaf.get("settings", {}),
                 "common": {
-                    "urls": leaf.get("urls") if type(leaf.get("address")) == list else [leaf.get("address")]
+                    "urls": leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
+                    "branch": leaf.get("branch") if type(leaf.get("branch")) == list else [leaf.get("branch")]
                 },
                 "template": {
                     "common": self.__get_default_settings(),
@@ -255,7 +273,8 @@ class Trunk(tornado.web.Application):
             {
                 "$set": {
                     "settings": leaf_data["settings"]["custom"],
-                    "urls": leaf_data["settings"]["common"]["urls"]
+                    "address": leaf_data["settings"]["common"]["urls"],
+                    "branch": leaf_data["settings"]["common"]["branch"]
                 }
             }
         )
@@ -370,94 +389,6 @@ class Trunk(tornado.web.Application):
             "result": "error",
             "message": "Failed to authenticate"
         }
-
-    def check_leaves(self, message):
-        trunk = get_default_database(self.settings)
-
-        leaves_list = trunk.leaves.find()
-        leaves = {}
-        for leaf in leaves_list:
-            leaves[leaf["name"]] = leaf
-            leaves[leaf["name"]]["working"] = False
-
-        success = False
-        failure = False
-
-        components = trunk.components
-
-        for branch in components.find({"roles.branch": {"$exists": True}}):
-            self.log_event({
-                "component": "branch",
-                "name": branch["name"],
-                "message": "Asking branch..."
-            })
-            response = self.send_message(
-                branch,
-                {
-                    "function": "branch.known_leaves"
-                }
-            )
-
-            if response["result"] == "success":
-                for leaf in response["leaves"]:
-                    leaves[leaf["name"]]["working"] = True
-                    leaves[leaf["name"]]["host"] = branch["host"]
-                    leaves[leaf["name"]]["req"] = leaf.get("req", float(0))
-                    leaves[leaf["name"]]["settings"] = leaves[
-                        leaf["name"]].get("settings", {})
-                    # Лист есть в списке активных и в списке необработанных
-                    if leaves[leaf["name"]].get("active", False) and \
-                       not leaves[leaf["name"]].get("processed", False):
-                        success = success or True
-                        leaves[leaf["name"]]["mem"] = leaf["mem"]
-                        leaves[leaf["name"]]["processed"] = True
-                    # Лист есть в списке активных, но его уже обработали
-                    elif leaves[leaf["name"]].get("active", False) and \
-                            leaves[leaf["name"]].get("processed", False):
-                        self.log_event(
-                            {
-                                "warning": "Duplicate leaf found",
-                                "component": "leaf",
-                                "name": leaf["name"],
-                                "response": leaf
-                            }, event_type="warning")
-                    # Листа нет в списке активных, но он активен на ветви
-                    else:
-                        self.log_event(
-                            {
-                                "warning": "This leaf shouldn't be active",
-                                "component": "leaf",
-                                "name": leaf["name"],
-                                "response": leaf
-                            }, event_type="warning")
-            else:
-                failure = failure or True
-                self.log_event(
-                    {
-                        "error": "Failed to communicate with branch",
-                        "component": "branch",
-                        "name": branch["name"],
-                        "response": response
-                    }, event_type="error")
-
-        if success and not failure:
-            return {
-                "result": "success",
-                "message": "All leaves responded",
-                "leaves": leaves
-            }
-        elif success and failure:
-            return {
-                "result": "warning",
-                "message": "Some leaves failed to respond",
-                "leaves": leaves
-            }
-        else:
-            return {
-                "result": "failure",
-                "message": "No response from leaves",
-                "leaves": leaves
-            }
 
     def update_repo(self, message):
         # Проверяем наличие требуемых аргументов

@@ -1,7 +1,7 @@
 {
     "connections":
     {
-        "host": "192.168.0.102",
+        "host": "192.168.0.105",
         "port": 1234
     },
     "roles": {
@@ -12,8 +12,9 @@
             "mysql_port": 3306
         },
         "branch": {
-            "host": "127.0.0.1",
+            "host": "192.168.0.105",
             "keyfile": "/home/wcm/forest/keys/private.pem",
+            "emperor_dir": "/home/user/forest/bin",
             "species": {
                 "espresso": {
                     "type": "git",
@@ -28,7 +29,7 @@
         },
         "air": {
             "keydir": "/home/wcm/forest/keys",
-            "host": "192.168.0.102",
+            "host": "192.168.0.105",
             "fastrouter": 3333
         }
     },

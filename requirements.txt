@@ -4,3 +4,4 @@ tornado
 psutil
 pymongo
 MySQL-python
+pyzmq

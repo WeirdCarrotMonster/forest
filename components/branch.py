@@ -11,8 +11,14 @@ from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
     run_parallel, LogicError, get_default_database
 import traceback
+import simplejson as json
 import psutil
 import datetime
+import subprocess
+import socket
+import signal
+import zmq
+from threading import Thread
 
 
 class Branch(object):
@@ -37,7 +43,69 @@ class Branch(object):
                 (component["roles"]["roots"]["mysql_host"],
                  component["roles"]["roots"]["mysql_port"])
             )
+
+        self.emperor_port = 5121
+        self.emperor_logs_port = 5122
+        c = zmq.Context()
+        self.emperor_zmq_socket = zmq.Socket(c, zmq.PUSH)
+        self.emperor_zmq_socket.connect('tcp://127.0.0.1:{0}'.format(self.emperor_port))
+        self.emperor = subprocess.Popen(
+            [
+                os.path.join(self.settings["emperor_dir"], "uwsgi"),
+                "--plugin", os.path.join(self.settings["emperor_dir"], "emperor_zeromq"),
+                "--emperor", "zmq://tcp://127.0.0.1:{0}".format(self.emperor_port),
+                "--master",
+                "--logger", "socket:127.0.0.1:{0}".format(self.emperor_logs_port)
+            ],
+            # stderr=subprocess.PIPE,
+            bufsize=1,
+            close_fds=True
+        )
+        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.log_socket.bind(("127.0.0.1", self.emperor_logs_port))
+        self.log_socket.settimeout(0.5)
+        self.running = True
+
+        self.logger_thread = Thread(target=self.__log_events)
+        self.logger_thread.start()
         self.init_leaves()
+
+    def __get_leaf_by_url(self, host):
+        for leaf in self.leaves:
+            if host in leaf.address:
+                return leaf.name
+        return ""
+
+    def __log_events(self):
+        add_info = {
+            "component_name": self.settings["name"],
+            "component_type": "branch",
+            "log_type": "leaf.event"
+        }
+
+        trunk = get_default_database(self.settings)
+        while self.running:
+            try:
+                data, addr = self.log_socket.recvfrom(2048)
+                try:
+                    data_parsed = json.loads(data)
+                    data_parsed.update(add_info)
+                    data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"])
+                    data_parsed["added"] = datetime.datetime.now()
+                    trunk.logs.insert(data_parsed)
+                    print(data_parsed)
+                except Exception as e:
+                    trunk.logs.insert({
+                        "component_name": self.settings["name"],
+                        "component_type": "branch",
+                        "log_type": "branch.event",
+                        "content": data,
+                        "added": datetime.datetime.now()
+                    })
+            except socket.timeout:
+                pass
+            except socket.error:
+                pass
 
     def __get_assigned_leaves(self):
         """
@@ -62,18 +130,6 @@ class Branch(object):
         """
         trunk = get_default_database(self.settings)
 
-        for leaf in self.leaves:
-            logs = leaf.update_logs_req_count()
-            for log in logs:
-                trunk.logs.insert({
-                    "component_name": self.settings["name"],
-                    "component_type": "branch",
-                    "log_source": leaf.name,
-                    "log_type": "leaf.event",
-                    "content": log,
-                    "added": datetime.datetime.now()
-                })
-
     def get_leaf(self, leaf_name):
         """
         Получает лист по его имени
@@ -87,6 +143,19 @@ class Branch(object):
             if leaf.name == leaf_name:
                 return leaf
         return None
+
+    def _emperor_add_leaf(self, leaf):
+        self.emperor_zmq_socket.send_multipart([
+            bytes('touch'),
+            bytes('{}.ini'.format(leaf.name)),
+            bytes(leaf.get_config())
+        ])
+
+    def _emperor_del_leaf(self, leaf):
+        self.emperor_zmq_socket.send_multipart([
+            bytes('destroy'),
+            bytes('{}.ini'.format(leaf.name))
+        ])
 
     def add_leaf(self, leaf):
         """
@@ -102,6 +171,7 @@ class Branch(object):
         leaf_env["db_host"] = self.roots[0][0]
         leaf_env["db_port"] = self.roots[0][1]
 
+        trunk = get_default_database(self.settings)
         new_leaf = Leaf(
             name=leaf["name"],
             chdir=repo["path"],
@@ -111,85 +181,26 @@ class Branch(object):
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
-            address=leaf.get("address"),
+            address=leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
             static=repo["static"],
-            leaf_type=leaf.get("type")
+            leaf_type=leaf.get("type"),
+            emperor=self.emperor_zmq_socket,
+            logger=trunk.logs,
+            component=self.settings["name"]
         )
         try:
-            new_leaf.start()
             self.leaves.append(new_leaf)
-            db_logs = new_leaf.init_database()
-            trunk = get_default_database(self.settings)
-            for log in db_logs:
-                trunk.logs.insert({
-                    "component_name": self.settings["name"],
-                    "component_type": "branch",
-                    "log_source": new_leaf.name,
-                    "log_type": "leaf.initdb",
-                    "content": log,
-                    "added": datetime.datetime.now()
-                })
+
+            Thread(
+                target=new_leaf.run_tasks, 
+                args=([
+                    new_leaf.init_database,
+                    new_leaf.update_database,
+                    new_leaf.start
+                ],)
+            ).start()
         except Exception:
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
-
-    def status_report(self, **kwargs):
-        """
-        Метод генерации отчета о состоянии сервера
-        Отчет включает данные о нагрузке на 15, 5 и 1 минуту,
-        свободной памяти и аптайме сервера
-
-        @rtype: dict
-        @return: Данные о состоянии сервера
-        """
-        # Память
-        mem = psutil.virtual_memory()
-        swap = psutil.swap_memory()
-        # Нагрузка
-        load_1, load_5, load_15 = os.getloadavg()
-        # Аптайм
-        try:
-            f = open("/proc/uptime")
-            contents = f.read().split()
-            f.close()
-
-            total_seconds = float(contents[0])
-
-            minute = 60
-            hour = minute * 60
-            day = hour * 24
-
-            days = int(total_seconds / day)
-            hours = int((total_seconds % day) / hour)
-            minutes = int((total_seconds % hour) / minute)
-            seconds = int(total_seconds % minute)
-        except:
-            days = 0
-            hours = 0
-            minutes = 0
-            seconds = 0
-
-        measurements = {
-            "mem_total": mem.total / (1024 * 1024),
-            "mem_used": (mem.used - mem.buffers - mem.cached) / (1024 * 1024),
-            "mem_cached": (mem.buffers + mem.cached) / (1024 * 1024),
-            "mem_free": mem.free / (1024 * 1024),
-            "swap_total": swap.total / (1024 * 1024),
-            "swap_used": swap.used / (1024 * 1024),
-            "swap_free": swap.free / (1024 * 1024),
-            "load_1": load_1,
-            "load_5": load_5,
-            "load_15": load_15,
-            "uptime_days": days,
-            "uptime_hours": hours,
-            "uptime_minutes": minutes,
-            "uptime_seconds": seconds
-        }
-        return {
-            "result": "success",
-            "message": "Working well",
-            "role": "branch",
-            "measurements": measurements
-        }
 
     def update_state(self, *args, **kwargs):
         """
@@ -237,6 +248,7 @@ class Branch(object):
                     leaf_running.settings = leaf["settings"]
                     leaf_running.env = leaf["env"]
                     leaf_running.address = leaf["address"]
+
                     leaf_running.restart()
             elif leaf["name"] in to_append:
                 log_message("Adding leaf {0}".format(leaf["name"]),
@@ -263,55 +275,9 @@ class Branch(object):
         """
         Метод выключения листьев при остановке.
         """
-        log_message("Shutting down leaves...", component="Branch")
-        run_parallel([leaf.stop for leaf in self.leaves])
-
-    def known_leaves(self, message):
-        """
-        Метод, возвращающий состояние работающих листьев.
-
-        @rtype: dict
-        @return: Данные о функционирующих листьях
-        """
-        known_leaves = []
-        for leaf in self.leaves:
-            known_leaves.append({
-                "name": leaf.name,
-                "env": leaf.launch_env,
-                "settings": leaf.settings,
-                "mem": leaf.mem_usage(),
-                "req": leaf.req_per_second()
-            })
-        return {
-            "result": "success",
-            "leaves": known_leaves
-        }
-
-    def restart_leaf(self, message):
-        """
-        Метод перезапуска листа.
-        Выполняет грубый перезапуск листа, останавливая его и запуская снова
-
-        @type message: dict
-        @param message: Данные листа для перезапуска
-        @rtype: dict
-        @return: Результат перезапуска
-        """
-        leaf_data = check_arguments(message, ["name"])
-        leaf = self.get_leaf(leaf_data["name"])
-        if leaf:
-            leaf.restart()
-        else:
-            raise LogicError("Leaf with name {0} not found".format(
-                leaf_data["name"]))
-
-        log_message("Restarting leaf '{0}'".format(
-            leaf_data["name"]), component="Branch")
-
-        return {
-            "result": "success",
-            "message": "restarted leaf {0}".format(leaf_data["name"])
-        }
+        self.emperor.send_signal(signal.SIGINT)
+        self.emperor.wait()
+        self.running = False
 
     def update_repo(self, message):
         """
@@ -359,18 +325,14 @@ class Branch(object):
 
         trunk = get_default_database(self.settings)
         for leaf in to_update:
-            logs = leaf.update_database()
-            for log in logs:
-                trunk.logs.insert({
-                    "component_name": self.settings["name"],
-                    "component_type": "branch",
-                    "log_source": leaf.name,
-                    "log_type": "leaf.updatedb",
-                    "content": log,
-                    "added": datetime.datetime.now()
-                })
-
-        for leaf in to_update:
-            leaf.graceful_restart()
+            Thread(
+                target=leaf.run_tasks, 
+                args=([
+                    leaf.stop,
+                    leaf.init_database,
+                    leaf.update_database,
+                    leaf.start
+                ],)
+            ).start()
 
         return result

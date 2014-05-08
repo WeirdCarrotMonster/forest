@@ -52,7 +52,7 @@ def authenticate_user(settings, user, password):
 def run_parallel(fns):
     proc = []
     for fn in fns:
-        p = Process(target=fn)
+        p = Process(target=fn["function"], args=fn["args"])
         p.start()
         proc.append(p)
     for p in proc:
@@ -98,13 +98,11 @@ class TransparentListener(tornado.web.RequestHandler):
                       response), 'r') as page_file:
                 self.write(page_file.read())
             self.finish()
-            return
         except Exception as e:
             if e.message == 401:
                 self.redirect('/login', permanent = True)
             elif e.message == 404:
                 self.redirect('/', permanent = True)
-            self.finish(e.message)
 
     @tornado.gen.coroutine
     def post(self, stuff):

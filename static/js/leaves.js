@@ -38,9 +38,8 @@ function Leaves($scope, $routeSegment, $http, $rootScope, loader) {
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
                 $scope.leaves[$scope.leaves.indexOf(leaf)] = data["leaf"];
-            }else{
-                leaf.busy = false;
             }
+            leaf.busy = false;
         }).
         error(function(data, status, headers, config) {
             leaf.busy = false;
@@ -87,7 +86,18 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
     }
 }
 
-function LeafSettings($scope, $routeSegment, $http, loader) {
+function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
+    $scope.checkbox_list_helper = function (settings_list, value) {
+        var idx = settings_list.indexOf(value);
+
+        if (idx > -1){
+            settings_list.splice(idx, 1);
+        }
+        else{
+            settings_list.push(value);
+        }
+    }
+
     $scope.loadSettings = function () {
         $http({
             method: 'POST',
@@ -105,9 +115,15 @@ function LeafSettings($scope, $routeSegment, $http, loader) {
                 if ($scope.settings.template.custom[key].type == "list" && $scope.settings.custom[key] == undefined){
                     $scope.settings.custom[key] = Array();
                 }
+                if ($scope.settings.template.custom[key].type == "checkbox_list" && $scope.settings.custom[key] == undefined){
+                    $scope.settings.custom[key] = Array();
+                }
             }
             for (var key in $scope.settings.template.common){
                 if ($scope.settings.template.common[key].type == "list" && $scope.settings.common[key] == undefined){
+                    $scope.settings.common[key] = Array();
+                }
+                if ($scope.settings.template.common[key].type == "checkbox_list" && $scope.settings.common[key] == undefined){
                     $scope.settings.common[key] = Array();
                 }
             }
@@ -129,7 +145,7 @@ function LeafSettings($scope, $routeSegment, $http, loader) {
         }).
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
-                
+                $rootScope.$emit('leavesUpdateRequired', {});
             }
         }).
         error(function(data, status, headers, config) {

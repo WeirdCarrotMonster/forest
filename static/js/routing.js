@@ -15,6 +15,7 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
         .when('/', 'dashboard')
         .when('/air', 'air')
         .when('/branches', 'branches')
+        .when('/species', 'species')
         .when('/leaves', 'leaves')
         .when('/roots', 'roots')
         .when('/fauna', 'fauna')
@@ -66,6 +67,19 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
             templateUrl: '/static/templates/leaf-settings.html'
         })
 
+        .up()
+
+        .up()
+
+        .segment('branches', {
+            controller: Branches,
+            templateUrl: '/static/templates/branches.html'
+        })
+
+        .segment('species', {
+            controller: Species,
+            templateUrl: '/static/templates/species.html'
+        })
 
     $routeProvider.otherwise({redirectTo: '/'});
 });

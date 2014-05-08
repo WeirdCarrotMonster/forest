@@ -8,6 +8,7 @@ import simplejson as json
 from threading import Thread
 from Queue import Queue, Empty
 import datetime
+from time import sleep
 
 
 def enqueue_output(out, queue):
@@ -29,7 +30,10 @@ class Leaf(object):
                  keyfile=None,
                  address="",
                  static=None,
-                 leaf_type=None
+                 leaf_type=None,
+                 emperor=None,
+                 logger=None,
+                 component=None
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -44,6 +48,9 @@ class Leaf(object):
         self.address = address
         self.static = static
         self.type = leaf_type
+        self.emperor = emperor
+        self.logger = logger
+        self.component = component
 
         self._thread = None
         self._queue = None
@@ -53,13 +60,11 @@ class Leaf(object):
         self._last_req_count = 0
 
     def init_database(self):
-        # Два шага инициализации нового инстанса:
-        # syncdb для создания основных таблиц
-        # migrate для создания таблиц, управляемых через south
+        # Инициализация таблиц через syncdb
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        logs = []
+        logs = ""
         proc = subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
             env=my_env,
@@ -68,25 +73,21 @@ class Leaf(object):
             stdout=subprocess.PIPE)
         proc.wait()
         for line in iter(proc.stdout.readline, ''):
-            logs.append(line)
+            logs += line + "\n"
         for line in iter(proc.stderr.readline, ''):
-            logs.append(line)
+            logs += line + "\n"
 
-        proc = subprocess.Popen(
-            [self.python_executable, self.executable, "migrate"],
-            env=my_env,
-            shell=False,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE)
-        proc.wait()
-        for line in iter(proc.stdout.readline, ''):
-            logs.append(line)
-        for line in iter(proc.stderr.readline, ''):
-            logs.append(line)
-        return logs
+        self.logger.insert({
+            "component_name": self.component,
+            "component_type": "branch",
+            "log_source": self.name,
+            "log_type": "leaf.syncdb",
+            "content": logs,
+            "added": datetime.datetime.now()
+        })
 
     def update_database(self):
-        # Обновляем таблицы через south
+        # Обновление таблицы через south
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
@@ -97,137 +98,70 @@ class Leaf(object):
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE)
         proc.wait()
-        logs = []
+        logs = ""
         for line in iter(proc.stderr.readline, ''):
-            logs.append(line)
-        return logs
+            logs += line + "\n"
+        
+        self.logger.insert({
+            "component_name": self.component,
+            "component_type": "branch",
+            "log_source": self.name,
+            "log_type": "leaf.migrate",
+            "content": logs,
+            "added": datetime.datetime.now()
+        })
 
     def set_settings(self, settings):
         self.settings = settings
 
-    def mem_usage(self):
-        if self.process.poll() is None:
-            mem = int(subprocess.check_output(
-                [
-                    'ps',
-                    '-p',
-                    str(self.process.pid),
-                    '-o',
-                    'rss='
-                ])
-            )
-        else:
-            mem = 0
-        return mem/1024
-
-    def update_logs_req_count(self):
-        logs = []
-        count = 0
-        try:
-            while True:
-                line = self._queue.get_nowait()
-                logs.append(line)
-                count += 1
-        except Empty:
-            pass
-        measurement_time = datetime.datetime.now()
-        time_delta = measurement_time - self._last_req_measurement
-        minutes = time_delta.days * 24 * 60 + time_delta.seconds / float(60)
-        if minutes > 5:
-            self._last_req_count = float(count) / float(minutes)
-        else:
-            self._last_req_count = \
-                (count + self._last_req_count * (5 - minutes))/float(5)
-        return logs
-
-    def req_per_second(self):
-        self.update_logs_req_count()
-        return self._last_req_count
-
-    def start(self):
-        # TODO: кидать exception, если присутствуют не все настройки
-        # что-то через not all(..)
-        cmd = [
-            "uwsgi",
-            "--chdir=" + self.chdir,
-            "--module=wsgi:application",
-            "--socket={0}:0".format(self.host),
-            "--processes=4",
-            "--master",
-            "--buffer-size=65535"
-        ]
-        my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
-        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-
-        address = []
-        if type(self.address) in [str, unicode]:
-            address.append(self.address)
-        elif type(self.address) == list:
-            for addr in self.address:
-                address.append(addr)
+    def get_config(self):
+        logs_format = {
+            "uri": "%(uri)",
+            "method": "%(method)",
+            "addr": "%(addr)",
+            "host": "%(host)",
+            "proto": "%(proto)",
+            "status": "%(status)",
+            "msecs": "%(msecs)",
+            "time": "%(ltime)",
+            "size": "%(size)",
+            "wid": "%(name)"
+        }
+        config = """[uwsgi]\nchdir={chdir}\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nlogformat={logformat}\n""".format(
+            chdir=self.chdir, 
+            socket=self.host,
+            db_settings=json.dumps(self.launch_env),
+            app_settings=json.dumps(self.settings),
+            logformat=json.dumps(logs_format)
+        )
+        address = self.address if type(self.address) == list else [self.address]
 
         for router in self.fastrouters:
             for addr in address:
-                cmd.append(
-                    "--subscribe-to={0}:{1},5,SHA1:{2}".format(
+                config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
-                    addr, self.keyfile))
+                    addr, self.keyfile)
 
-        if self.static:
-            cmd.append("--static-map={0}={1}".format(
-                self.static["mount"],
-                os.path.join(self.chdir, self.static["dir"])
-            ))
+        return config
 
-        log_message("Starting leaf {0}".format(self.name), component="Leaf")
-        self.process = subprocess.Popen(
-            cmd,
-            env=my_env,
-            stderr=subprocess.PIPE,
-            bufsize=1,
-            close_fds=True
-        )
-        if self.process.poll() is None:
-            self._queue = Queue()
-            self._thread = Thread(
-                target=enqueue_output,
-                args=(self.process.stderr, self._queue)
-            )
-            self._thread.daemon = True
-            self._thread.start()
-        else:
-            raise Exception("Launch failed: {0}".format(traceback.format_exc()))
+    def run_tasks(self, tasks):
+        for task in tasks:
+            task()
+
+    def start(self):
+        self.emperor.send_multipart([
+            bytes('touch'),
+            bytes('{}.ini'.format(self.name)),
+            bytes(self.get_config())
+        ])
 
     def stop(self):
-        log_message("Stopping leaf {0}".format(self.name), component="Leaf")
-        try:
-            self.process.send_signal(signal.SIGINT)
-            self.process.wait()
-            self.process = None
-            del self._thread
-        except OSError:
-            pass
-
-    def graceful_restart(self):
-        self.process.send_signal(signal.SIGHUP)
+        self.emperor.send_multipart([
+            bytes('destroy'),
+            bytes('{}.ini'.format(self.name))
+        ])
 
     def restart(self):
         self.stop()
+        sleep(5)
         self.start()
-
-    def get_logs(self):
-        self.update_logs_req_count()
-        return self.logs
-
-    def do_update_routine(self):
-        self.update_database()
-        self.graceful_restart()
-
-    def status(self):
-        if self.process is None:
-            return "stopped"
-        elif self.process.poll != 0:
-            return "killed"
-        else:
-            return "running"
