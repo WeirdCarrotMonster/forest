@@ -125,7 +125,7 @@ class Leaf(object):
             "msecs": "%(msecs)",
             "time": "%(ltime)",
             "size": "%(size)",
-            "wid": "%(name)"
+            "wid": "%(name)",
         }
         config = """[uwsgi]\nchdir={chdir}\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nlogformat={logformat}\n""".format(
             chdir=self.chdir, 

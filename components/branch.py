@@ -73,7 +73,7 @@ class Branch(object):
     def __get_leaf_by_url(self, host):
         for leaf in self.leaves:
             if host in leaf.address:
-                return leaf.name
+                return leaf
         return ""
 
     def __log_events(self):
@@ -93,7 +93,8 @@ class Branch(object):
                     data_parsed["status"] = int(data_parsed["status"])
                     data_parsed["msecs"] = int(data_parsed["msecs"])
                     data_parsed["size"] = int(data_parsed["size"])
-                    data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"])
+                    data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"]).name
+                    data_parsed["specie"] = self.__get_leaf_by_url(data_parsed["host"]).type
                     data_parsed["added"] = datetime.datetime.now()
                     trunk.logs.insert(data_parsed)
                 except Exception as e:
