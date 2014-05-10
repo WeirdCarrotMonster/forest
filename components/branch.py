@@ -90,10 +90,12 @@ class Branch(object):
                 try:
                     data_parsed = json.loads(data)
                     data_parsed.update(add_info)
+                    data_parsed["status"] = int(data_parsed["status"])
+                    data_parsed["msecs"] = int(data_parsed["msecs"])
+                    data_parsed["size"] = int(data_parsed["size"])
                     data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"])
                     data_parsed["added"] = datetime.datetime.now()
                     trunk.logs.insert(data_parsed)
-                    print(data_parsed)
                 except Exception as e:
                     trunk.logs.insert({
                         "component_name": self.settings["name"],
