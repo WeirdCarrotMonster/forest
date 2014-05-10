@@ -146,19 +146,6 @@ class Branch(object):
                 return leaf
         return None
 
-    def _emperor_add_leaf(self, leaf):
-        self.emperor_zmq_socket.send_multipart([
-            bytes('touch'),
-            bytes('{}.ini'.format(leaf.name)),
-            bytes(leaf.get_config())
-        ])
-
-    def _emperor_del_leaf(self, leaf):
-        self.emperor_zmq_socket.send_multipart([
-            bytes('destroy'),
-            bytes('{}.ini'.format(leaf.name))
-        ])
-
     def add_leaf(self, leaf):
         """
         Запускает лист и добавляет его в список запущенных
@@ -184,7 +171,7 @@ class Branch(object):
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
-            static=repo["static"],
+            static=repo.get("static"),
             leaf_type=leaf.get("type"),
             emperor=self.emperor_zmq_socket,
             logger=trunk.logs,
