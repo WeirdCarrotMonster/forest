@@ -13,7 +13,7 @@ class Air():
 
         self.update_state(None)
 
-        cmd = [
+        cmd_fastrouter = [
             "uwsgi",
             "--fastrouter=127.0.0.1:3000",
             "--fastrouter-subscription-server={0}:{1}".format(
@@ -22,8 +22,24 @@ class Air():
             "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"])
         ]
 
-        self.process = subprocess.Popen(
-            cmd,
+        self.fastrouter = subprocess.Popen(
+            cmd_fastrouter,
+            bufsize=1,
+            close_fds=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
+        )
+
+        cmd_statichandler = [
+            "uwsgi",
+            "--socket=127.0.0.1:3001",
+            "--master",
+            "--processes=4",
+            "--wsgi-file={0}".format(self.settings["statichandler"])
+        ]
+
+        self.statichandler = subprocess.Popen(
+            cmd_statichandler,
             bufsize=1,
             close_fds=True,
             stderr=subprocess.PIPE,
@@ -31,8 +47,10 @@ class Air():
         )
 
     def cleanup(self):
-        self.process.send_signal(signal.SIGINT)
-        self.process.wait()
+        self.fastrouter.send_signal(signal.SIGINT)
+        self.fastrouter.wait()
+        self.statichandler.send_signal(signal.SIGINT)
+        self.statichandler.wait()
 
     def update_state(self, message):
         trunk = get_default_database(self.settings)
@@ -55,7 +73,3 @@ class Air():
             "message": "Working well",
             "role": "air"
         }
-
-    def reload_proxy(self):
-        cmd = self.settings["proxy_restart_command"].split()
-        subprocess.Popen(cmd, shell=False)

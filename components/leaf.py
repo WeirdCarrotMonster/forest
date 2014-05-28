@@ -70,7 +70,8 @@ class Leaf(object):
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE
+            )
         proc.wait()
         for line in iter(proc.stdout.readline, ''):
             logs += line + "\n"
@@ -92,11 +93,12 @@ class Leaf(object):
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         proc = subprocess.Popen(
-            [self.python_executable, self.executable, "migrate"],
+            [self.python_executable, self.executable, "migrate", "--noinput"],
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE
+            )
         proc.wait()
         logs = ""
         for line in iter(proc.stderr.readline, ''):
@@ -127,11 +129,17 @@ class Leaf(object):
             "size": "%(size)",
             "wid": "%(name)",
         }
-        config = """[uwsgi]\nchdir={chdir}\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nlogformat={logformat}\n""".format(
+
+        leaf_settings = {
+            "static_url": "/static/{0}/".format(self.type)
+        }
+
+        config = """[uwsgi]\nchdir={chdir}\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
             chdir=self.chdir, 
             socket=self.host,
             db_settings=json.dumps(self.launch_env),
             app_settings=json.dumps(self.settings),
+            leaf_settings=json.dumps(leaf_settings),
             logformat=json.dumps(logs_format)
         )
         address = self.address if type(self.address) == list else [self.address]

@@ -9,7 +9,7 @@ import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
 from components.common import log_message, check_arguments, \
-    run_parallel, LogicError, get_default_database
+    run_parallel, LogicError, get_default_database, hashfile, get_settings_connection
 import traceback
 import simplejson as json
 import psutil
@@ -19,6 +19,8 @@ import socket
 import signal
 import zmq
 from threading import Thread
+import os
+import gridfs
 
 
 class Branch(object):
@@ -57,7 +59,6 @@ class Branch(object):
                 "--master",
                 "--logger", "socket:127.0.0.1:{0}".format(self.emperor_logs_port)
             ],
-            # stderr=subprocess.PIPE,
             bufsize=1,
             close_fds=True
         )
@@ -162,6 +163,7 @@ class Branch(object):
         leaf_env["db_port"] = self.roots[0][1]
 
         trunk = get_default_database(self.settings)
+
         new_leaf = Leaf(
             name=leaf["name"],
             chdir=repo["path"],
@@ -181,14 +183,16 @@ class Branch(object):
         try:
             self.leaves.append(new_leaf)
 
-            Thread(
+            t = Thread(
                 target=new_leaf.run_tasks, 
                 args=([
                     new_leaf.init_database,
                     new_leaf.update_database,
                     new_leaf.start
                 ],)
-            ).start()
+            )
+            t.daemon = True
+            t.start()
         except Exception:
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
 
@@ -311,11 +315,61 @@ class Branch(object):
                 "message": traceback.format_exc()
             }
 
+        trunk = get_default_database(self.settings)
+        con = get_settings_connection(self.settings)
+        specie = trunk.species.find_one({"name": repo_name})
+        fs = gridfs.GridFS(con.files)
+
+        
+        if specie and specie.get("static"):
+            static_dir = specie.get("static")
+            static_path = os.path.join(repo_path, static_dir)
+
+            current_files = set()
+
+            # Собираем множество всех файлов, существующих в папке со статикой после обновления
+            for path, subdirs, files in os.walk(static_path):        
+                for name in files:                            
+                    filename = os.path.join(path, name)[len(static_path):]
+                    if filename.startswith("/"):
+                        filename = filename[1:]
+                    current_files.add(filename)
+
+            processed = set()
+
+            for grid_file in fs.find({"species": specie["name"]}):
+                # Пачка вариантов развития событий:
+                if not grid_file.filename in current_files:
+                    # 1: Файла больше нет
+                    log_message("File {0} no longer exists in static".format(
+                        grid_file.filename),
+                        component="Branch"
+                    )
+                    fs.delete(grid_file._id)
+                else:
+                    # 2: Файл есть - сравниваем его с локальной копией
+                    with open(os.path.join(static_path, grid_file.filename), 'r') as local_file:
+                        if hashfile(local_file) != grid_file.md5:
+                            # Файл изменился - заливаем его заново
+                            log_message("File {0} changed - uploading".format(
+                                grid_file.filename),
+                                component="Branch"
+                            )
+                            fs.delete(grid_file._id)
+                            fs.put(local_file, filename=grid_file.filename, species=specie["name"])
+                processed.add(grid_file.filename)
+
+            for local_file_name in current_files:
+                if not local_file_name in processed:
+                    log_message("New file {0}".format(local_file_name), component="Branch")
+                    with open(os.path.join(static_path, local_file_name), 'r') as local_file:
+                        fs.put(local_file, filename=local_file_name, species=specie["name"])
+
         to_update = [leaf for leaf in self.leaves if leaf.type == repo_type]
 
         trunk = get_default_database(self.settings)
         for leaf in to_update:
-            Thread(
+            t = Thread(
                 target=leaf.run_tasks, 
                 args=([
                     leaf.stop,
@@ -323,6 +377,8 @@ class Branch(object):
                     leaf.update_database,
                     leaf.start
                 ],)
-            ).start()
+            )
+            t.daemon = True
+            t.start()
 
         return result

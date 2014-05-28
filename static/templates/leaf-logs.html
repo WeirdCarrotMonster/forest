@@ -7,5 +7,14 @@
 </nav>
 <a href="" class="btn btn-green btn-100 btn-monospase">Подгрузить ещё</a>
 <ul class="logs">
-    <li ng-repeat="log in logs"><span ng-show="log_types.indexOf(log.log_type) != -1">{{ log }}</span></li>
+    <div ng-repeat="log in logs" class="log_record" ng-class="{bgred: log.status == 500}">
+    	<div ng-if="log.log_type == 'leaf.event'" ng-show="log_types.indexOf(log.log_type) != -1">
+    		<span>{{ log.time }}</span>
+    		<span>{{ log.status }}</span> <span>{{ log.component_name }}</span>	
+    		<div>{{ log.uri }}</div>
+    	</div>
+    	<div ng-if="log.log_type != 'leaf.event'" ng-show="log_types.indexOf(log.log_type) != -1">
+    		{{ log }}
+    	</div>
+    </div>
 </ul>

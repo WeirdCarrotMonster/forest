@@ -508,3 +508,13 @@ Icons
 .red {
     color: #c0392b;
 }
+
+.bgred {
+    /*background: #c0392b !important;*/
+    color: #e7c7c0;
+}
+
+.log_record {
+    /*background: #1FBBA6;*/
+    margin-bottom: 2px;
+}

@@ -13,6 +13,16 @@ from pymongo import MongoReplicaSetClient
 import pymongo
 import random
 import string
+import hashlib
+
+
+def hashfile(afile, blocksize=65536):
+    hasher = hashlib.md5()
+    buf = afile.read(blocksize)
+    while len(buf) > 0:
+        hasher.update(buf)
+        buf = afile.read(blocksize)
+    return hasher.hexdigest()
 
 
 def get_connection(host, port, user, password, auth=True):

@@ -1,7 +1,7 @@
 {
     "connections":
     {
-        "host": "192.168.0.105",
+        "host": "127.0.0.1",
         "port": 1234
     },
     "roles": {
@@ -12,7 +12,7 @@
             "mysql_port": 3306
         },
         "branch": {
-            "host": "192.168.0.105",
+            "host": "127.0.0.1",
             "keyfile": "/home/wcm/forest/keys/private.pem",
             "emperor_dir": "/home/user/forest/bin",
             "species": {
@@ -29,7 +29,8 @@
         },
         "air": {
             "keydir": "/home/wcm/forest/keys",
-            "host": "192.168.0.105",
+            "statichandler": "/home/user/forest/components/statichandler.py",
+            "host": "127.0.0.1",
             "fastrouter": 3333
         }
     },
