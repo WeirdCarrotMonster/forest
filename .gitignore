@@ -1,3 +1,6 @@
+.idea
+bin/uwsgi
+
 *.py[cod]
 
 # C extensions
