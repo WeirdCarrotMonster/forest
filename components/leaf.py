@@ -134,7 +134,7 @@ class Leaf(object):
             "static_url": "/static/{0}/".format(self.type)
         }
 
-        config = """[uwsgi]\nchdir={chdir}\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
+        config = """[uwsgi]\nchdir={chdir}\nhearthbeat=10\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
             chdir=self.chdir, 
             socket=self.host,
             db_settings=json.dumps(self.launch_env),

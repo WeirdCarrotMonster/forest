@@ -57,7 +57,8 @@ class Branch(object):
                 "--plugin", os.path.join(self.settings["emperor_dir"], "emperor_zeromq"),
                 "--emperor", "zmq://tcp://127.0.0.1:{0}".format(self.emperor_port),
                 "--master",
-                "--logger", "socket:127.0.0.1:{0}".format(self.emperor_logs_port)
+                "--logger", "socket:127.0.0.1:{0}".format(self.emperor_logs_port),
+                "--emperor-required-heartbeat", "40"
             ],
             bufsize=1,
             close_fds=True
