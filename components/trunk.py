@@ -313,11 +313,8 @@ class Trunk(tornado.web.Application):
                               already exists".format(leaf_data["name"]))
 
         # TODO: проверка адреса
-
-        # Дополнительная проверка на наличие подходящей ветви
         # TODO: анализ нагрузки и более тщательный выбор
-        branch = self.get_branch(leaf_data["type"])
-
+        
         leaves.insert({
             "name": leaf_data["name"],
             "desc": leaf_data["desc"],
