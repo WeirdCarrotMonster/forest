@@ -144,6 +144,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
             }
         }).
         success(function(data, status, headers, config) {
+            console.log(data);
             if (data["result"] == "success"){
                 $rootScope.$emit('leavesUpdateRequired', {});
             }
@@ -154,6 +155,17 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
 }
 
 function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
+    $scope.checkbox_list_helper = function (settings_list, value) {
+        var idx = settings_list.indexOf(value);
+
+        if (idx > -1){
+            settings_list.splice(idx, 1);
+        }
+        else{
+            settings_list.push(value);
+        }
+    }
+
     $scope.loadSpecies = function() {
         $http({
             method: 'POST',
@@ -193,9 +205,15 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
                 if ($scope.template.custom[key].type == "list"){
                     $scope.settings.custom[key] = Array();
                 }
+                if ($scope.template.custom[key].type == "checkbox_list"){
+                    $scope.settings.custom[key] = Array();
+                }
             }
             for (var key in $scope.template.common){
                 if ($scope.template.common[key].type == "list"){
+                    $scope.settings.common[key] = Array();
+                }
+                if ($scope.template.common[key].type == "checkbox_list"){
                     $scope.settings.common[key] = Array();
                 }
             }

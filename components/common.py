@@ -110,11 +110,10 @@ class TransparentListener(tornado.web.RequestHandler):
             self.finish()
         except Exception as e:
             if e.message == 401:
-                self.redirect('/login', permanent = True)
+                self.redirect('/login', permanent=True)
             elif e.message == 404:
-                self.redirect('/', permanent = True)
+                self.redirect('/', permanent=True)
 
-    @tornado.gen.coroutine
     def post(self, stuff):
         # Вот тут обрабатывается API
         # Строго через POST
@@ -135,14 +134,12 @@ class TransparentListener(tornado.web.RequestHandler):
             # TODO: валидацию понадежнее
             message_secret = message.get("secret")
             key = ''.join(random.choice(string.digits) for _ in range(9))
-            self.application.process_message(
+            response = self.application.process_message(
                 message,
                 handler=self,
                 user=self.get_current_user(),
-                inner=self.application.settings["secret"] == message_secret,
-                callback=(yield tornado.gen.Callback(key))
+                inner=self.application.settings["secret"] == message_secret
             )
-            response = yield tornado.gen.Wait(key)
         except ArgumentMissing as arg:
             response = {
                 "result": "failure",

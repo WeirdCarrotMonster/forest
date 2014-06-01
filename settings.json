@@ -14,7 +14,7 @@
         "branch": {
             "host": "127.0.0.1",
             "keyfile": "/home/wcm/forest/keys/private.pem",
-            "emperor_dir": "/home/user/forest/bin",
+            "emperor_dir": "/home/wcm/forest/bin",
             "species": {
                 "espresso": {
                     "type": "git",
@@ -29,7 +29,8 @@
         },
         "air": {
             "keydir": "/home/wcm/forest/keys",
-            "statichandler": "/home/user/forest/components/statichandler.py",
+            "emperor_dir": "/home/wcm/forest/bin",
+            "statichandler": "/home/wcm/forest/components/statichandler.py",
             "host": "127.0.0.1",
             "fastrouter": 3333
         }

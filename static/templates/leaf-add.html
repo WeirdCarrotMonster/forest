@@ -30,6 +30,16 @@
                     </li>
                 </ul>
             </div>
+            <div ng-switch-when="checkbox_list">
+                <ul class="checkbox-list" ng-repeat="checkbox_value in template.common[key].values">
+                    <li>
+                        <label>
+                            <input type="checkbox" ng-checked="settings.common[key].indexOf(checkbox_value) > -1" ng-click="checkbox_list_helper(settings.common[key], checkbox_value)"/>
+                            {{ checkbox_value }}
+                        </label>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
     <div class="settings-group" ng-repeat="(key, value) in template.custom">
@@ -53,6 +63,16 @@
                     </li>
                     <li>
                         <a class="link-icon" href ng-click='settings.custom[key].push("")'><i class="fa fa-plus"></i> <span>добавить ещё</span></a>
+                    </li>
+                </ul>
+            </div>
+            <div ng-switch-when="checkbox_list">
+                <ul class="checkbox-list" ng-repeat="checkbox_value in settings.custom[key].values">
+                    <li>
+                        <label>
+                            <input type="checkbox" ng-checked="settings.custom[key].indexOf(checkbox_value) > -1" ng-click="checkbox_list_helper(settings.custom[key], checkbox_value)"/>
+                            {{ checkbox_value }}
+                        </label>
                     </li>
                 </ul>
             </div>

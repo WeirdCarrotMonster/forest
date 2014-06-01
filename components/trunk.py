@@ -25,9 +25,7 @@ class Trunk(tornado.web.Application):
             "login": "html/login.html",
         }
         self.auth_urls = {
-            "": "html/dashboard.html",
-            "leaves": "html/leaves.html",
-            "fauna": "html/fauna.html"
+            "": "html/dashboard.html"
         }
 
         self.functions = {
@@ -42,15 +40,8 @@ class Trunk(tornado.web.Application):
             "create_leaf": self.create_leaf,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
-            "get_memory_logs": self.get_memory_logs,
             # Работа с ветвями
             "list_branches": self.list_branches,
-            # Работа с листьями
-            "enable_leaf": self.enable_leaf,
-            "disable_leaf": self.disable_leaf,
-            "migrate_leaf": self.migrate_leaf,
-            "rehost_leaf": self.rehost_leaf,
-            "change_settings": self.change_settings
         }
 
     def publish_self(self):
@@ -333,7 +324,7 @@ class Trunk(tornado.web.Application):
             "type": leaf_data["type"],
             "active": True,
             "address": leaf_data["settings"]["common"]["urls"],
-            "branch": branch["name"] if branch else "",
+            "branch": leaf_data["settings"]["common"]["branch"],
             "settings": leaf_data["settings"]["custom"]
         })
 
@@ -343,18 +334,6 @@ class Trunk(tornado.web.Application):
 
         return {
             "result": "success"
-        }
-
-    def get_memory_logs(self, message):
-        trunk = get_default_database(self.settings)
-        values = trunk.logs.find_one({"type": "memory"}).get("values")
-        keys = [leaf["name"] for leaf in trunk.leaves.find()]
-
-        return {
-            "type": "result",
-            "result": "success",
-            "values": values,
-            "keys": keys
         }
 
     def login_user(self, message, user=None):
@@ -417,244 +396,6 @@ class Trunk(tornado.web.Application):
                 "response": response
             })
         return result
-
-    def add_leaf(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name', 'address', 'type'])
-        leaf_settings = message.get("settings", {})
-
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-
-        # Проверяем наличие листа с таким именем
-        if leaves.find_one({"name": leaf_data["name"]}):
-            raise LogicError("Leaf with name '{0}' \
-                              already exists".format(leaf_data["name"]))
-        # Проверяем наличие листа с таким адресом
-        # TODO: переделать логику с учетом групп имен
-        if leaves.find_one({"address": leaf_data["address"]}):
-            raise LogicError("Leaf with address '{0}' \
-                              already exists".format(leaf_data["address"]))
-
-        # Дополнительная проверка на наличие подходящей ветви
-        # TODO: анализ нагрузки и более тщательный выбор
-        branch = self.get_branch(leaf_data["type"])
-        if not branch:
-            return {
-                "result": "failure",
-                "message": "No known branches of type \
-                            '{0}'".format(leaf_data["type"])
-            }
-
-        leaves.insert({
-            "name": leaf_data["name"],
-            "active": True,
-            "type": leaf_data["type"],
-            "address": leaf_data["address"],
-            "branch": branch["name"],
-            "settings": leaf_settings
-        })
-
-        self.update_roots()
-        self.update_branches()
-        self.update_air()
-
-        response = {
-            "result": "success",
-            "message": "Successfully added leaf '{0}'".format(leaf_data["name"])
-        }
-        return response
-
-    def enable_leaf(self, message):
-        # TODO: адаптировать
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name'])
-
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-
-        # Проверяем, есть ли лист с таким именем в базе
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                             '{0}' not found".format(leaf_data["name"]))
-        if leaf["active"]:
-            raise LogicError(
-                "Leaf with name \
-                '{0}' already enabled".format(leaf_data["address"])
-            )
-
-        # Ищем подходящую ветку для листа
-        branch = self.get_branch(leaf["type"])
-        if not branch:
-            raise LogicError("No available branches \
-                              of type '{0}'".format(leaf["type"]))
-        # TODO: при отсутствии ветви необходимого типа,
-        # запрашивать создание этого типа на одной из доступных ветвей
-
-        leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "active": True,
-                    "branch": branch["name"]
-                }
-            }
-        )
-
-        self.update_branches()
-        self.update_air()
-
-        return {
-            "result": "success",
-            "message": "Re-enabled leaf '{0}'".format(leaf["name"])
-        }
-
-    def disable_leaf(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name'])
-
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                             '{0}' not found".format(leaf_data["name"]))
-        if not leaf["active"]:
-            raise LogicError("Leaf with name \
-                             '{0}' already disabled".format(leaf_data["name"]))
-
-        leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "active": False
-                }
-            }
-        )
-
-        self.update_branches()
-        self.update_air()
-
-        return {
-            "result": "success",
-            "message": "Disabled leaf '{0}'".format(leaf["name"])
-        }
-
-    def migrate_leaf(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name', 'destination'])
-
-        # Ищем лист в базе
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                              {0} not found".format(leaf_data["name"]))
-
-        if leaf["branch"] == leaf_data["destination"]:
-            raise Warning("Leaf is already on branch \
-                           '{0}'".format(leaf["branch"]))
-
-        # Ищем ветви, старую и новую
-        components = trunk.components
-        new_branch = components.find_one({
-            "name": leaf_data["destination"],
-            "roles.branch.species.{0}".format(leaf["type"]): {"$exists": True}
-        })
-
-        if not new_branch:
-            raise LogicError("Destination branch not found")
-
-        leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {"branch": new_branch["name"]}
-            }
-        )
-
-        # Обращаемся к новому branch'у для переноса листа
-        self.update_branches()
-        self.update_air()
-
-        return {
-            "result": "success",
-            "message": "Moved leaf to {0}".format(leaf_data["destination"])
-        }
-
-    def rehost_leaf(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name', 'address'])
-
-        # Ищем лист в базе
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                              {0} not found".format(leaf_data["name"]))
-
-        if leaf["address"] == leaf_data["address"]:
-            raise LogicError("Leaf is already on address \
-                              '{0}'".format(leaf["address"]))
-
-        trunk.leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "address": leaf_data["address"]
-                }
-            }
-        )
-
-        # Обращаемся к air для публикации листа
-        self.update_air()
-        self.update_branches()
-
-        return {
-            "result": "success",
-            "message": "Successfully published leaf on \
-                        {0}".format(leaf_data["address"])
-        }
-
-    def change_settings(self, message):
-        # Проверяем наличие требуемых аргументов
-        leaf_data = check_arguments(message, ['name', 'settings'])
-
-        if type(leaf_data["settings"]) != dict:
-            try:
-                leaf_data["settings"] = json.loads(leaf_data["settings"])
-            except:
-                return {
-                    "result": "failure",
-                    "message": "Failed to save settings"
-                }
-
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-        leaf = leaves.find_one({"name": leaf_data["name"]})
-        if not leaf:
-            raise LogicError("Leaf with name \
-                              {0} not found".format(leaf_data["name"]))
-
-        trunk.leaves.update(
-            {"name": leaf_data["name"]},
-            {
-                "$set": {
-                    "settings": leaf_data["settings"]
-                }
-            }
-        )
-
-        if leaf.get("active", False):
-            self.update_branches()
-
-        return {
-            "result": "success",
-            "message": "Successfully changed settings for leaf \
-                        {0}".format(leaf_data["name"])
-        }
 
     def update_air(self):
         trunk = get_default_database(self.settings)

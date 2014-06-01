@@ -14,7 +14,7 @@ class Air():
         self.update_state(None)
 
         cmd_fastrouter = [
-            "uwsgi",
+            os.path.join(self.settings["emperor_dir"], "uwsgi"),
             "--fastrouter=127.0.0.1:3000",
             "--fastrouter-subscription-server={0}:{1}".format(
                 self.settings["host"], str(self.settings["fastrouter"])),
@@ -31,19 +31,23 @@ class Air():
         )
 
         cmd_statichandler = [
-            "uwsgi",
+            os.path.join(self.settings["emperor_dir"], "uwsgi"),
             "--socket=127.0.0.1:3001",
             "--master",
             "--processes=4",
             "--wsgi-file={0}".format(self.settings["statichandler"])
         ]
-
+        
+        env = os.environ.copy()
+        env["DB_ADMIN"] = self.settings.get("mongo_user", "admin")
+        env["DB_PASSWORD"] = self.settings.get("mongo_pass", "password")
         self.statichandler = subprocess.Popen(
             cmd_statichandler,
             bufsize=1,
             close_fds=True,
             stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            env=env
         )
 
     def cleanup(self):
