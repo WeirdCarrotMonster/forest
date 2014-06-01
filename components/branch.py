@@ -21,6 +21,7 @@ import zmq
 from threading import Thread
 import os
 import gridfs
+import mimetypes
 
 
 class Branch(object):
@@ -364,7 +365,13 @@ class Branch(object):
                 if not local_file_name in processed:
                     log_message("New file {0}".format(local_file_name), component="Branch")
                     with open(os.path.join(static_path, local_file_name), 'r') as local_file:
-                        fs.put(local_file, filename=local_file_name, species=specie["name"])
+
+                        fs.put(
+                            local_file,
+                            filename=local_file_name,
+                            species=specie["name"],
+                            content_type=mimetypes.guess_type(local_file_name)[0]
+                        )
 
         to_update = [leaf for leaf in self.leaves if leaf.type == repo_type]
 
