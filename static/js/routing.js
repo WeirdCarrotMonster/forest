@@ -15,6 +15,8 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
         .when('/', 'dashboard')
         .when('/air', 'air')
         .when('/branches', 'branches')
+        .when('/branches/:branchid', 'branches.branch')
+        .when('/branches/:branchid/logs', 'branches.branch.logs')
         .when('/species', 'species')
         .when('/leaves', 'leaves')
         .when('/roots', 'roots')
@@ -74,6 +76,21 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
         .segment('branches', {
             controller: Branches,
             templateUrl: '/static/templates/branches.html'
+        })
+
+        .within()
+
+        .segment('branch', {
+            controller: Branch,
+            dependencies: ['branchid'],
+            templateUrl: '/static/templates/branch.html'
+        })
+
+        .within()
+
+        .segment('logs', {
+            controller: LeafLogs,
+            templateUrl: '/static/templates/branch-logs.html'
         })
 
         .segment('species', {

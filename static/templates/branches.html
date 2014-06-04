@@ -1,26 +1,25 @@
 <div class="leaves">
     <ul>
-        <li class="leaf">
+        <li class="leaf branch">
             <h3>
-                <a href="" ng-click="toggleLeaf(leaf)" class="icon-status" ng-class="{statuson: leaf.active, statusoff: !leaf.active, statusbusy: leaf.busy}">
-                    <i class="fa" ng-class="{facheck: leaf.active, fatimes: !leaf.active}"></i>
-                </a>
-                <a href="" class="icon-status statuswarning" ng-show="leaf.active && leaf.branch.length == 0">
-                    <i class="fa fa-warning"></i>
-                </a>
-                <span><a class="link" href="#leaves/{{leaf.name}}/logs">{{leaf.name}}</a></span>
+                <span><a class="link" href="#branches/hul/logs">Ветвь</a></span>
             </h3>
             <p class="desc">
-                {{leaf.desc}}
+                Какое-то описание
             </p>
-            <div class="urls">
-                <i class="triangle"></i>
-                <ul>
-                    <li ng-repeat="url in leaf.urls">
-                        <a class="link" target="_blank" href="http://{{url}}">{{url}}</a>
-                    </li>
-                </ul>
-            </div>
+            <ul class="tags">
+                <li>Clients</li>
+                <li>Espresso</li>
+                <li>Bonus</li>
+            </ul>
+        </li>
+        <li class="leaf">
+            <h3>
+                <span><a class="link" href="#branches/{{branch.name}}/logs">{{branches.name}}</a></span>
+            </h3>
+            <p class="desc">
+                {{branch.desc}}
+            </p>
         </li>
     </ul>
 </div>
