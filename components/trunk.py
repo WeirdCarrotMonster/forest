@@ -40,8 +40,10 @@ class Trunk(tornado.web.Application):
             "create_leaf": self.create_leaf,
             # Обработка состояний сервера
             "update_repository": self.update_repo,
+            "get_memory_logs": self.get_memory_logs,
             # Работа с ветвями
-            "list_branches": self.list_branches,
+            "get_branches": self.list_branches,
+            "get_branch_logs": self.get_branch_logs
         }
 
     def publish_self(self):
@@ -313,8 +315,7 @@ class Trunk(tornado.web.Application):
                               already exists".format(leaf_data["name"]))
 
         # TODO: проверка адреса
-        # TODO: анализ нагрузки и более тщательный выбор
-        
+
         leaves.insert({
             "name": leaf_data["name"],
             "desc": leaf_data["desc"],
@@ -331,6 +332,18 @@ class Trunk(tornado.web.Application):
 
         return {
             "result": "success"
+        }
+
+    def get_memory_logs(self, message):
+        trunk = get_default_database(self.settings)
+        values = trunk.logs.find_one({"type": "memory"}).get("values")
+        keys = [leaf["name"] for leaf in trunk.leaves.find()]
+
+        return {
+            "type": "result",
+            "result": "success",
+            "values": values,
+            "keys": keys
         }
 
     def login_user(self, message, user=None):
@@ -412,7 +425,7 @@ class Trunk(tornado.web.Application):
         root = components.find_one({"roles.roots": {"$exists": True}})
         return self.send_message(root, {"function": "roots.update_state"})
 
-    def list_branches(self, message):
+    def get_branches(self, message):
         # TODO: переписать с аггрегацией
         trunk = get_default_database(self.settings)
 
@@ -429,13 +442,23 @@ class Trunk(tornado.web.Application):
             "branches": branches
         }
 
-    def get_branch(self, species):
+    def get_branch_logs(self, message):
         trunk = get_default_database(self.settings)
-        components = trunk.components
-        return components.find_one({
-            "roles.branch": {"$exists": True},
-            "roles.branch.species.{0}".format(species): {"$exists": True}
-        })
+        log_filter = {
+            "component_type": "branch",
+            "component_name": message.get("name")
+        }
+
+        logs_raw = trunk.logs.find(log_filter).sort("added", -1).limit(200)
+        
+        logs = []
+        for log in logs_raw:
+            logs.insert(0, log)
+
+        return {
+            "result": "success",
+            "logs": logs
+        }
 
     def cleanup(self):
         if self.branch:
