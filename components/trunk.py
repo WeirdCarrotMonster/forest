@@ -42,7 +42,7 @@ class Trunk(tornado.web.Application):
             "update_repository": self.update_repo,
             "get_memory_logs": self.get_memory_logs,
             # Работа с ветвями
-            "get_branches": self.list_branches,
+            "get_branches": self.get_branches,
             "get_branch_logs": self.get_branch_logs
         }
 
