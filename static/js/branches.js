@@ -19,7 +19,7 @@ function Branches($scope, $routeSegment, $http, $rootScope, loader) {
 }
 
 function Branch($scope, $routeSegment, loader) {
-    $scope.leafid = $routeSegment.$routeParams.branchid;
+    $scope.branchid = $routeSegment.$routeParams.branchid;
 }
 
 function BranchLogs($scope, $routeSegment, $http, loader) {
