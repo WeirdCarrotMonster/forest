@@ -245,6 +245,9 @@ class Branch(object):
             if leaf_shouldb.get("settings", {}) !=  leaf_running.settings   or \
                leaf_shouldb.get("env", {})      !=  leaf_running.launch_env or \
                leaf_shouldb.get("address", [])  !=  leaf_running.address:
+                log_message("Leaf {0} changed".format(leaf),
+                    component="Branch"
+                )
                 stop_list.append(leaf_running)
                 start_list.append(leaf_shouldb)
 
