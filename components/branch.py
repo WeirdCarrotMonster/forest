@@ -227,9 +227,8 @@ class Branch(object):
         to_check = list(set(current) & set(assigned))
 
         log_message("Triggering update", component="Branch")
-        log_message("Doing following shit:\nto_stop: {0}\nto_start: {1}\nto_check: {2}\ncurrent: {3}\nassigned: {4}\
-                    ".format(to_stop, to_start, to_check, current, assigned),
-                    component="Branch")
+        log_stop = []
+        log_restart = []
 
         # Формируем списки листьев, с которыми работаем
         stop_list    = []
@@ -238,6 +237,7 @@ class Branch(object):
 
         for leaf in to_stop:
             stop_list.append(self.get_leaf(leaf))
+            log_stop.append(leaf)
 
         for leaf in to_check:
             leaf_running = self.get_leaf(leaf)
@@ -258,9 +258,19 @@ class Branch(object):
                 )
                 stop_list.append(leaf_running)
                 start_list.append(leaf_shouldb)
+                log_restart.append(leaf)
 
         for leaf in to_start:
             start_list.append(assigned_leaves[leaf])
+
+        if log_stop:
+            log_message("Stopping leaves: {0}".format(log_stop), component="Branch")
+
+        if to_start:
+            log_message("Starting leaves: {0}".format(to_start), component="Branch")
+
+        if to_start:
+            log_message("Restarting leaves: {0}".format(log_restart), component="Branch")        
 
         # Выполняем обработку листьев
 
