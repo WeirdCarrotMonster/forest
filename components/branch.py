@@ -256,7 +256,6 @@ class Branch(object):
                 log_message("Leaf {0} changed".format(leaf),
                     component="Branch"
                 )
-                stop_list.append(leaf_running)
                 start_list.append(leaf_shouldb)
                 log_restart.append(leaf)
 
@@ -269,7 +268,7 @@ class Branch(object):
         if to_start:
             log_message("Starting leaves: {0}".format(to_start), component="Branch")
 
-        if to_start:
+        if log_restart:
             log_message("Restarting leaves: {0}".format(log_restart), component="Branch")        
 
         # Выполняем обработку листьев
