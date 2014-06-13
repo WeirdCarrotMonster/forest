@@ -242,9 +242,12 @@ class Branch(object):
         for leaf in to_check:
             leaf_running = self.get_leaf(leaf)
             leaf_shouldb = assigned_leaves[leaf]
-            if leaf_shouldb.get("settings", {}) !=  leaf_running.settings   or \
-               leaf_shouldb.get("env", {})      !=  leaf_running.launch_env or \
-               leaf_shouldb.get("address", [])  !=  leaf_running.address:
+            if list(leaf_shouldb.get("address", []))      != list(leaf_running.address)             or \
+               leaf_shouldb.get("settings", {})           != leaf_running.settings                  or \
+               leaf_shouldb.get("env", {}).get("db_pass") != leaf_running.launch_env.get("db_pass") or \
+               leaf_shouldb.get("env", {}).get("db_name") != leaf_running.launch_env.get("db_name") or \
+               leaf_shouldb.get("env", {}).get("db_user") != leaf_running.launch_env.get("db_user"):
+                # Прости меня, Один, за такие проверки
                 log_message("Leaf {0} changed".format(leaf),
                     component="Branch"
                 )
