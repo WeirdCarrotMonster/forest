@@ -242,7 +242,12 @@ class Branch(object):
         for leaf in to_check:
             leaf_running = self.get_leaf(leaf)
             leaf_shouldb = assigned_leaves[leaf]
-            if list(leaf_shouldb.get("address", []))      != list(leaf_running.address)             or \
+
+            leaf_shouldb_address = leaf_shouldb.get("address", [])
+            if type(leaf_shouldb_address) != list:
+                leaf_shouldb_address = [leaf_shouldb_address]
+
+            if leaf_shouldb_address                       != leaf_running.address                   or \
                leaf_shouldb.get("settings", {})           != leaf_running.settings                  or \
                leaf_shouldb.get("env", {}).get("db_pass") != leaf_running.launch_env.get("db_pass") or \
                leaf_shouldb.get("env", {}).get("db_name") != leaf_running.launch_env.get("db_name") or \
