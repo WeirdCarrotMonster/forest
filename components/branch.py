@@ -224,8 +224,8 @@ class Branch(object):
         to_check = list(set(current) & set(assigned))
 
         log_message("Triggering update", component="Branch")
-        log_message("Doing following shit:\nto_stop: {0}\nto_start: {1}\nto_check: {2}\ncurrent: {3}\
-                    ".format(to_stop, to_start, to_check, current),
+        log_message("Doing following shit:\nto_stop: {0}\nto_start: {1}\nto_check: {2}\ncurrent: {3}\nassigned: {4}\
+                    ".format(to_stop, to_start, to_check, current, assigned),
                     component="Branch")
 
         stop_list = []
@@ -254,7 +254,7 @@ class Branch(object):
                 start_list.append(leaf)
                 
 
-        log_message("We decided to:\nstop: {0}\ntstart: {1}\nrestart: {2}\
+        log_message("We decided to:\nstop: {0}\nstart: {1}\nrestart: {2}\
                     ".format(stop_list, start_list, restart_list),
                     component="Branch")
 
