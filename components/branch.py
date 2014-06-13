@@ -198,6 +198,10 @@ class Branch(object):
         except Exception:
             raise LogicError("Start failed: {0}".format(traceback.format_exc()))
 
+    def del_leaf(self, leaf):
+        leaf.stop()
+        self.leaves.remove(leaf)
+
     def update_state(self, *args, **kwargs):
         """
         Метод обновления состояния ветви.
@@ -208,48 +212,61 @@ class Branch(object):
         @return: Результат обновления состояния
         """
         # Составляем списки имеющихся листьев и требуемых
-        current_leaves = [leaf.name for leaf in self.leaves]
-        db_leaves = [leaf for leaf in self.__get_assigned_leaves()]
-        db_leaves_names = [leaf["name"] for leaf in db_leaves]
+        current = [leaf.name for leaf in self.leaves]
+        assigned_leaves = self.__get_assigned_leaves()
+        assigned = [leaf["name"] for leaf in assigned_leaves]
 
         # Сравниваем списки листьев
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
-        to_remove = list(set(current_leaves) - set(db_leaves_names))
-        to_update = list(set(current_leaves) & set(db_leaves_names))
-        to_append = list(set(db_leaves_names) - set(current_leaves))
+        to_stop = list(set(current) - set(assigned))
+        to_start= list(set(assigned) - set(current))
+        to_check = list(set(current) & set(assigned))
 
         log_message("Triggering update", component="Branch")
-        log_message("Doing following shit:\n\
-                     to_remove: {0}\n\
-                     to_update: {1}\n\
-                     to_append: {2}\n\
-                     current_leaves: {3}\
-                    ".format(to_remove, to_update, to_append, current_leaves),
+        log_message("Doing following shit:\nto_stop: {0}\nto_start: {1}\nto_check: {2}\ncurrent: {3}\
+                    ".format(to_stop, to_start, to_check, current),
                     component="Branch")
 
+        stop_list = []
+        start_list = []
+        restart_list = []
+
         for leaf in self.leaves:
-            if leaf.name in to_remove:
-                leaf.stop()
-                self.leaves.remove(leaf)
+            if leaf.name in to_stop:
+                stop_list.append(leaf)
+                # self.del_leaf(leaf)
 
-        for leaf in db_leaves:
-            if leaf["name"] in to_update:
+        
+        for leaf in assigned_leaves:
+            if leaf["name"] in to_check:
                 leaf_running = self.get_leaf(leaf["name"])
-                if leaf.get("settings", {}) != leaf_running.settings or \
-                   leaf["env"] != leaf_running.launch_env or \
-                   leaf["address"] != leaf_running.address:
-                    log_message("Leaf {0} configuration changed, reloading\
-                                ".format(leaf["name"]), component="Branch")
-                    leaf_running.settings = leaf["settings"]
-                    leaf_running.env = leaf["env"]
-                    leaf_running.address = leaf["address"]
+                if leaf.get("settings", {}) !=  leaf_running.settings   or \
+                   leaf.get("env", {})      !=  leaf_running.launch_env or \
+                   leaf.get("address", [])  !=  leaf_running.address:
+                    leaf_running.settings = leaf.get("settings", {})
+                    leaf_running.env      = leaf.get("env", {})
+                    leaf_running.address  = leaf.get("address", [])
 
-                    leaf_running.restart()
-            elif leaf["name"] in to_append:
-                log_message("Adding leaf {0}".format(leaf["name"]),
-                            component="Branch")
-                self.add_leaf(leaf)
+                    restart_list.append(leaf_running)
+
+            elif leaf["name"] in to_launch:
+                start_list.append(leaf)
+                
+
+        log_message("We decided to:\nstop: {0}\ntstart: {1}\nrestart: {2}\
+                    ".format(stop_list, start_list, restart_list),
+                    component="Branch")
+
+        for leaf in start_list:
+            self.add_leaf(leaf)
+
+        for leaf in stop_list:
+            self.del_leaf(leaf)
+
+        for leaf in restart_list:
+            self.del_leaf(leaf)
+            self.add_leaf(leaf)
 
         return {
             "result": "success"

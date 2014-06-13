@@ -62,7 +62,7 @@ def authenticate_user(settings, user, password):
 def run_parallel(fns):
     proc = []
     for fn in fns:
-        p = Process(target=fn["function"], args=fn["args"])
+        p = Process(target=fn[0], args=fn[1] or {})
         p.start()
         proc.append(p)
     for p in proc:

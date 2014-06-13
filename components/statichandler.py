@@ -14,16 +14,6 @@ def get_connection(host, port, user, password, auth=True):
         con.admin.authenticate(user, password)
     return con
 
-CONNECTION = get_connection(
-    "127.0.0.1", 
-    27017, 
-    os.environ.get("DB_ADMIN", "admin"), 
-    os.environ.get("DB_PASSWORD", "password")
-    )
-DB = CONNECTION['files']
-FS = gridfs.GridFS(DB)
-
-
 def get_species_and_filename(uri):
     parts = filter(None, uri.split("/"))
     if len(parts) < 2:
@@ -34,6 +24,15 @@ def get_species_and_filename(uri):
 
 
 def application(env, start_response):
+    CONNECTION = get_connection(
+        "127.0.0.1", 
+        27017, 
+        os.environ.get("DB_ADMIN", "admin"), 
+        os.environ.get("DB_PASSWORD", "password")
+        )
+    DB = CONNECTION['files']
+    FS = gridfs.GridFS(DB)
+
     uri = env['PATH_INFO']
     species, filename = get_species_and_filename(uri)
     if not all([species, filename]):
