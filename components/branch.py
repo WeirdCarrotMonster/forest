@@ -235,7 +235,6 @@ class Branch(object):
         for leaf in self.leaves:
             if leaf.name in to_stop:
                 stop_list.append(leaf)
-                # self.del_leaf(leaf)
 
         
         for leaf in assigned_leaves:
@@ -250,7 +249,7 @@ class Branch(object):
 
                     restart_list.append(leaf_running)
 
-            elif leaf["name"] in to_launch:
+            elif leaf["name"] in to_start:
                 start_list.append(leaf)
                 
 
