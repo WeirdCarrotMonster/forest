@@ -213,14 +213,17 @@ class Branch(object):
         """
         # Составляем списки имеющихся листьев и требуемых
         current = [leaf.name for leaf in self.leaves]
-        assigned_leaves = self.__get_assigned_leaves()
-        assigned = [leaf["name"] for leaf in assigned_leaves]
+        assigned_leaves = {
+            i["name"]: i
+            for i in self.__get_assigned_leaves()
+        }
+        assigned = [leaf for leaf in assigned_leaves.keys()]
 
         # Сравниваем списки листьев
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
-        to_stop = list(set(current) - set(assigned))
-        to_start= list(set(assigned) - set(current))
+        to_stop  = list(set(current) - set(assigned))
+        to_start = list(set(assigned) - set(current))
         to_check = list(set(current) & set(assigned))
 
         log_message("Triggering update", component="Branch")
@@ -228,43 +231,32 @@ class Branch(object):
                     ".format(to_stop, to_start, to_check, current, assigned),
                     component="Branch")
 
-        stop_list = []
-        start_list = []
+        # Формируем списки листьев, с которыми работаем
+        stop_list    = []
+        start_list   = []
         restart_list = []
 
-        for leaf in self.leaves:
-            if leaf.name in to_stop:
-                stop_list.append(leaf)
+        for leaf in to_stop:
+            stop_list.append(self.get_leaf(leaf))
 
-        
-        for leaf in assigned_leaves:
-            if leaf["name"] in to_check:
-                leaf_running = self.get_leaf(leaf["name"])
-                if leaf.get("settings", {}) !=  leaf_running.settings   or \
-                   leaf.get("env", {})      !=  leaf_running.launch_env or \
-                   leaf.get("address", [])  !=  leaf_running.address:
-                    leaf_running.settings = leaf.get("settings", {})
-                    leaf_running.env      = leaf.get("env", {})
-                    leaf_running.address  = leaf.get("address", [])
+        for leaf in to_check:
+            leaf_running = self.get_leaf(leaf)
+            leaf_shouldb = assigned_leaves[leaf]
+            if leaf_shouldb.get("settings", {}) !=  leaf_running.settings   or \
+               leaf_shouldb.get("env", {})      !=  leaf_running.launch_env or \
+               leaf_shouldb.get("address", [])  !=  leaf_running.address:
+                stop_list.append(leaf_running)
+                start_list.append(leaf_shouldb)
 
-                    restart_list.append(leaf_running)
+        for leaf in to_start:
+            start_list.append(assigned_leaves[leaf])
 
-            elif leaf["name"] in to_start:
-                start_list.append(leaf)
-                
-
-        log_message("We decided to:\nstop: {0}\nstart: {1}\nrestart: {2}\
-                    ".format(stop_list, start_list, restart_list),
-                    component="Branch")
-
-        for leaf in start_list:
-            self.add_leaf(leaf)
+        # Выполняем обработку листьев
 
         for leaf in stop_list:
             self.del_leaf(leaf)
 
-        for leaf in restart_list:
-            self.del_leaf(leaf)
+        for leaf in start_list:
             self.add_leaf(leaf)
 
         return {
