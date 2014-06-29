@@ -1,25 +1,15 @@
 <div class="leaves">
     <ul>
-        <li class="leaf branch">
+        <li ng-repeat="branch in branches" class="leaf branch">
             <h3>
-                <span><a class="link" href="#branches/hul/logs">Ветвь</a></span>
-            </h3>
-            <p class="desc">
-                Какое-то описание
-            </p>
-            <ul class="tags">
-                <li>Clients</li>
-                <li>Espresso</li>
-                <li>Bonus</li>
-            </ul>
-        </li>
-        <li class="leaf">
-            <h3>
-                <span><a class="link" href="#branches/{{branch.name}}/logs">{{branches.name}}</a></span>
+                <span><a class="link" href="#branches/{{branch.name}}/logs">{{ branch.name }}</a></span>
             </h3>
             <p class="desc">
                 {{branch.desc}}
             </p>
+            <ul ng-repeat="t in branch.type" class="tags">
+                <li>{{ t }}</li>
+            </ul>
         </li>
     </ul>
 </div>
