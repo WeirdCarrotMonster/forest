@@ -23,7 +23,7 @@ class Leaf(object):
                  python_executable="python2.7",
                  host="127.0.0.1",
                  executable=None,
-                 chdir=None,
+                 path=None,
                  env=None,
                  settings=None,
                  fastrouters=None,
@@ -31,14 +31,13 @@ class Leaf(object):
                  address="",
                  static=None,
                  leaf_type=None,
-                 emperor=None,
                  logger=None,
                  component=None
                  ):
         self.name = name
         self.python_executable = python_executable
         self.host = host
-        self.chdir = chdir
+        self.chdir = path
         self.executable = executable
         self.launch_env = env or {}
         self.settings = settings or {}
@@ -48,7 +47,6 @@ class Leaf(object):
         self.address = address
         self.static = static
         self.type = leaf_type
-        self.emperor = emperor
         self.logger = logger
         self.component = component
 
@@ -58,6 +56,16 @@ class Leaf(object):
 
         self._last_req_measurement = datetime.datetime.now()
         self._last_req_count = 0
+
+    def __ne__(self, other):
+        r1 = self.address == other.address
+        r2 = self.settings == other.settings
+        r3 = self.launch_env.get("db_pass") == other.launch_env.get("db_pass")
+        r4 = self.launch_env.get("db_name") == other.launch_env.get("db_name")
+        r5 = self.launch_env.get("db_user") == other.launch_env.get("db_user")
+        if not all([r1, r2, r3, r4, r5]):
+            return True
+        return False
 
     def init_database(self):
         # Инициализация таблиц через syncdb
@@ -153,23 +161,5 @@ class Leaf(object):
         return config
 
     def run_tasks(self, tasks):
-        for task in tasks:
-            task()
-
-    def start(self):
-        self.emperor.send_multipart([
-            bytes('touch'),
-            bytes('{}.ini'.format(self.name)),
-            bytes(self.get_config())
-        ])
-
-    def stop(self):
-        self.emperor.send_multipart([
-            bytes('destroy'),
-            bytes('{}.ini'.format(self.name))
-        ])
-
-    def restart(self):
-        self.stop()
-        sleep(5)
-        self.start()
+        for task, args in tasks:
+            task(*args)
