@@ -30,31 +30,9 @@ class Air():
             stdout=subprocess.PIPE
         )
 
-        cmd_statichandler = [
-            os.path.join(self.settings["emperor_dir"], "uwsgi"),
-            "--socket=127.0.0.1:3001",
-            "--master",
-            "--processes=4",
-            "--wsgi-file={0}".format(self.settings["statichandler"])
-        ]
-        
-        env = os.environ.copy()
-        env["DB_ADMIN"] = self.settings.get("mongo_user", "admin")
-        env["DB_PASSWORD"] = self.settings.get("mongo_pass", "password")
-        self.statichandler = subprocess.Popen(
-            cmd_statichandler,
-            bufsize=1,
-            close_fds=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            env=env
-        )
-
     def cleanup(self):
         self.fastrouter.send_signal(signal.SIGINT)
         self.fastrouter.wait()
-        self.statichandler.send_signal(signal.SIGINT)
-        self.statichandler.wait()
 
     def update_state(self, message):
         trunk = get_default_database(self.settings)
