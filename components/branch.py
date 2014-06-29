@@ -5,24 +5,16 @@
 процессов.
 """
 from __future__ import print_function, unicode_literals
-import os
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, check_arguments, \
-    run_parallel, LogicError, get_default_database, hashfile, get_settings_connection
+from components.common import log_message, check_arguments, LogicError, get_default_database
 import traceback
 import simplejson as json
-import psutil
 import datetime
-import subprocess
-import socket
 import signal
-import zmq
 from threading import Thread
-import os
-import gridfs
-import mimetypes
 from components.emperor import Emperor
+from logparse import logparse
 
 
 class Branch(object):
@@ -84,13 +76,17 @@ class Branch(object):
                 data_parsed["added"] = datetime.datetime.now()
                 trunk.logs.insert(data_parsed)
             except Exception as e:
-                trunk.logs.insert({
+                data_parsed, important = logparse(data)
+                data_parsed.update({
                     "component_name": self.settings["name"],
                     "component_type": "branch",
-                    "log_type": "branch.event",
-                    "content": data,
                     "added": datetime.datetime.now()
                 })
+
+                print(data_parsed)
+                if important:
+                    trunk.logs.insert(data_parsed)
+
 
     def __get_assigned_leaves(self):
         """

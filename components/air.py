@@ -3,32 +3,55 @@ import subprocess
 import os
 import shutil
 import signal
+import socket
 from components.common import get_default_database, log_message
+from threading import Thread
+from logparse import logparse
+import re
 
 
 class Air():
-
-    def __init__(self, settings):
+    def __init__(self, settings, port=3000, logs_port=2999):
         self.settings = settings
+        self.port = port
+        self.logs_port = logs_port
 
         self.update_state(None)
 
         cmd_fastrouter = [
             os.path.join(self.settings["emperor_dir"], "uwsgi"),
-            "--fastrouter=127.0.0.1:3000",
+            "--fastrouter=127.0.0.1:%d" % self.port,
             "--fastrouter-subscription-server={0}:{1}".format(
                 self.settings["host"], str(self.settings["fastrouter"])),
             "--master",
-            "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"])
+            "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"]),
+            "--logger", "socket:127.0.0.1:%d" % self.logs_port
         ]
 
-        self.fastrouter = subprocess.Popen(
-            cmd_fastrouter,
-            bufsize=1,
-            close_fds=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-        )
+        self.fastrouter = subprocess.Popen(cmd_fastrouter)
+
+        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.log_socket.bind(("127.0.0.1", self.logs_port))
+        self.log_socket.settimeout(0.5)
+
+        self.logger_thread = Thread(target=self.__logger)
+        self.logger_thread.daemon = True
+        self.logger_thread.start()
+
+    def __logger(self):
+        while True:
+            try:
+                data, addr = self.log_socket.recvfrom(2048)
+
+                # ==============
+                # Проверяем соответствие регуляркам
+                print(logparse(data)[0])
+
+            except socket.timeout:
+                pass
+            except socket.error:
+                pass
+
 
     def cleanup(self):
         self.fastrouter.send_signal(signal.SIGINT)
