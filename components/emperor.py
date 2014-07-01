@@ -53,7 +53,7 @@ class Emperor():
         if leaf.name in self.vassal_names.keys():
             self.stop_leaf(leaf)
 
-        leaf_name = "{}_{}.ini".format(leaf.name, str(int(time.time())))
+        leaf_name = "{}_{}.ini".format(leaf.name, str(time.time()).replace(".", ""))
         self.vassal_names[leaf.name] = leaf_name
 
         self.emperor_socket.send_multipart([
