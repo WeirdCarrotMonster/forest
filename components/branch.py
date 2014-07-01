@@ -262,8 +262,7 @@ class Branch(object):
         """
         Метод выключения листьев при остановке.
         """
-        self.emperor.send_signal(signal.SIGINT)
-        self.emperor.wait()
+        self.emperor.stop_emperor()
         self.running = False
 
     def update_repo(self, message):

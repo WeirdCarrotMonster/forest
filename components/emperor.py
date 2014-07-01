@@ -49,6 +49,10 @@ class Emperor():
 
         self.vassal_names = {}
 
+    def stop_emperor(self):
+        self.emperor.send_signal(signal.SIGINT)
+        self.emperor.wait()
+
     def start_leaf(self, leaf):
         if leaf.name in self.vassal_names.keys():
             self.stop_leaf(leaf)
