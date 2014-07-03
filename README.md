@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/weirdcarrotmonster/forest.png?label=ready&title=Ready)](https://waffle.io/weirdcarrotmonster/forest)
 FOREST - place, where your servers grow.
 ========
 
