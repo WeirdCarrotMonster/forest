@@ -287,5 +287,5 @@ class Druid():
                 "branch": leaf.get("branch") if type(leaf.get("branch")) == list else [leaf.get("branch")]
             } for leaf in leaves
         ]
-        return { "result": "success", "leaves": leaves_list}
+        return {"result": "success", "leaves": leaves_list}
 

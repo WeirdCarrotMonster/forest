@@ -18,7 +18,7 @@ except ImportError:
 from components.branch import Branch
 from components.air import Air
 from components.common import TransparentListener, log_message
-from components.druid import Druid
+import components.druid
 
 if len(sys.argv) < 2:
     log_message(
@@ -80,7 +80,7 @@ if "branch" in SETTINGS["roles"].keys():
 if True:  # Предполагаем, что каждый компонент может выступать в роли интерфейса
     role_settings = {}  # Будут настройки?
     role_settings.update(base_settings)
-    druid = Druid(role_settings, APPLICATION)
+    druid = components.druid.Druid(role_settings, APPLICATION)
     APPLICATION.druid = druid
     APPLICATION.functions.update(druid.functions)
 
@@ -106,7 +106,19 @@ def cleanup(signum=None, frame=None):
     log_message("Done!")
     sys.exit(0)
 
-for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+
+def reload_druid(signum=None, frame=None):
+    log_message("Got SIGHUP, reloading web interface module")
+    reload(components.druid)
+    role_settings = {}  # Будут настройки?
+    role_settings.update(base_settings)
+    druid = components.druid.Druid(role_settings, APPLICATION)
+    APPLICATION.druid = druid
+    APPLICATION.functions.update(druid.functions)
+
+for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
     signal.signal(sig, cleanup)
+
+signal.signal(signal.SIGHUP, reload_druid)
 
 loop.start()
