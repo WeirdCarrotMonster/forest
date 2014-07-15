@@ -1,6 +1,6 @@
 <div class="leaves">
     <div class="controls">
-        <a href="#/leaves/add" class="btn btn-middle btn-green width-165"><i class="fa fa-plus"></i> Добавить лист</a>
+        <a href="/leaves/add" class="btn btn-middle btn-green width-165"><i class="fa fa-plus"></i> Добавить лист</a>
         <input type="text" class="input-search width-165" placeholder="Поиск" ng-model="search"/>
     </div>
     <ul>
@@ -12,7 +12,7 @@
                 <a href="" class="icon-status statuswarning" ng-show="leaf.active && leaf.branch.length == 0">
                     <i class="fa fa-warning"></i>
                 </a>
-                <span><a class="link" href="#leaves/{{leaf.name}}/logs">{{leaf.name}}</a></span>
+                <span><a class="link" href="/leaves/{{leaf.name}}/logs">{{leaf.name}}</a></span>
             </h3>
             <p class="desc">
                 {{leaf.desc}}

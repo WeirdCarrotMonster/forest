@@ -1,6 +1,6 @@
 forest = angular.module('Forest', ['ngRoute', 'ngAnimate', 'route-segment', 'view-segment']);
 
-forest.config(function($routeSegmentProvider, $routeProvider) {
+forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider) {
 
     // Configuring provider options
 
@@ -99,6 +99,7 @@ forest.config(function($routeSegmentProvider, $routeProvider) {
         })
 
     $routeProvider.otherwise({redirectTo: '/'});
+    $locationProvider.html5Mode(true);
 });
 
 forest.value('loader', {show: false});
@@ -112,3 +113,4 @@ function Dashboard($scope, $routeSegment, loader) {
         loader.show = false;
     })
 }
+

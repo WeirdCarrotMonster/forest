@@ -57,13 +57,10 @@ class Trunk(tornado.web.Application):
         if page in self.safe_urls.keys():
             return self.safe_urls[page]
 
-        if page in self.auth_urls.keys() and user:
-            return self.auth_urls[page]
-
-        if page in self.auth_urls.keys() and not user:
+        if not user:
             raise Exception(401)
 
-        raise Exception(404)
+        return self.auth_urls[""]
 
     def unknown_function_handler(self, **kwargs):
         return {}
