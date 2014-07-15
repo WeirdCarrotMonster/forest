@@ -1,19 +1,12 @@
-<nav class="horizontal pills">
-    <ul>
-        <li><a href="" ng-class="{log_enabled: log_enabled('leaf.event')}" ng-click="toggle_log_type('leaf.event')">Запросы</a></li>
-        <li><a href="" ng-class="{log_enabled: log_enabled('leaf.initdb')}" ng-click="toggle_log_type('leaf.initdb')">Инициализация</a></li>
-        <li><a href="" ng-class="{log_enabled: log_enabled('leaf.migrate')}" ng-click="toggle_log_type('leaf.migrate')">Обновление</a></li>
-    </ul>
-</nav>
 <a href="" class="btn btn-green btn-100 btn-monospase">Подгрузить ещё</a>
 <ul class="logs">
     <div ng-repeat="log in logs" class="log_record" ng-class="{bgred: log.status == 500}">
-    	<div ng-if="log.log_type == 'leaf.event'" ng-show="log_types.indexOf(log.log_type) != -1">
+    	<div ng-if="log.log_type == 'leaf.event'">
     		<span>{{ log.time }}</span>
     		<span>{{ log.status }}</span> <span>{{ log.component_name }}</span>	
     		<div>{{ log.uri }}</div>
     	</div>
-    	<div ng-if="log.log_type != 'leaf.event'" ng-show="log_types.indexOf(log.log_type) != -1">
+    	<div ng-if="log.log_type != 'leaf.event'">
     		{{ log }}
     	</div>
     </div>

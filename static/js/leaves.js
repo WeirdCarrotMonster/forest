@@ -69,21 +69,7 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
         error(function(data, status, headers, config) {
         });
     }
-    $scope.loadLogs()
-
-    $scope.log_types = ["leaf.event", "leaf.initdb"];
-
-    $scope.log_enabled = function(log_type) {
-        return $scope.log_types.indexOf(log_type) != -1;
-    }
-
-    $scope.toggle_log_type = function(log_type) {
-        if ($scope.log_types.indexOf(log_type) != -1){
-            $scope.log_types.splice($scope.log_types.indexOf(log_type), 1);
-        }else{
-            $scope.log_types.push(log_type);
-        }
-    }
+    $scope.loadLogs();
 }
 
 function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
