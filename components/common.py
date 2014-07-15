@@ -9,7 +9,6 @@ from bson import json_util
 import traceback
 import os
 from multiprocessing import Process
-from pymongo import MongoReplicaSetClient
 import pymongo
 import random
 import string
@@ -27,7 +26,7 @@ def hashfile(afile, blocksize=65536):
 
 def get_connection(host, port, user, password, auth=True):
     try:
-        con = MongoReplicaSetClient(host, port, replicaSet="forest")
+        con = pymongo.MongoReplicaSetClient(host, port, replicaSet="forest")
     except pymongo.errors.ConfigurationError, pymongo.errors.ConnectionFailure:
         con = pymongo.MongoClient(host, port)
     if auth:

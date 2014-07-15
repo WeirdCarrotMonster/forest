@@ -184,14 +184,10 @@ class Trunk(tornado.web.Application):
         }
 
         logs_raw = trunk.logs.find(log_filter).sort("added", -1).limit(200)
-        
-        logs = []
-        for log in logs_raw:
-            logs.insert(0, log)
 
         return {
             "result": "success",
-            "logs": logs
+            "logs": [l for l in logs_raw]
         }
 
     def toggle_leaf(self, message):
