@@ -3,7 +3,6 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
-import pymongo
 from components.common import check_arguments, get_default_database, \
     LogicError, authenticate_user
 
@@ -28,7 +27,7 @@ class Trunk(tornado.web.Application):
             "": "html/dashboard.html"
         }
 
-        self.functions = {} # Заполняется функциями при подключении модулей
+        self.functions = {}  # Заполняется функциями при подключении модулей
 
     def publish_self(self):
         trunk = get_default_database(self.settings)
