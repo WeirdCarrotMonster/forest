@@ -16,7 +16,11 @@ class Air():
         self.port = port
         self.logs_port = logs_port
 
-        self.update_state(None)
+        self.functions = {
+            "air.update_state": self.update_state
+        }
+
+        self.update_state()
 
         cmd_fastrouter = [
             os.path.join(self.settings["emperor_dir"], "uwsgi"),
@@ -57,7 +61,7 @@ class Air():
         self.fastrouter.send_signal(signal.SIGINT)
         self.fastrouter.wait()
 
-    def update_state(self, message):
+    def update_state(self, **kwargs):
         trunk = get_default_database(self.settings)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")

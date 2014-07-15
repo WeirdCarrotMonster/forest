@@ -18,6 +18,7 @@ except ImportError:
 from components.branch import Branch
 from components.air import Air
 from components.common import TransparentListener, log_message
+from components.druid import Druid
 
 if len(sys.argv) < 2:
     log_message(
@@ -55,10 +56,9 @@ log_message("Setting role: {0}".format(SETTINGS["roles"].keys()))
 if "air" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["air"]
     role_settings.update(base_settings)
-
     air = Air(role_settings)
     APPLICATION.air = air
-    APPLICATION.functions["air.update_state"] = air.update_state
+    APPLICATION.functions.update(air.functions)
 
 if "roots" in SETTINGS["roles"].keys():
     if not ROOTS_CAPABLE:
@@ -68,19 +68,22 @@ if "roots" in SETTINGS["roles"].keys():
     role_settings.update(base_settings)
     roots = Roots(role_settings)
     APPLICATION.roots = roots
-    APPLICATION.functions["roots.update_state"] = roots.update_state
+    APPLICATION.functions.update(roots.functions)
 
 if "branch" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["branch"]
     role_settings.update(base_settings)
-
     branch = Branch(role_settings)
     APPLICATION.branch = branch
-    APPLICATION.functions["branch.update_state"] = branch.update_state
-    APPLICATION.functions["branch.update_repository"] = branch.update_repo
-    logging_callback = tornado.ioloop.PeriodicCallback(
-        APPLICATION.branch.save_leaf_logs, 1000 * 5, loop)
-    logging_callback.start()
+    APPLICATION.functions.update(branch.functions)
+
+if True:  # Предполагаем, что каждый компонент может выступать в роли интерфейса
+    role_settings = {}  # Будут настройки?
+    role_settings.update(base_settings)
+    druid = Druid(role_settings, APPLICATION)
+    APPLICATION.druid = druid
+    APPLICATION.functions.update(druid.functions)
+
 
 APPLICATION.publish_self()
 # Запускаем приложение

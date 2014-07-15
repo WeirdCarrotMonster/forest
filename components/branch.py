@@ -25,6 +25,11 @@ class Branch(object):
         self.settings = settings
         self.leaves = []
 
+        self.functions = {
+            "branch.update_state": self.update_state,
+            "branch.update_repository": self.update_repository
+        }
+
         trunk = get_default_database(self.settings)
         self.fastrouters = []
         self.roots = []
@@ -103,14 +108,6 @@ class Branch(object):
             "active": True
         })
 
-    def save_leaf_logs(self):
-        """
-        Метод логгирования событий листьев.
-        Читает накопившиеся события из потока чтения событий
-        и сохраняет их в коллекцию logs MongoDB
-        """
-        trunk = get_default_database(self.settings)
-
     def get_leaf(self, leaf_name):
         """
         Получает лист по его имени
@@ -175,7 +172,7 @@ class Branch(object):
         self.emperor.stop_leaf(leaf)
         self.leaves.remove(leaf)
 
-    def update_state(self, *args, **kwargs):
+    def update_state(self, **kwargs):
         """
         Метод обновления состояния ветви.
         Обновление включает поиск новых листьев, поиск листьев с
@@ -265,7 +262,7 @@ class Branch(object):
         self.emperor.stop_emperor()
         self.running = False
 
-    def update_repo(self, message):
+    def update_repository(self, type, **kwargs):
         """
         Метод обновления репозитория.
 
@@ -274,17 +271,14 @@ class Branch(object):
         @rtype: dict
         @return: Результат обновления репозитория и логи обновления
         """
-        check_arguments(message, ["type"])
-        repo_name = message["type"]
-
-        if not repo_name in self.settings["species"].keys():
+        if not type in self.settings["species"].keys():
             return {
                 "result": "failure",
                 "message": "Unknown repo type"
             }
 
-        repo_path = self.settings["species"][repo_name]["path"]
-        repo_type = self.settings["species"][repo_name]["type"]
+        repo_path = self.settings["species"][type]["path"]
+        repo_type = self.settings["species"][type]["type"]
 
         try:
             if repo_type == "git":
@@ -307,7 +301,7 @@ class Branch(object):
                 "message": traceback.format_exc()
             }
 
-        to_update = [leaf for leaf in self.leaves if leaf.type == repo_name]
+        to_update = [leaf for leaf in self.leaves if leaf.type == type]
 
         trunk = get_default_database(self.settings)
         for leaf in to_update:

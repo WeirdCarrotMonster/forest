@@ -13,13 +13,13 @@
         },
         "branch": {
             "host": "127.0.0.1",
-            "keyfile": "/home/wcm/forest/keys/private.pem",
-            "emperor_dir": "/home/wcm/forest/bin",
+            "keyfile": "/home/wcm/coding/forest/keys/private.pem",
+            "emperor_dir": "/home/wcm/coding/forest/bin",
             "species": {
                 "espresso": {
                     "type": "git",
-                    "path": "/home/wcm/espresso",
-                    "executable": "/home/wcm/espresso/manage.py",
+                    "path": "/home/wcm/coding/espresso",
+                    "executable": "/home/wcm/coding/espresso/manage.py",
                     "static": {
                         "mount": "/static",
                         "dir": "static"
@@ -28,9 +28,9 @@
             }
         },
         "air": {
-            "keydir": "/home/wcm/forest/keys",
-            "emperor_dir": "/home/wcm/forest/bin",
-            "statichandler": "/home/wcm/forest/components/statichandler.py",
+            "keydir": "/home/wcm/coding/forest/keys",
+            "emperor_dir": "/home/wcm/coding/forest/bin",
+            "statichandler": "/home/wcm/coding/forest/components/statichandler.py",
             "host": "127.0.0.1",
             "fastrouter": 3333
         }

@@ -10,13 +10,10 @@ class Roots():
 
     def __init__(self, settings):
         self.settings = settings
-        self.update_state(None)
+        self.update_state()
 
-    def status_report(self, message):
-        return {
-            "result": "success",
-            "message": "Working well",
-            "role": "roots"
+        self.functions = {
+            "roots.update_state": self.update_state
         }
 
     @staticmethod
@@ -58,7 +55,7 @@ class Roots():
         cur.close()
         return bool(result[0][0])
 
-    def update_state(self, message):
+    def update_state(self, **kwargs):
         trunk = get_default_database(self.settings)
         to_prepare = trunk.leaves.find({"env": {'$exists': False}})
         for leaf in to_prepare:
