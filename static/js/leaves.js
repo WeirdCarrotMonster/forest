@@ -94,6 +94,10 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
     $scope.convertDate = function (date) {
         moment.lang("ru");
         return moment(date).format('LLLL');
+    };
+    $scope.fixNewline = function (text) {
+        text = text.replace(/\n\n/g,"\n");
+        return text;
     }
     $scope.loadLogs();
 }
