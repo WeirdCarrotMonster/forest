@@ -69,9 +69,31 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
         }).
         error(function(data, status, headers, config) {
         });
-    }
-    $scope.lastIndex = function () {
-        alert($scope.logs[0]["_id"]["$oid"])
+    };
+    $scope.updateLogs = function () {
+        var log_id = $scope.logs[0]["_id"];
+        $http({
+            method: 'POST',
+            url: '/',
+            data: {
+                function: "get_leaf_logs",
+                name: $scope.$parent.leafid,
+                last: log_id
+            }
+        }).
+        success(function(data, status, headers, config) {
+            if (data["result"] == "success"){
+                var new_logs = data["logs"];
+                new_logs.push.apply(new_logs, $scope.logs);
+                $scope.logs = new_logs;
+            }
+        }).
+        error(function(data, status, headers, config) {
+        });
+    };
+    $scope.convertDate = function (date) {
+        moment.lang("ru");
+        return moment(date).format('LLLL');
     }
     $scope.loadLogs();
 }

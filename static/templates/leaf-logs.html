@@ -1,12 +1,13 @@
-<a href="" class="btn btn-green btn-100 btn-monospase" ng-click="lastIndex()">Подгрузить ещё</a>
+<a href="" class="btn btn-green btn-100 btn-monospase" ng-click="updateLogs()">Подгрузить ещё</a>
 <ul class="logs">
     <div ng-repeat="log in logs" class="log_record" ng-class="{bgred: log.status == 500}">
     	<div ng-if="log.log_type == 'leaf.event'">
-    		<span>{{ log.time }}</span>
+    		<span>{{ convertDate(log.added) }}</span>
     		<span>{{ log.status }}</span> <span>{{ log.component_name }}</span>	
-    		<div>{{ log.uri }}</div>
+    		<div>Request: {{ log.method }} {{ log.uri }}</div>
     	</div>
     	<div ng-if="log.log_type != 'leaf.event'">
+            <span>{{ convertDate(log.added) }}</span>
     		{{ log }}
     	</div>
     </div>

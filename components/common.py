@@ -5,13 +5,14 @@ import tornado.web
 import tornado.gen
 import simplejson as json
 from datetime import datetime
-from bson import json_util
+import bson
 import traceback
 import os
 from multiprocessing import Process
 import pymongo
 import hashlib
 from tornado import gen
+from simplejson import JSONEncoder
 
 
 def hashfile(afile, blocksize=65536):
@@ -71,6 +72,16 @@ class LogicError(Exception):
     pass
 
 
+class CustomEncoder(JSONEncoder):
+    def default(self, obj):
+        if type(obj) == datetime:
+            return obj.isoformat()
+        elif type(obj) == bson.objectid.ObjectId:
+            return str(obj)
+        else:
+            return JSONEncoder.default(self, obj)
+
+
 class TransparentListener(tornado.web.RequestHandler):
     def get_current_user(self):
         return self.get_secure_cookie("user")
@@ -110,7 +121,7 @@ class TransparentListener(tornado.web.RequestHandler):
                     "result": "failure",
                     "message": "Failed to decode message",
                     "details": traceback.format_exc()
-                }, default=json_util.default))
+                }, cls=CustomEncoder))
             return
 
         try:
@@ -144,7 +155,7 @@ class TransparentListener(tornado.web.RequestHandler):
                 "details": traceback.format_exc()
             }
         self.set_header("Content-Type", "application/json")
-        self.finish(json.dumps(response, default=json_util.default))
+        self.finish(json.dumps(response, cls=CustomEncoder))
 
 
 def log_message(message, component="Forest"):

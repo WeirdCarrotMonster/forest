@@ -6,6 +6,7 @@
 """
 import pymongo
 from components.common import get_default_database, LogicError
+from bson.objectid import ObjectId
 
 
 class Druid():
@@ -257,15 +258,20 @@ class Druid():
             "leaf": leaf_response
         }
 
-    def get_leaf_logs(self, name, offset=0, limit=200, **kwargs):
+    def get_leaf_logs(self, name, offset=0, limit=200, last=None, **kwargs):
         # Проверяем наличие требуемых аргументов
         trunk = get_default_database(self.settings)
 
-        log_filter = {
-            "log_source": name
-        }
-
-        logs_raw = trunk.logs.find(log_filter).sort("added", -1)[offset:offset+limit]
+        if last:
+            last_log = trunk.logs.find_one({"_id": ObjectId(last)})
+            logs_raw = trunk.logs.find({
+                "log_source": name,
+                "added": {
+                    "$gt": last_log.get("added")
+                }
+            }).sort("added", -1)
+        else:
+            logs_raw = trunk.logs.find({"log_source": name}).sort("added", -1)[offset:offset+limit]
 
         return {
             "result": "success",
