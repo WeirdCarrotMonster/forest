@@ -3,8 +3,7 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
-from components.common import check_arguments, get_default_database, \
-    LogicError, authenticate_user
+from components.common import get_default_database, LogicError, authenticate_user
 
 
 class Trunk(tornado.web.Application):
@@ -12,7 +11,6 @@ class Trunk(tornado.web.Application):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
         self.settings["cookie_secret"] = "asdasd"
-        self.handler = None
 
         # Компоненты
         self.branch = None
@@ -66,14 +64,15 @@ class Trunk(tornado.web.Application):
 
     def process_message(self,
                         message,
-                        handler=None,
+                        handler,
                         user=None,
-                        inner=False):
-        self.handler = handler
+                        inner=False,
+                        callback=None):
         function = message.get('function', None)
 
         if function == "login_user":
-            return self.login_user(message, user=user)
+            callback(self.login_user(user=user, handler=handler, **message))
+            return
 
         if not (user or inner):
             raise LogicError("Not authenticated")
@@ -85,7 +84,7 @@ class Trunk(tornado.web.Application):
         response = self.functions.get(function, self.unknown_function_handler)(**message)
         response["type"] = "result"
 
-        return response
+        callback(response)
 
     def send_message(self, receiver, contents):
         try:
@@ -111,7 +110,7 @@ class Trunk(tornado.web.Application):
                 "message": e.message
             }
 
-    def login_user(self, message, user=None):
+    def login_user(self, username, password, handler, user=None, **kwargs):
         if user:
             return {
                 "type": "login",
@@ -119,30 +118,20 @@ class Trunk(tornado.web.Application):
                 "message": "Already authenticated"
             }
 
-        user_data = check_arguments(message, ['username', 'password'])
-        username = user_data["username"]
-        password = user_data["password"]
-
-        if self.handler:
-            if authenticate_user(self.settings, username, password):
-                self.handler.set_secure_cookie("user", username)
-                return {
-                    "type": "login",
-                    "result": "success",
-                    "message": "Successfully logged in",
-                    "name": username
-                }
-            else:
-                return {
-                    "type": "login",
-                    "result": "error",
-                    "message": "Wrong credentials"
-                }
-        return {
-            "type": "result",
-            "result": "error",
-            "message": "Failed to authenticate"
-        }
+        if authenticate_user(self.settings, username, password):
+            handler.set_secure_cookie("user", username)
+            return {
+                "type": "login",
+                "result": "success",
+                "message": "Successfully logged in",
+                "name": username
+            }
+        else:
+            return {
+                "type": "login",
+                "result": "error",
+                "message": "Wrong credentials"
+            }
 
     def cleanup(self):
         if self.branch:

@@ -10,9 +10,8 @@ import traceback
 import os
 from multiprocessing import Process
 import pymongo
-import random
-import string
 import hashlib
+from tornado import gen
 
 
 def hashfile(afile, blocksize=65536):
@@ -68,25 +67,8 @@ def run_parallel(fns):
         p.join()
 
 
-class ArgumentMissing(Exception):
-    pass
-
-
 class LogicError(Exception):
     pass
-
-
-def check_arguments(message, required_args, optional_args=None):
-    data = {}
-    for arg in required_args:
-        value = message.get(arg, None)
-        if not value:
-            raise ArgumentMissing(arg)
-        else:
-            data[arg] = value
-    for arg in optional_args or []:
-        data[arg[0]] = message.get(arg[0], arg[1])
-    return data
 
 
 class TransparentListener(tornado.web.RequestHandler):
@@ -113,6 +95,8 @@ class TransparentListener(tornado.web.RequestHandler):
             elif e.message == 404:
                 self.redirect('/', permanent=True)
 
+    @tornado.web.asynchronous
+    @gen.engine
     def post(self, stuff):
         # Вот тут обрабатывается API
         # Строго через POST
@@ -132,17 +116,16 @@ class TransparentListener(tornado.web.RequestHandler):
         try:
             # TODO: валидацию понадежнее
             message_secret = message.get("secret")
-            key = ''.join(random.choice(string.digits) for _ in range(9))
-            response = self.application.process_message(
-                message,
-                handler=self,
-                user=self.get_current_user(),
-                inner=self.application.settings["secret"] == message_secret
-            )
-        except ArgumentMissing as arg:
+            response = yield gen.Task(self.application.process_message, **{
+                "message": message,
+                "user": self.get_current_user(),
+                "inner": self.application.settings["secret"] == message_secret,
+                "handler": self
+            })
+        except TypeError as arg:
             response = {
                 "result": "failure",
-                "message": "Missing argument: {0}".format(arg.message)
+                "message": "Missing argument: {}".format(arg.message)
             }
         except LogicError as arg:
             response = {

@@ -11,7 +11,7 @@ import simplejson as json
 
 from components.trunk import Trunk
 try:
-    from components.roots import Roots    
+    from components.roots import Roots
     ROOTS_CAPABLE = True
 except ImportError:
     ROOTS_CAPABLE = False

@@ -52,6 +52,7 @@ function Leaf($scope, $routeSegment, loader) {
 }
 
 function LeafLogs($scope, $routeSegment, $http, loader) {
+    $scope.logs = [];
     $scope.loadLogs = function () {
         $http({
             method: 'POST',
@@ -68,6 +69,9 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
         }).
         error(function(data, status, headers, config) {
         });
+    }
+    $scope.lastIndex = function () {
+        alert($scope.logs[0]["_id"]["$oid"])
     }
     $scope.loadLogs();
 }
