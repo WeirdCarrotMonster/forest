@@ -7,8 +7,8 @@
             <p class="desc">
                 {{branch.desc}}
             </p>
-            <ul ng-repeat="t in branch.type" class="tags">
-                <li>{{ t }}</li>
+            <ul class="tags">
+                <li ng-repeat="t in branch.type">{{ t }}</li>
             </ul>
         </li>
     </ul>

@@ -40,5 +40,9 @@ function BranchLogs($scope, $routeSegment, $http, loader) {
             error(function(data, status, headers, config) {
             });
     }
+    $scope.fixNewline = function (text) {
+        text = text.replace(/\n\n/g,"\n");
+        return text;
+    }
     $scope.loadLogs()
 }

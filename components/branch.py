@@ -11,7 +11,6 @@ from components.common import log_message, LogicError, get_default_database
 import traceback
 import simplejson as json
 import datetime
-import signal
 from threading import Thread
 from components.emperor import Emperor
 from logparse import logparse
@@ -79,7 +78,6 @@ class Branch(object):
                 data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"]).name
                 data_parsed["specie"] = self.__get_leaf_by_url(data_parsed["host"]).type
                 data_parsed["added"] = datetime.datetime.now()
-                trunk.logs.insert(data_parsed)
             except Exception as e:
                 data_parsed, important = logparse(data)
                 data_parsed.update({
@@ -87,11 +85,7 @@ class Branch(object):
                     "component_type": "branch",
                     "added": datetime.datetime.now()
                 })
-
-                print(data_parsed)
-                if important:
-                    trunk.logs.insert(data_parsed)
-
+            trunk.logs.insert(data_parsed)
 
     def __get_assigned_leaves(self):
         """

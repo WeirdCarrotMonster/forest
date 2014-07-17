@@ -84,7 +84,10 @@ class Trunk(tornado.web.Application):
         response = self.functions.get(function, self.unknown_function_handler)(**message)
         response["type"] = "result"
 
-        callback(response)
+        if callback:
+            callback(response)
+        else:
+            return response
 
     def send_message(self, receiver, contents):
         try:
@@ -102,7 +105,7 @@ class Trunk(tornado.web.Application):
                         allow_ipv6=True
                     ).body)
             else:
-                response = self.process_message(contents, inner=True)
+                response = self.process_message(contents, None, inner=True)
             return response
         except Exception as e:
             return {

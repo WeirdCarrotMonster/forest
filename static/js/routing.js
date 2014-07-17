@@ -89,9 +89,15 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         .within()
 
         .segment('logs', {
-            controller: LeafLogs,
+            controller: BranchLogs,
             templateUrl: '/static/templates/branch-logs.html'
         })
+
+        .up()
+
+        .up()
+
+        .within()
 
         .segment('species', {
             controller: Species,

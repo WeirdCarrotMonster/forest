@@ -47,22 +47,17 @@ class Druid():
             }
         }
 
-    def get_branch_logs(self, name, **kwargs):
+    def get_branch_logs(self, name, offset=0, limit=200, **kwargs):
         trunk = get_default_database(self.settings)
-        log_filter = {
+
+        logs_raw = trunk.logs.find({
             "component_type": "branch",
             "component_name": name
-        }
-
-        logs_raw = trunk.logs.find(log_filter).sort("added", -1).limit(200)
-
-        logs = []
-        for log in logs_raw:
-            logs.insert(0, log)
+        }).sort("added", -1)[offset:offset+limit]
 
         return {
             "result": "success",
-            "logs": logs
+            "logs": [l for l in logs_raw]
         }
 
     def get_branches(self, **kwargs):
