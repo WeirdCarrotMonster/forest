@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-import subprocess
-import os
-import signal
-from components.common import log_message
-import traceback
-import simplejson as json
-from threading import Thread
-from Queue import Queue, Empty
 import datetime
-from time import sleep
+import os
+import subprocess
+
+import simplejson as json
 
 
 def enqueue_output(out, queue):
@@ -111,7 +106,9 @@ class Leaf(object):
         logs = ""
         for line in iter(proc.stderr.readline, ''):
             logs += line + "\n"
-        
+        for line in iter(proc.stdout.readline, ''):
+            logs += line + "\n"
+
         self.logger.insert({
             "component_name": self.component,
             "component_type": "branch",
@@ -143,7 +140,7 @@ class Leaf(object):
         }
 
         config = """[uwsgi]\nchdir={chdir}\nhearthbeat=10\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
-            chdir=self.chdir, 
+            chdir=self.chdir,
             socket=self.host,
             db_settings=json.dumps(self.launch_env),
             app_settings=json.dumps(self.settings),
