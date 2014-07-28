@@ -297,7 +297,6 @@ class Branch(object):
 
         to_update = [leaf for leaf in self.leaves if leaf.type == type]
 
-        trunk = get_default_database(self.settings)
         for leaf in to_update:
             print(leaf.name)
             t = Thread(
