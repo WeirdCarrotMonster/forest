@@ -135,7 +135,6 @@ class Branch(object):
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
-            static=repo.get("static"),
             leaf_type=leaf.get("type"),
             logger=trunk.logs,
             component=self.settings["name"]
