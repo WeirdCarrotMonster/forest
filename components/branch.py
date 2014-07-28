@@ -124,7 +124,7 @@ class Branch(object):
         leaf_env["db_port"] = self.roots[0][1]
 
         trunk = get_default_database(self.settings)
-
+        print(leaf)
         new_leaf = Leaf(
             name=leaf["name"],
             path=repo["path"],
@@ -137,7 +137,8 @@ class Branch(object):
             address=leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
             leaf_type=leaf.get("type"),
             logger=trunk.logs,
-            component=self.settings["name"]
+            component=self.settings["name"],
+            batteries=leaf.get("batteries", {})
         )
         return new_leaf
 
@@ -145,7 +146,7 @@ class Branch(object):
         """
         Запускает лист и добавляет его в список запущенных
 
-        @type leaf: dict
+        @type leaf: Leaf
         @param leaf: Словарь настроек листа
         """
         self.leaves.append(leaf)

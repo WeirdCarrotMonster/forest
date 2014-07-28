@@ -26,7 +26,8 @@ class Leaf(object):
                  address="",
                  leaf_type=None,
                  logger=None,
-                 component=None
+                 component=None,
+                 batteries=None
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -42,6 +43,7 @@ class Leaf(object):
         self.type = leaf_type
         self.logger = logger
         self.component = component
+        self.batteries = batteries
 
         self._thread = None
         self._queue = None
@@ -65,6 +67,7 @@ class Leaf(object):
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
+        my_env["BATTERIES"] = json.dumps(self.batteries)
         logs = ""
         proc = subprocess.Popen(
             [self.python_executable, self.executable, "syncdb", "--noinput"],
@@ -93,6 +96,7 @@ class Leaf(object):
         my_env = os.environ
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
+        my_env["BATTERIES"] = json.dumps(self.batteries)
         proc = subprocess.Popen(
             [self.python_executable, self.executable, "migrate", "--noinput"],
             env=my_env,
@@ -137,11 +141,12 @@ class Leaf(object):
             "static_url": "/static/{0}/".format(self.type)
         }
 
-        config = """[uwsgi]\nchdir={chdir}\nhearthbeat=10\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
+        config = """[uwsgi]\nchdir={chdir}\nhearthbeat=10\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=BATTERIES={batteries}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
             chdir=self.chdir,
             socket=self.host,
             db_settings=json.dumps(self.launch_env),
             app_settings=json.dumps(self.settings),
+            batteries=json.dumps(self.batteries),
             leaf_settings=json.dumps(leaf_settings),
             logformat=json.dumps(logs_format)
         )

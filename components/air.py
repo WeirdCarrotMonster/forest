@@ -49,7 +49,8 @@ class Air():
 
                 # ==============
                 # Проверяем соответствие регуляркам
-                print(logparse(data)[0])
+                data_parsed, important = logparse(data)
+                print(data_parsed)
 
             except socket.timeout:
                 pass
