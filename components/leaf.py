@@ -28,7 +28,8 @@ class Leaf(object):
                  logger=None,
                  component=None,
                  batteries=None,
-                 workers=4
+                 workers=4,
+                 threads=False
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -46,6 +47,7 @@ class Leaf(object):
         self.component = component
         self.batteries = batteries
         self.workers = workers
+        self.threads = threads
 
         self._thread = None
         self._queue = None
@@ -167,6 +169,8 @@ class Leaf(object):
             logformat=json.dumps(logs_format),
             workers=self.workers
         )
+        if self.threads:
+            config += "enable-threads=1\n"
         address_list = self.address if type(self.address) == list else [self.address]
 
         for router in self.fastrouters:
