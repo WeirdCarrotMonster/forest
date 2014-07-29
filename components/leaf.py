@@ -149,7 +149,7 @@ class Leaf(object):
         heartbeat=10
         module=wsgi:application
         socket={socket}:0
-        processes=4
+        processes={workers}
         master=1
         buffer-size=65535
         env=DATABASE_SETTINGS={db_settings}
@@ -164,7 +164,8 @@ class Leaf(object):
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
             leaf_settings=json.dumps(leaf_settings),
-            logformat=json.dumps(logs_format)
+            logformat=json.dumps(logs_format),
+            workers=self.workers
         )
         address_list = self.address if type(self.address) == list else [self.address]
 
