@@ -27,7 +27,8 @@ class Leaf(object):
                  leaf_type=None,
                  logger=None,
                  component=None,
-                 batteries=None
+                 batteries=None,
+                 workers=4
                  ):
         self.name = name
         self.python_executable = python_executable
@@ -44,6 +45,7 @@ class Leaf(object):
         self.logger = logger
         self.component = component
         self.batteries = batteries
+        self.workers = workers
 
         self._thread = None
         self._queue = None
@@ -97,18 +99,18 @@ class Leaf(object):
         my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         my_env["BATTERIES"] = json.dumps(self.batteries)
-        proc = subprocess.Popen(
+        process = subprocess.Popen(
             [self.python_executable, self.executable, "migrate", "--noinput"],
             env=my_env,
             shell=False,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE
             )
-        proc.wait()
+        process.wait()
         logs = ""
-        for line in iter(proc.stderr.readline, ''):
+        for line in iter(process.stderr.readline, ''):
             logs += line + "\n"
-        for line in iter(proc.stdout.readline, ''):
+        for line in iter(process.stdout.readline, ''):
             logs += line + "\n"
 
         self.logger.insert({
@@ -141,7 +143,21 @@ class Leaf(object):
             "static_url": "/static/{0}/".format(self.type)
         }
 
-        config = """[uwsgi]\nchdir={chdir}\nhearthbeat=10\nmodule=wsgi:application\nsocket={socket}:0\nprocesses=4\nmaster=1\nbuffer-size=65535\nenv=DATABASE_SETTINGS={db_settings}\nenv=BATTERIES={batteries}\nenv=APPLICATION_SETTINGS={app_settings}\nenv=LEAF_SETTINGS={leaf_settings}\nlogformat={logformat}\n""".format(
+        config = """
+        [uwsgi]
+        chdir={chdir}
+        heartbeat=10
+        module=wsgi:application
+        socket={socket}:0
+        processes=4
+        master=1
+        buffer-size=65535
+        env=DATABASE_SETTINGS={db_settings}
+        env=BATTERIES={batteries}
+        env=APPLICATION_SETTINGS={app_settings}
+        env=LEAF_SETTINGS={leaf_settings}
+        logformat={logformat}
+        """.format(
             chdir=self.chdir,
             socket=self.host,
             db_settings=json.dumps(self.launch_env),
@@ -150,13 +166,13 @@ class Leaf(object):
             leaf_settings=json.dumps(leaf_settings),
             logformat=json.dumps(logs_format)
         )
-        address = self.address if type(self.address) == list else [self.address]
+        address_list = self.address if type(self.address) == list else [self.address]
 
         for router in self.fastrouters:
-            for addr in address:
+            for address in address_list:
                 config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
-                    addr, self.keyfile)
+                    address, self.keyfile)
 
         return config
 
