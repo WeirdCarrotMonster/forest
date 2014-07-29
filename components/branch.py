@@ -138,7 +138,8 @@ class Branch(object):
             leaf_type=leaf.get("type"),
             logger=trunk.logs,
             component=self.settings["name"],
-            batteries=leaf.get("batteries", {})
+            batteries=leaf.get("batteries", {}),
+            workers=leaf.get("workers", 4)
         )
         return new_leaf
 
