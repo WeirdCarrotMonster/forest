@@ -60,9 +60,9 @@ class Leaf(object):
         r3 = self.launch_env.get("db_pass") == other.launch_env.get("db_pass")
         r4 = self.launch_env.get("db_name") == other.launch_env.get("db_name")
         r5 = self.launch_env.get("db_user") == other.launch_env.get("db_user")
-        if not all([r1, r2, r3, r4, r5]):
-            return True
-        return False
+        r6 = self.workers == other.workers
+        r7 = self.batteries == other.batteries
+        return not all([r1, r2, r3, r4, r5, r6, r7])
 
     def init_database(self):
         # Инициализация таблиц через syncdb
