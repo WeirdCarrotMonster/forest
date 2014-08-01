@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import MySQLdb
 import string
 import random
@@ -9,8 +9,9 @@ import components.batteries
 
 class Roots():
 
-    def __init__(self, settings):
+    def __init__(self, settings, trunk):
         self.settings = settings
+        self.trunk = trunk
         self.update_state()
 
         self.functions = {
@@ -26,8 +27,29 @@ class Roots():
         :rtype : dict
         :return: Результат подготовки баз
         """
+        to_prepare = []
         for battery in components.batteries.Battery.__subclasses__():
-            battery.prepare(self.settings)
+            battery_name = battery.__name__.lower()
+            if battery_name in self.settings:
+                to_prepare.append(battery)
+
+        if not to_prepare:
+            log_message(
+                "No batteries to prepare",
+                component="Roots"
+            )
+        else:
+            log_message(
+                "Preparing batteries: ",
+                component="Roots"
+            )
+
+        trunk = get_default_database(self.trunk.settings)
+
+        for battery in to_prepare:
+            print("{}...".format(battery.__name__.lower()), end="")
+            battery.prepare(self.settings[battery.__name__.lower()], trunk)
+            print("done!")
 
         return {
             "result": "success"

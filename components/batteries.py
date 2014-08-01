@@ -27,15 +27,14 @@ class MySQL(Battery):
     @staticmethod
     def mysql_user_exists(settings, username):
         db = MySQLdb.connect(
-            host=settings.get("mysql_inner", "127.0.0.1"),
-            port=settings["mysql_port"],
-            user=settings["mysql_user"],
-            passwd=settings["mysql_pass"]
+            host=settings.get("host", "127.0.0.1"),
+            port=settings["port"],
+            user=settings["user"],
+            passwd=settings["pass"]
         )
         cur = db.cursor()
         cur.execute(
-            "SELECT EXISTS(SELECT 1 FROM mysql.user \
-                WHERE user = '{0}')".format(username))
+            "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{0}')".format(username))
         result = cur.fetchall()
         cur.close()
         return bool(result[0][0])
@@ -43,10 +42,10 @@ class MySQL(Battery):
     @staticmethod
     def mysql_db_exists(settings, db_name):
         db = MySQLdb.connect(
-            host=settings.get("mysql_inner", "127.0.0.1"),
-            port=settings["mysql_port"],
-            user=settings["mysql_user"],
-            passwd=settings["mysql_pass"]
+            host=settings.get("host", "127.0.0.1"),
+            port=settings["port"],
+            user=settings["user"],
+            passwd=settings["pass"]
         )
         cur = db.cursor()
         cur.execute("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA "
@@ -87,10 +86,10 @@ class MySQL(Battery):
         )
 
         db = MySQLdb.connect(
-            host=settings.get("mysql_inner", "127.0.0.1"),
-            port=settings["mysql_port"],
-            user=settings["mysql_user"],
-            passwd=settings["mysql_pass"]
+            host=settings.get("host", "127.0.0.1"),
+            port=settings["port"],
+            user=settings["user"],
+            passwd=settings["pass"]
         )
         try:
             cur = db.cursor()
@@ -109,8 +108,7 @@ class MySQL(Battery):
         return result
 
     @staticmethod
-    def prepare(settings):
-        trunk = get_default_database(settings)
+    def prepare(settings, trunk):
         species = [s["name"] for s in trunk.species.find({"requires": "mysql"})]
 
         to_prepare = trunk.leaves.find({
@@ -160,8 +158,7 @@ class MongoDB(Battery):
         }
 
     @staticmethod
-    def prepare(settings):
-        trunk = get_default_database(settings)
+    def prepare(settings, trunk):
         species = [s["name"] for s in trunk.species.find({"requires": "mongo"})]
 
         to_prepare = trunk.leaves.find({

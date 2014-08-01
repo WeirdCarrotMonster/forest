@@ -14,34 +14,47 @@ import datetime
 from threading import Thread
 from components.emperor import Emperor
 from logparse import logparse
+from collections import defaultdict
 
 
 class Branch(object):
     """
     Класс ветви, служащий для запуска приложений и логгирования их вывода
     """
-    def __init__(self, settings):
+    def __init__(self, settings, trunk):
         self.settings = settings
+        self.trunk = trunk
         self.leaves = []
+        self.batteries = defaultdict(list)
 
         self.functions = {
             "branch.update_state": self.update_state,
             "branch.update_repository": self.update_repository
         }
 
-        trunk = get_default_database(self.settings)
+        trunk = get_default_database(self.trunk.settings)
         self.fastrouters = []
-        self.roots = []
+
         components = trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
             host = component["host"]
             port = component["roles"]["air"]["fastrouter"]
             self.fastrouters.append("{0}:{1}".format(host, port))
 
-        for component in components.find({"roles.roots": {"$exists": True}}):
-            self.roots.append(
-                (component["roles"]["roots"]["mysql_host"],
-                 component["roles"]["roots"]["mysql_port"])
+        for component in components.find({"roles.roots.mysql": {"$exists": True}}):
+            self.batteries["mysql"].append(
+                (
+                    component["roles"]["roots"]["mysql"]["host"],
+                    component["roles"]["roots"]["mysql"]["port"]
+                )
+            )
+
+        for component in components.find({"roles.roots.mongo": {"$exists": True}}):
+            self.batteries["mongo"].append(
+                (
+                    component["roles"]["roots"]["mongo"]["host"],
+                    component["roles"]["roots"]["mongo"]["port"]
+                )
             )
 
         self.emperor = Emperor(self.settings["emperor_dir"])
@@ -59,12 +72,12 @@ class Branch(object):
 
     def __log_events(self):
         add_info = {
-            "component_name": self.settings["name"],
+            "component_name": self.trunk.settings["name"],
             "component_type": "branch",
             "log_type": "leaf.event"
         }
 
-        trunk = get_default_database(self.settings)
+        trunk = get_default_database(self.trunk.settings)
         while self.running:
             data = self.emperor.get_logs()
             if not data:
@@ -81,7 +94,7 @@ class Branch(object):
             except Exception as e:
                 data_parsed, important = logparse(data)
                 data_parsed.update({
-                    "component_name": self.settings["name"],
+                    "component_name": self.trunk.settings["name"],
                     "component_type": "branch",
                     "added": datetime.datetime.now()
                 })
@@ -96,9 +109,9 @@ class Branch(object):
         @rtype: list
         @return: Список всех листьев, назначенных на данную ветвь
         """
-        trunk = get_default_database(self.settings)
+        trunk = get_default_database(self.trunk.settings)
         return trunk.leaves.find({
-            "branch": self.settings["name"],
+            "branch": self.trunk.settings["name"],
             "active": True
         })
 
@@ -119,26 +132,27 @@ class Branch(object):
     def create_leaf(self, leaf):
         repo = self.settings["species"][leaf.get("type")]
 
-        leaf_env = leaf.get("env", {})
-        leaf_env["db_host"] = self.roots[0][0]
-        leaf_env["db_port"] = self.roots[0][1]
+        batteries = leaf.get("batteries", {})
+        for key, value in batteries.items():
+            if key in self.batteries:
+                batteries[key]["host"] = self.batteries[key][0][0]
+                batteries[key]["port"] = self.batteries[key][0][1]
 
-        trunk = get_default_database(self.settings)
-        print(leaf)
+        trunk = get_default_database(self.trunk.settings)
+
         new_leaf = Leaf(
             name=leaf["name"],
             path=repo["path"],
             executable=repo["executable"],
             host=self.settings["host"],
-            env=leaf_env,
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
-            address=leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
+            address=leaf.get("address"),
             leaf_type=leaf.get("type"),
             logger=trunk.logs,
-            component=self.settings["name"],
-            batteries=leaf.get("batteries", {}),
+            component=self.trunk.settings["name"],
+            batteries=batteries,
             workers=leaf.get("workers", 4),
             threads=leaf.get("threads", False)
         )

@@ -19,7 +19,6 @@ class Leaf(object):
                  host="127.0.0.1",
                  executable=None,
                  path=None,
-                 env=None,
                  settings=None,
                  fastrouters=None,
                  keyfile=None,
@@ -36,7 +35,6 @@ class Leaf(object):
         self.host = host
         self.chdir = path
         self.executable = executable
-        self.launch_env = env or {}
         self.settings = settings or {}
         self.process = None
         self.fastrouters = fastrouters or []
@@ -59,17 +57,13 @@ class Leaf(object):
     def __ne__(self, other):
         r1 = self.address == other.address
         r2 = self.settings == other.settings
-        r3 = self.launch_env.get("db_pass") == other.launch_env.get("db_pass")
-        r4 = self.launch_env.get("db_name") == other.launch_env.get("db_name")
-        r5 = self.launch_env.get("db_user") == other.launch_env.get("db_user")
-        r6 = self.workers == other.workers
-        r7 = self.batteries == other.batteries
-        return not all([r1, r2, r3, r4, r5, r6, r7])
+        r3 = self.workers == other.workers
+        r4 = self.batteries == other.batteries
+        return not all([r1, r2, r3, r4])
 
     def init_database(self):
         # Инициализация таблиц через syncdb
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         my_env["BATTERIES"] = json.dumps(self.batteries)
         logs = ""
@@ -98,7 +92,6 @@ class Leaf(object):
     def update_database(self):
         # Обновление таблицы через south
         my_env = os.environ
-        my_env["DATABASE_SETTINGS"] = json.dumps(self.launch_env)
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         my_env["BATTERIES"] = json.dumps(self.batteries)
         process = subprocess.Popen(
@@ -154,7 +147,6 @@ class Leaf(object):
         processes={workers}
         master=1
         buffer-size=65535
-        env=DATABASE_SETTINGS={db_settings}
         env=BATTERIES={batteries}
         env=APPLICATION_SETTINGS={app_settings}
         env=LEAF_SETTINGS={leaf_settings}
@@ -162,7 +154,6 @@ class Leaf(object):
         """.format(
             chdir=self.chdir,
             socket=self.host,
-            db_settings=json.dumps(self.launch_env),
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
             leaf_settings=json.dumps(leaf_settings),

@@ -47,16 +47,16 @@ LISTENERS = [
     (r"/(.*)", TransparentListener)
 ]
 base_settings = SETTINGS["settings"]
+base_settings["REALPATH"] = FOREST_DIR
+
 trunk_settings = SETTINGS["connections"]
-trunk_settings.update(base_settings)
-trunk_settings["REALPATH"] = FOREST_DIR
-APPLICATION = Trunk(trunk_settings, handlers=LISTENERS)
+
+APPLICATION = Trunk(base_settings, handlers=LISTENERS)
 log_message("Setting role: {0}".format(SETTINGS["roles"].keys()))
 
 if "air" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["air"]
-    role_settings.update(base_settings)
-    air = Air(role_settings)
+    air = Air(role_settings, APPLICATION)
     APPLICATION.air = air
     APPLICATION.functions.update(air.functions)
 
@@ -65,15 +65,13 @@ if "roots" in SETTINGS["roles"].keys():
         raise Exception("Instance is configured to work as Roots, "
                         "but not capable to do so.")
     role_settings = SETTINGS["roles"]["roots"]
-    role_settings.update(base_settings)
-    roots = Roots(role_settings)
+    roots = Roots(role_settings, APPLICATION)
     APPLICATION.roots = roots
     APPLICATION.functions.update(roots.functions)
 
 if "branch" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["branch"]
-    role_settings.update(base_settings)
-    branch = Branch(role_settings)
+    branch = Branch(role_settings, APPLICATION)
     APPLICATION.branch = branch
     APPLICATION.functions.update(branch.functions)
 
@@ -88,12 +86,12 @@ if True:  # Предполагаем, что каждый компонент м�
 APPLICATION.publish_self()
 # Запускаем приложение
 log_message("Listening on: {0}:{1}".format(
-    SETTINGS["connections"]["host"],
-    SETTINGS["connections"]["port"])
+    trunk_settings["host"],
+    trunk_settings["port"])
 )
 APPLICATION.listen(
-    SETTINGS["connections"]["port"],
-    SETTINGS["connections"]["host"]
+    trunk_settings["port"],
+    trunk_settings["host"]
 )
 
 

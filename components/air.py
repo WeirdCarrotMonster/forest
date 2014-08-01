@@ -11,8 +11,9 @@ import re
 
 
 class Air():
-    def __init__(self, settings, port=3000, logs_port=2999):
+    def __init__(self, settings, trunk, port=3000, logs_port=2999):
         self.settings = settings
+        self.trunk = trunk
         self.port = port
         self.logs_port = logs_port
 
@@ -50,7 +51,7 @@ class Air():
                 # ==============
                 # Проверяем соответствие регуляркам
                 data_parsed, important = logparse(data)
-                print(data_parsed)
+                # print(data_parsed)
 
             except socket.timeout:
                 pass
@@ -63,7 +64,7 @@ class Air():
         self.fastrouter.wait()
 
     def update_state(self, **kwargs):
-        trunk = get_default_database(self.settings)
+        trunk = get_default_database(self.trunk.settings)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
         for branch in trunk.leaves.find():

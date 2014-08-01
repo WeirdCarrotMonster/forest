@@ -24,11 +24,12 @@ def hashfile(afile, blocksize=65536):
     return hasher.hexdigest()
 
 
-def get_connection(host, port, user, password, auth=True):
-    try:
-        con = pymongo.MongoReplicaSetClient(host, port, replicaSet="forest")
-    except pymongo.errors.ConfigurationError, pymongo.errors.ConnectionFailure:
+def get_connection(host, port, user, password, replica, auth=True):
+    if not replica:
         con = pymongo.MongoClient(host, port)
+    else:
+        con = pymongo.MongoReplicaSetClient(host, port, replicaSet=replica)
+
     if auth:
         con.admin.authenticate(user, password)
     return con
@@ -36,10 +37,11 @@ def get_connection(host, port, user, password, auth=True):
 
 def get_settings_connection(settings, auth=True):
     return get_connection(
-        settings.get("mongo_host", "127.0.0.1"),
-        settings.get("mongo_port", 27017),
-        settings.get("mongo_user", "admin"),
-        settings.get("mongo_pass", "password"),
+        settings.get("host", "127.0.0.1"),
+        settings.get("port", 27017),
+        settings.get("user", "admin"),
+        settings.get("pass", "password"),
+        settings.get("replica", None),
         auth=auth
     )
 
@@ -158,5 +160,5 @@ class TransparentListener(tornado.web.RequestHandler):
         self.finish(json.dumps(response, cls=CustomEncoder))
 
 
-def log_message(message, component="Forest"):
-    print("[{0}][{1}]{2}".format(datetime.now(), component, message))
+def log_message(message, component="Forest", end="\n"):
+    print("[{0}][{1}]{2}".format(datetime.now(), component, message), end=end)
