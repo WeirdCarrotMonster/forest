@@ -93,7 +93,7 @@ class Druid():
         trunk = get_default_database(self.settings)
         components = trunk.components
         root = components.find_one({"roles.roots": {"$exists": True}})
-        return self.trunk.send_message(root, {"function": "roots.update_state"})
+        self.trunk.send_message(root, {"function": "roots.update_state"})
 
     def update_repo(self, type, **kwargs):
         result = {
@@ -191,6 +191,7 @@ class Druid():
         )
 
         self.update_branches()
+        self.update_air()
 
         return {
             "result": "success"

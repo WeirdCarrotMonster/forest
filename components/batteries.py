@@ -126,7 +126,7 @@ class MySQL(Battery):
                 )
 
 
-class MongoDB(Battery):
+class Mongo(Battery):
     def __init__(self):
         Battery.__init__(self)
 
@@ -142,12 +142,12 @@ class MongoDB(Battery):
         )
         con = get_settings_connection(settings)
         while name in con.database_names():
-            name = MongoDB.string_generator()
+            name = Mongo.string_generator()
 
         db = con[name]
 
-        username = MongoDB.string_generator()
-        password = MongoDB.string_generator()
+        username = Mongo.string_generator()
+        password = Mongo.string_generator()
 
         db.add_user(username, password, roles=["readWrite"])
 
@@ -167,7 +167,7 @@ class MongoDB(Battery):
         })
 
         for leaf in to_prepare:
-            env = MongoDB.prepare_database(settings, leaf["name"])
+            env = Mongo.prepare_database(settings, leaf["name"])
             if env:
                 trunk.leaves.update(
                     {"name": leaf["name"]},

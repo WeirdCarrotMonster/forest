@@ -195,7 +195,7 @@ class Branch(object):
         current = [leaf.name for leaf in self.leaves]
         assigned_leaves = {
             i["name"]: i
-            for i in self.__get_assigned_leaves()
+            for i in self.__get_assigned_leaves() if i["type"] in self.settings["species"]
         }
         assigned = [leaf for leaf in assigned_leaves.keys()]
 
@@ -259,6 +259,10 @@ class Branch(object):
         Выбирает назначенные на данную ветвь листья и запускает их
         """
         for leaf in self.__get_assigned_leaves():
+            if not leaf.get("type") in self.settings["species"]:
+                log_message("Found leaf {} of unknown type: {}".format(leaf["name"], leaf["type"]),
+                    component="Branch")
+                continue
             log_message("Found leaf {0} in configuration".format(
                 leaf["name"]),
                 component="Branch"

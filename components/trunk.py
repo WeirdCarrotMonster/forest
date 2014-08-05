@@ -3,6 +3,7 @@ import tornado.web
 import simplejson as json
 import tornado.httpclient
 import tornado.template
+import traceback
 from components.common import get_default_database, LogicError, authenticate_user
 
 
@@ -108,6 +109,7 @@ class Trunk(tornado.web.Application):
                 response = self.process_message(contents, None, inner=True)
             return response
         except Exception as e:
+            print(traceback.format_exc())
             return {
                 "result": "failure",
                 "message": e.message

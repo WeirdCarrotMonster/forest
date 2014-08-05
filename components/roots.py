@@ -18,7 +18,7 @@ class Roots():
             "roots.update_state": self.update_state
         }
 
-    def update_state(self):
+    def update_state(self, **kwargs):
         """
         Метод подготовки баз данных (батареек)
         Поочередно проверяет в базе наличие листов, у которых нужно выполнить
@@ -27,6 +27,8 @@ class Roots():
         :rtype : dict
         :return: Результат подготовки баз
         """
+        log_message("Triggering update", component="Roots")
+
         to_prepare = []
         for battery in components.batteries.Battery.__subclasses__():
             battery_name = battery.__name__.lower()
@@ -47,9 +49,7 @@ class Roots():
         trunk = get_default_database(self.trunk.settings)
 
         for battery in to_prepare:
-            print("{}...".format(battery.__name__.lower()), end="")
             battery.prepare(self.settings[battery.__name__.lower()], trunk)
-            print("done!")
 
         return {
             "result": "success"

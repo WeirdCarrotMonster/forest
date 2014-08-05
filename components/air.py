@@ -78,6 +78,10 @@ class Air():
                         component="Air")
                     shutil.copyfile(default_key, keyfile)
 
+        return {
+            "result": "success"
+        }
+
     def status_report(self, message):
         return {
             "result": "success",
