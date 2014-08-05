@@ -6,10 +6,18 @@
     },
     "roles": {
         "roots": {
-            "mysql_user": "root",
-            "mysql_pass": "password",
-            "mysql_host": "127.0.0.1",
-            "mysql_port": 3306
+            "mysql": {
+                "user": "root",
+                "pass": "password",
+                "host": "127.0.0.1",
+                "port": 3306
+            },
+            "mongo": {
+                "user": "admin",
+                "pass": "password",
+                "host": "127.0.0.1",
+                "port": 27017
+            }
         },
         "branch": {
             "host": "127.0.0.1",
@@ -39,10 +47,10 @@
     {
         "name": "main",
         "secret": "gk9)o24z7!@n@w^k%4ceidaj0n7n1#-ts$mw)2qrf=)e&k&gl%",
-        "mongo_host": "127.0.0.1",
-        "mongo_port": 27017,
-        "mongo_user": "admin",
-        "mongo_pass": "password",
+        "host": "127.0.0.1",
+        "port": 27017,
+        "user": "admin",
+        "pass": "password",
         "database": "trunk"
     }
 }
