@@ -23,6 +23,7 @@
             "host": "127.0.0.1",
             "keyfile": "/home/wcm/coding/forest/keys/private.pem",
             "emperor_dir": "/home/wcm/coding/forest/bin",
+            "thread_pool_limit": 5,
             "species": {
                 "espresso": {
                     "type": "git",

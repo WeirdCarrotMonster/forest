@@ -28,7 +28,7 @@ class Branch(object):
         self.trunk = trunk
         self.leaves = []
         self.batteries = defaultdict(list)
-        self.pool = ThreadPool(4)
+        self.pool = ThreadPool(self.settings.get("thread_pool_limit", 0))
 
         self.functions = {
             "branch.update_state": self.update_state,
