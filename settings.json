@@ -27,12 +27,7 @@
             "species": {
                 "espresso": {
                     "type": "git",
-                    "path": "/home/wcm/coding/espresso",
-                    "executable": "/home/wcm/coding/espresso/manage.py",
-                    "static": {
-                        "mount": "/static",
-                        "dir": "static"
-                    }
+                    "path": "/home/wcm/coding/espresso"
                 }
             }
         },

@@ -27,17 +27,40 @@ class Branch(object):
         self.settings = settings
         self.trunk = trunk
         self.leaves = []
-        self.batteries = defaultdict(list)
         self.pool = ThreadPool(self.settings.get("thread_pool_limit", 0))
 
         self.functions = {
             "branch.update_state": self.update_state,
             "branch.update_repository": self.update_repository
         }
+       
+        self.load_species()
+        self.load_components()
+
+        self.emperor = Emperor(self.settings["emperor_dir"])
+
+        self.running = True
+        self.logger_thread = Thread(target=self.__log_events)
+        self.logger_thread.start()
+        self.init_leaves()
+
+    def __get_leaf_by_url(self, host):
+        for leaf in self.leaves:
+            if host in leaf.address:
+                return leaf
+        return ""
+
+    def load_species(self):
+        trunk = get_default_database(self.trunk.settings)
+        self.species = {
+            s["name"]: s for s in trunk.species.find()
+        }
+
+    def load_components(self):
+        self.fastrouters = []
+        self.batteries = defaultdict(list)
 
         trunk = get_default_database(self.trunk.settings)
-        self.fastrouters = []
-
         components = trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
             host = component["host"]
@@ -59,19 +82,6 @@ class Branch(object):
                     component["roles"]["roots"]["mongo"]["port"]
                 )
             )
-
-        self.emperor = Emperor(self.settings["emperor_dir"])
-
-        self.running = True
-        self.logger_thread = Thread(target=self.__log_events)
-        self.logger_thread.start()
-        self.init_leaves()
-
-    def __get_leaf_by_url(self, host):
-        for leaf in self.leaves:
-            if host in leaf.address:
-                return leaf
-        return ""
 
     def __log_events(self):
         add_info = {
@@ -146,13 +156,12 @@ class Branch(object):
         new_leaf = Leaf(
             name=leaf["name"],
             path=repo["path"],
-            executable=repo["executable"],
             host=self.settings["host"],
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address"),
-            leaf_type=leaf.get("type"),
+            leaf_type=self.species[leaf.get("type")],
             logger=trunk.logs,
             component=self.trunk.settings["name"],
             batteries=batteries,
@@ -173,8 +182,7 @@ class Branch(object):
         t = Thread(
             target=leaf.run_tasks,
             args=([
-                (leaf.init_database,   []),
-                (leaf.update_database, []),
+                (leaf.before_start,   []),
                 (self.emperor.start_leaf, [leaf])
             ],)
         )
@@ -241,7 +249,7 @@ class Branch(object):
             log_message("Starting leaves: {0}".format(to_start), component="Branch")
 
         if log_restart:
-            log_message("Restarting leaves: {0}".format(log_restart), component="Branch")        
+            log_message("Restarting leaves: {0}".format(log_restart), component="Branch")
 
         # Выполняем обработку листьев
 
@@ -324,8 +332,7 @@ class Branch(object):
             t = Thread(
                 target=leaf.run_tasks, 
                 args=([
-                    (leaf.init_database,   []),
-                    (leaf.update_database, []),
+                    (leaf.before_start,   []),
                     (self.emperor.soft_restart_leaf, [leaf])
                 ],)
             )

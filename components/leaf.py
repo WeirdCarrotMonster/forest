@@ -15,9 +15,7 @@ def enqueue_output(out, queue):
 class Leaf(object):
     def __init__(self,
                  name=None,
-                 python_executable="python2.7",
                  host="127.0.0.1",
-                 executable=None,
                  path=None,
                  settings=None,
                  fastrouters=None,
@@ -31,10 +29,8 @@ class Leaf(object):
                  threads=False
                  ):
         self.name = name
-        self.python_executable = python_executable
         self.host = host
         self.chdir = path
-        self.executable = executable
         self.settings = settings or {}
         self.process = None
         self.fastrouters = fastrouters or []
@@ -61,62 +57,6 @@ class Leaf(object):
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
 
-    def init_database(self):
-        # Инициализация таблиц через syncdb
-        my_env = os.environ
-        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        my_env["BATTERIES"] = json.dumps(self.batteries)
-        logs = ""
-        proc = subprocess.Popen(
-            [self.python_executable, self.executable, "syncdb", "--noinput"],
-            env=my_env,
-            shell=False,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-            )
-        proc.wait()
-        for line in iter(proc.stdout.readline, ''):
-            logs += line + "\n"
-        for line in iter(proc.stderr.readline, ''):
-            logs += line + "\n"
-
-        self.logger.insert({
-            "component_name": self.component,
-            "component_type": "branch",
-            "log_source": self.name,
-            "log_type": "leaf.syncdb",
-            "content": logs,
-            "added": datetime.datetime.now()
-        })
-
-    def update_database(self):
-        # Обновление таблицы через south
-        my_env = os.environ
-        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
-        my_env["BATTERIES"] = json.dumps(self.batteries)
-        process = subprocess.Popen(
-            [self.python_executable, self.executable, "migrate", "--noinput"],
-            env=my_env,
-            shell=False,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-            )
-        process.wait()
-        logs = ""
-        for line in iter(process.stderr.readline, ''):
-            logs += line + "\n"
-        for line in iter(process.stdout.readline, ''):
-            logs += line + "\n"
-
-        self.logger.insert({
-            "component_name": self.component,
-            "component_type": "branch",
-            "log_source": self.name,
-            "log_type": "leaf.migrate",
-            "content": logs,
-            "added": datetime.datetime.now()
-        })
-
     def set_settings(self, settings):
         self.settings = settings
 
@@ -135,7 +75,7 @@ class Leaf(object):
         }
 
         leaf_settings = {
-            "static_url": "/static/{0}/".format(self.type)
+            "static_url": "/static/{0}/".format(self.type["name"])
         }
 
         config = """
@@ -175,3 +115,39 @@ class Leaf(object):
     def run_tasks(self, tasks):
         for task, args in tasks:
             task(*args)
+
+    #==============
+    # Триггеры
+    #==============
+
+    def before_start(self):
+        triggers = self.type.get("triggers", {})
+        cmds = triggers.get("before_start", [])
+
+        my_env = os.environ
+        my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
+        my_env["BATTERIES"] = json.dumps(self.batteries)
+
+        for cmd in cmds:
+            process = subprocess.Popen(
+                cmd.split(),
+                env=my_env,
+                shell=False,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+                )
+            process.wait()
+            logs = ""
+            for line in iter(process.stderr.readline, ''):
+                logs += line + "\n"
+            for line in iter(process.stdout.readline, ''):
+                logs += line + "\n"
+
+            self.logger.insert({
+                "component_name": self.component,
+                "component_type": "branch",
+                "log_source": self.name,
+                "log_type": "leaf.before_start",
+                "content": logs,
+                "added": datetime.datetime.now()
+            })
