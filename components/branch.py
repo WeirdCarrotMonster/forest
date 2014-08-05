@@ -11,7 +11,9 @@ from components.common import log_message, LogicError, get_default_database
 import traceback
 import simplejson as json
 import datetime
-from threading import Thread
+#from threading import Thread
+from components.common import CallbackThread as Thread
+from components.common import ThreadPool
 from components.emperor import Emperor
 from logparse import logparse
 from collections import defaultdict
@@ -26,6 +28,7 @@ class Branch(object):
         self.trunk = trunk
         self.leaves = []
         self.batteries = defaultdict(list)
+        self.pool = ThreadPool(4)
 
         self.functions = {
             "branch.update_state": self.update_state,
@@ -175,8 +178,7 @@ class Branch(object):
                 (self.emperor.start_leaf, [leaf])
             ],)
         )
-        t.daemon = True
-        t.start()
+        self.pool.add_thread(t)
 
     def del_leaf(self, leaf):
         self.emperor.stop_leaf(leaf)
@@ -327,7 +329,6 @@ class Branch(object):
                     (self.emperor.soft_restart_leaf, [leaf])
                 ],)
             )
-            t.daemon = True
-            t.start()
+            self.pool.add_thread(t)
 
         return result

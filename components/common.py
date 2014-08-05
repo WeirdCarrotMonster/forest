@@ -13,6 +13,48 @@ import pymongo
 import hashlib
 from tornado import gen
 from simplejson import JSONEncoder
+from threading import Thread
+
+
+class CallbackThread(Thread):
+    def __init__(self, *args, **kwargs):
+        self.callback = kwargs.get("callback")
+        super(CallbackThread, self).__init__(*args, **kwargs)
+
+    def run(self, *args, **kwargs):
+        super(CallbackThread, self).run(*args, **kwargs)
+        if self.callback \
+            and type(self.callback) == tuple \
+            and len(self.callback) == 3 \
+            and hasattr(self.callback[0], '__call__') \
+            and type(self.callback[1]) == list \
+            and type(self.callback[2]) == dict:
+            self.callback[0](*self.callback[1], **self.callback[2])
+
+
+class ThreadPool(object):
+    def __init__(self, size):
+        super(ThreadPool, self).__init__()
+        self.size = size
+        self.working = []
+        self.queue = []
+
+    def add_thread(self, thread):
+        if len(self.working) < self.size:
+            self.working.append(thread)
+            thread.callback = (self.thread_finished, [thread], {})
+            thread.daemon = True
+            thread.start()
+        else:
+            self.queue.append(thread)
+
+    def thread_finished(self, thread):
+        self.working.remove(thread)
+
+        if len(self.queue) > 0:
+            thr = self.queue.pop()
+            self.working.append(thr)
+            thr.start()
 
 
 def hashfile(afile, blocksize=65536):
