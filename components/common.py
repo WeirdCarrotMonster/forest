@@ -40,7 +40,7 @@ class ThreadPool(object):
         self.queue = []
 
     def add_thread(self, thread):
-        if len(self.working) < self.size:
+        if len(self.working) <= self.size:
             self.working.append(thread)
             thread.callback = (self.thread_finished, [thread], {})
             thread.daemon = True
