@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-from components.common import get_default_database, log_message, get_settings_connection
+from components.common import log_message
+from components.database import get_default_database, get_settings_connection
 import string
 import random
 import MySQLdb

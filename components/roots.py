@@ -3,7 +3,8 @@ from __future__ import print_function, unicode_literals
 import MySQLdb
 import string
 import random
-from components.common import log_message, get_default_database
+from components.common import log_message
+from components.database import get_default_database
 import components.batteries
 
 
@@ -42,7 +43,7 @@ class Roots():
             )
         else:
             log_message(
-                "Preparing batteries: ",
+                "Preparing batteries: {}".format(", ".join(b.__name__.lower() for b in to_prepare)),
                 component="Roots"
             )
 

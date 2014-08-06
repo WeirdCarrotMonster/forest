@@ -5,7 +5,8 @@
 лесом и выполнением запросов к другим компонентам.
 """
 import pymongo
-from components.common import get_default_database, LogicError
+from components.common import LogicError
+from components.database import get_default_database
 from bson.objectid import ObjectId
 
 

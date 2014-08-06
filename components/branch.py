@@ -7,11 +7,11 @@
 from __future__ import print_function, unicode_literals
 from subprocess import CalledProcessError, check_output, STDOUT
 from components.leaf import Leaf
-from components.common import log_message, LogicError, get_default_database
+from components.common import log_message, LogicError
+from components.database import get_default_database
 import traceback
 import simplejson as json
 import datetime
-#from threading import Thread
 from components.common import CallbackThread as Thread
 from components.common import ThreadPool
 from components.emperor import Emperor

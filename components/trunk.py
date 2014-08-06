@@ -4,7 +4,8 @@ import simplejson as json
 import tornado.httpclient
 import tornado.template
 import traceback
-from components.common import get_default_database, LogicError, authenticate_user
+from components.common import LogicError
+from components.database import get_default_database, authenticate_user
 
 
 class Trunk(tornado.web.Application):

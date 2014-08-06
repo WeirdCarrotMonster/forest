@@ -9,7 +9,6 @@ import bson
 import traceback
 import os
 from multiprocessing import Process
-import pymongo
 import hashlib
 from tornado import gen
 from simplejson import JSONEncoder
@@ -64,42 +63,6 @@ def hashfile(afile, blocksize=65536):
         hasher.update(buf)
         buf = afile.read(blocksize)
     return hasher.hexdigest()
-
-
-def get_connection(host, port, user, password, replica, auth=True):
-    if not replica:
-        con = pymongo.MongoClient(host, port)
-    else:
-        con = pymongo.MongoReplicaSetClient(host, port, replicaSet=replica)
-
-    if auth:
-        con.admin.authenticate(user, password)
-    return con
-
-
-def get_settings_connection(settings, auth=True):
-    return get_connection(
-        settings.get("host", "127.0.0.1"),
-        settings.get("port", 27017),
-        settings.get("user", "admin"),
-        settings.get("pass", "password"),
-        settings.get("replica", None),
-        auth=auth
-    )
-
-
-def get_default_database(settings):
-    connection = get_settings_connection(settings)
-    return connection[settings.get("database", "trunk")]
-
-
-def authenticate_user(settings, user, password):
-    connection = get_settings_connection(settings, auth=False)
-    try:
-        connection.admin.authenticate(user, password)
-        return True
-    except pymongo.errors.OperationFailure:
-        return False
 
 
 def run_parallel(fns):

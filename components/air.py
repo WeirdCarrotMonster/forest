@@ -4,7 +4,8 @@ import os
 import shutil
 import signal
 import socket
-from components.common import get_default_database, log_message
+from components.common import log_message
+from components.database import get_default_database
 from threading import Thread
 from logparse import logparse
 import re
