@@ -1,8 +1,8 @@
 {
     "connections":
     {
-        "host": "127.0.0.1",
-        "port": 1234
+        "trunk_host": "127.0.0.1",
+        "trunk_port": 1234
     },
     "roles": {
         "roots": {

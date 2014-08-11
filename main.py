@@ -50,6 +50,7 @@ base_settings = SETTINGS["settings"]
 base_settings["REALPATH"] = FOREST_DIR
 
 trunk_settings = SETTINGS["connections"]
+base_settings.update(trunk_settings)
 
 APPLICATION = Trunk(base_settings, handlers=LISTENERS)
 log_message("Setting role: {0}".format(SETTINGS["roles"].keys()))
@@ -86,12 +87,12 @@ if True:  # Предполагаем, что каждый компонент м�
 APPLICATION.publish_self()
 # Запускаем приложение
 log_message("Listening on: {0}:{1}".format(
-    trunk_settings["host"],
-    trunk_settings["port"])
+    trunk_settings["trunk_host"],
+    trunk_settings["trunk_port"])
 )
 APPLICATION.listen(
-    trunk_settings["port"],
-    trunk_settings["host"]
+    trunk_settings["trunk_port"],
+    trunk_settings["trunk_host"]
 )
 
 

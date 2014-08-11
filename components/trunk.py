@@ -35,8 +35,8 @@ class Trunk(tornado.web.Application):
 
         about = {
             "name": self.settings["name"],
-            "host": self.settings["host"],
-            "port": self.settings["port"],
+            "host": self.settings["trunk_host"],
+            "port": self.settings["trunk_port"],
             "secret": self.settings["secret"],
             "roles": {}
         }
