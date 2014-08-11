@@ -132,6 +132,7 @@ class Leaf(object):
             process = subprocess.Popen(
                 cmd.split(),
                 env=my_env,
+                cwd=self.chdir,
                 shell=False,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE
