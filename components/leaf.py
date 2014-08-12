@@ -13,6 +13,13 @@ def enqueue_output(out, queue):
 
 
 class Leaf(object):
+    statuses = (
+        (0, "Stopped"),
+        (1, "Started"),
+        (2, "Waiting: trigger before_start"),
+        (3, "Waiting: environment")
+    )
+
     def __init__(self,
                  name=None,
                  host="127.0.0.1",
@@ -49,6 +56,7 @@ class Leaf(object):
 
         self._last_req_measurement = datetime.datetime.now()
         self._last_req_count = 0
+        self.set_status(0)
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -56,6 +64,9 @@ class Leaf(object):
         r3 = self.workers == other.workers
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
+
+    def set_status(self, status):
+        self.status = self.statuses[status]
 
     def set_settings(self, settings):
         self.settings = settings
@@ -121,6 +132,7 @@ class Leaf(object):
     #==============
 
     def before_start(self):
+        self.set_status(2)
         triggers = self.type.get("triggers", {})
         cmds = triggers.get("before_start", [])
 

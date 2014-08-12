@@ -14,6 +14,8 @@ import simplejson as json
 import datetime
 from components.common import CallbackThread as Thread
 from components.common import ThreadPool
+from threading import Lock
+from specie import Specie
 from components.emperor import Emperor
 from logparse import logparse
 from collections import defaultdict
@@ -45,16 +47,33 @@ class Branch(object):
         self.init_leaves()
 
     def __get_leaf_by_url(self, host):
+        """
+        Получает экземпляр листа по связанному с ним адресу
+
+        @param host: Адрес искомого листа
+        @type host: str
+        @return: Имя найденного листа
+        @rtype: str
+        """
         for leaf in self.leaves:
             if host in leaf.address:
                 return leaf
         return ""
 
     def load_species(self):
+        self.species = {}
+
         trunk = get_default_database(self.trunk.settings)
-        self.species = {
-            s["name"]: s for s in trunk.species.find()
-        }
+
+        for specie_id in os.listdir(self.settings["species"]):
+            if os.path.isdir(os.path.join(self.settings["species"], specie_id)):
+                specie_db = trunk.species.find_one({"_id": specie_id}) or {}
+                known_species[o] = Specie(
+                    directory=self.settings["species"], 
+                    specie_id=specie_id,
+                    url=specie_db.get("url", "")
+                    last_update=specie_db.get("last_update", "")
+                )
 
     def load_components(self):
         self.fastrouters = []
@@ -166,7 +185,8 @@ class Branch(object):
             component=self.trunk.settings["name"],
             batteries=batteries,
             workers=leaf.get("workers", 4),
-            threads=leaf.get("threads", False)
+            threads=leaf.get("threads", False),
+            branch=self
         )
         return new_leaf
 

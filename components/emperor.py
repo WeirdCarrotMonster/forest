@@ -59,12 +59,15 @@ class Emperor():
             bytes(leaf.get_config())
         ])
 
+        leaf.set_status(1)
+
     def stop_leaf(self, leaf):
         leaf_name = self.vassal_names[leaf.name]
         self.emperor_socket.send_multipart([
             bytes('destroy'),
             bytes(leaf_name)
         ])
+        leaf.set_status(0)
         del self.vassal_names[leaf.name]
 
     def soft_restart_leaf(self, leaf):
