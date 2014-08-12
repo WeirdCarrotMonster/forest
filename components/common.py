@@ -18,6 +18,8 @@ from threading import Thread
 class CallbackThread(Thread):
     def __init__(self, *args, **kwargs):
         self.callback = kwargs.get("callback")
+        if "callback" in kwargs:
+            del kwargs["callback"]
         super(CallbackThread, self).__init__(*args, **kwargs)
 
     def run(self, *args, **kwargs):

@@ -11,15 +11,17 @@ import subprocess
 
 
 class Specie():
-    def __init__(self, directory, specie_id, name, url, last_update):
+    def __init__(self, directory, specie_id, name, url, last_update, triggers):
         self.directory = directory
         self.specie_id = specie_id
         self.specie_path = os.path.join(self.directory, self.specie_id)
         self.url = url
         self.name = name
+        self.triggers = triggers
         self.last_update = last_update
         self._environment = os.path.join(self.specie_path, "env")
         self._path = os.path.join(self.specie_path, "src")
+        self.is_ready = False
 
     def initialize(self):
         if not os.path.exists(self.specie_path):

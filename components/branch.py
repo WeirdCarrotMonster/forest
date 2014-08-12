@@ -36,7 +36,6 @@ class Branch(object):
             "branch.update_repository": self.update_repository
         }
        
-        self.load_species()
         self.load_components()
 
         self.emperor = Emperor(self.settings["emperor_dir"])
@@ -44,6 +43,10 @@ class Branch(object):
         self.running = True
         self.logger_thread = Thread(target=self.__log_events)
         self.logger_thread.start()
+
+        self.species = {}
+        self.species_lock = Lock()
+
         self.init_leaves()
 
     def __get_leaf_by_url(self, host):
@@ -60,20 +63,43 @@ class Branch(object):
                 return leaf
         return ""
 
-    def load_species(self):
-        self.species = {}
+    def get_specie(self, specie_id):
+        if specie_id in self.species:
+            return self.species[specie_id]
 
         trunk = get_default_database(self.trunk.settings)
 
-        for specie_id in os.listdir(self.settings["species"]):
-            if os.path.isdir(os.path.join(self.settings["species"], specie_id)):
-                specie_db = trunk.species.find_one({"_id": specie_id}) or {}
-                known_species[o] = Specie(
-                    directory=self.settings["species"], 
-                    specie_id=specie_id,
-                    url=specie_db.get("url", "")
-                    last_update=specie_db.get("last_update", "")
-                )
+        spc = trunk.species.find_one({"name": specie_id})
+
+        if spc:
+            specie_new = Specie(
+                directory=self.settings["species"],
+                name=spc.get("name"),
+                specie_id=specie_id,
+                url=spc.get("url"),
+                last_update=spc.get("last_update"),
+                triggers=spc.get("triggers", {})
+            )
+            thread = Thread(
+                target=specie_new.initialize, 
+                callback=(self.specie_initialization_finished, [], {"specie": specie_new})
+            )
+            thread.daemon = True
+            thread.start()
+            self.species[specie_id] = specie_new
+            return self.species[specie_id]
+
+        return None
+
+    def specie_initialization_finished(self, specie):
+        self.species_lock.acquire()
+
+        specie.is_ready = True
+        for leaf in self.leaves:
+            if leaf.specie == specie and leaf.status[0] == 0:
+                self.start_leaf(leaf)
+
+        self.species_lock.release()
 
     def load_components(self):
         self.fastrouters = []
@@ -162,8 +188,6 @@ class Branch(object):
         return None
 
     def create_leaf(self, leaf):
-        repo = self.settings["species"][leaf.get("type")]
-
         batteries = leaf.get("batteries", {})
         for key, value in batteries.items():
             if key in self.batteries:
@@ -174,21 +198,29 @@ class Branch(object):
 
         new_leaf = Leaf(
             name=leaf["name"],
-            path=repo["path"],
             host=self.settings["host"],
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address"),
-            leaf_type=self.species[leaf.get("type")],
             logger=trunk.logs,
             component=self.trunk.settings["name"],
             batteries=batteries,
             workers=leaf.get("workers", 4),
             threads=leaf.get("threads", False),
-            branch=self
+            specie=self.get_specie(leaf.get("type"))
         )
         return new_leaf
+
+    def start_leaf(self, leaf):
+        t = Thread(
+            target=leaf.run_tasks,
+            args=([
+                (leaf.before_start,   []),
+                (self.emperor.start_leaf, [leaf])
+            ],)
+        )
+        self.pool.add_thread(t)
 
     def add_leaf(self, leaf):
         """
@@ -198,15 +230,10 @@ class Branch(object):
         @param leaf: Словарь настроек листа
         """
         self.leaves.append(leaf)
-
-        t = Thread(
-            target=leaf.run_tasks,
-            args=([
-                (leaf.before_start,   []),
-                (self.emperor.start_leaf, [leaf])
-            ],)
-        )
-        self.pool.add_thread(t)
+        self.species_lock.acquire()
+        if leaf.specie.is_ready:
+            self.start_leaf(leaf)
+        self.species_lock.release()
 
     def del_leaf(self, leaf):
         self.emperor.stop_leaf(leaf)
@@ -289,10 +316,6 @@ class Branch(object):
         Выбирает назначенные на данную ветвь листья и запускает их
         """
         for leaf in self.__get_assigned_leaves():
-            if not leaf.get("type") in self.settings["species"]:
-                log_message("Found leaf {} of unknown type: {}".format(leaf["name"], leaf["type"]),
-                    component="Branch")
-                continue
             log_message("Found leaf {0} in configuration".format(
                 leaf["name"]),
                 component="Branch"

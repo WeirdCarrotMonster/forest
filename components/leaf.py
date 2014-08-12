@@ -23,27 +23,25 @@ class Leaf(object):
     def __init__(self,
                  name=None,
                  host="127.0.0.1",
-                 path=None,
                  settings=None,
                  fastrouters=None,
                  keyfile=None,
                  address="",
-                 leaf_type=None,
                  logger=None,
                  component=None,
                  batteries=None,
                  workers=4,
-                 threads=False
+                 threads=False,
+                 specie=None
                  ):
         self.name = name
         self.host = host
-        self.chdir = path
+        self.specie = specie
         self.settings = settings or {}
         self.process = None
         self.fastrouters = fastrouters or []
         self.keyfile = keyfile
         self.address = address
-        self.type = leaf_type
         self.logger = logger
         self.component = component
         self.batteries = batteries
@@ -86,7 +84,7 @@ class Leaf(object):
         }
 
         leaf_settings = {
-            "static_url": "/static/{0}/".format(self.type["name"])
+            "static_url": "/static/{0}/".format(self.specie.name)
         }
 
         config = """
@@ -103,7 +101,7 @@ class Leaf(object):
         env=LEAF_SETTINGS={leaf_settings}
         logformat={logformat}
         """.format(
-            chdir=self.chdir,
+            chdir=self.specie.path,
             socket=self.host,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
@@ -133,7 +131,7 @@ class Leaf(object):
 
     def before_start(self):
         self.set_status(2)
-        triggers = self.type.get("triggers", {})
+        triggers = self.specie.triggers
         cmds = triggers.get("before_start", [])
 
         my_env = os.environ
@@ -144,7 +142,7 @@ class Leaf(object):
             process = subprocess.Popen(
                 cmd.split(),
                 env=my_env,
-                cwd=self.chdir,
+                cwd=self.self.specie.path,
                 shell=False,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE
