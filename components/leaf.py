@@ -99,7 +99,7 @@ class Leaf(object):
         env=BATTERIES={batteries}
         env=APPLICATION_SETTINGS={app_settings}
         env=LEAF_SETTINGS={leaf_settings}
-        logformat={logformat},
+        logformat={logformat}
         virtualenv={virtualenv}
         """.format(
             chdir=self.specie.path,

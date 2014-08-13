@@ -53,7 +53,8 @@ class Druid():
 
         logs_raw = trunk.logs.find({
             "component_type": "branch",
-            "component_name": name
+            "component_name": name,
+            "log_type": {"$ne": "leaf.event"}
         }).sort("added", -1)[offset:offset+limit]
 
         return {
@@ -69,8 +70,7 @@ class Druid():
         components = trunk.components
         for branch in components.find({"roles.branch": {"$exists": True}}):
             branches.append({
-                "name": branch["name"],
-                "type": branch["roles"]["branch"]["species"].keys()
+                "name": branch["name"]
             })
 
         return {

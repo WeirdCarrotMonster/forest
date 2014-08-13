@@ -149,7 +149,7 @@ class Branch(object):
                 data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"]).name
                 data_parsed["specie"] = self.__get_leaf_by_url(data_parsed["host"]).type
                 data_parsed["added"] = datetime.datetime.now()
-            except Exception as e:
+            except json.JSONDecodeError as e:
                 data_parsed, important = logparse(data)
                 data_parsed.update({
                     "component_name": self.trunk.settings["name"],
