@@ -84,7 +84,6 @@ class Emperor():
     def get_logs(self):
         try:
             data, addr = self.log_socket.recvfrom(2048)
-            print(data)
             return data
         except socket.timeout:
             return None

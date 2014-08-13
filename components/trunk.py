@@ -28,6 +28,23 @@ class Trunk(tornado.web.Application):
         }
 
         self.functions = {}  # Заполняется функциями при подключении модулей
+        self.initial_publish()
+
+    def initial_publish(self):
+        trunk = get_default_database(self.settings)
+        instance = trunk.components.find_one({"name": self.settings["name"]})
+
+        if not instance:
+            about = {
+                "name": self.settings["name"],
+                "host": self.settings["trunk_host"],
+                "port": self.settings["trunk_port"],
+                "secret": self.settings["secret"],
+                "roles": {}
+            }
+            instance = trunk.components.insert(about)
+        self.settings["id"] = instance.get("_id")
+
 
     def publish_self(self):
         trunk = get_default_database(self.settings)

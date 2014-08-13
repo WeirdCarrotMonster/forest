@@ -51,20 +51,6 @@ class Branch(object):
 
         self.init_leaves()
 
-    def __get_leaf_by_url(self, host):
-        """
-        Получает экземпляр листа по связанному с ним адресу
-
-        @param host: Адрес искомого листа
-        @type host: str
-        @return: Имя найденного листа
-        @rtype: str
-        """
-        for leaf in self.leaves:
-            if host in leaf.address:
-                return leaf
-        return ""
-
     def get_specie(self, specie_id):
         if specie_id in self.species:
             return self.species[specie_id]
@@ -76,8 +62,8 @@ class Branch(object):
         if spc:
             specie_new = Specie(
                 directory=self.settings["species"],
-                name=spc.get("name"),
                 specie_id=specie_id,
+                name=spc.get("name"),
                 url=spc.get("url"),
                 last_update=spc.get("last_update"),
                 triggers=spc.get("triggers", {})
@@ -98,7 +84,7 @@ class Branch(object):
 
         specie.is_ready = True
         for leaf in self.leaves:
-            if leaf.specie == specie and leaf.status[0] == 0:
+            if leaf.specie == specie and leaf.status[0] in (0, 3):
                 self.start_leaf(leaf)
 
         self.species_lock.release()
@@ -152,7 +138,7 @@ class Branch(object):
             except json.JSONDecodeError as e:
                 data_parsed, important = logparse(data)
 
-            data_parsed["component_name"] = self.trunk.settings["name"]
+            data_parsed["component_name"] = self.trunk.settings["id"]
             data_parsed["component_type"] = "branch"
             data_parsed["added"] = datetime.datetime.now()
             if "log_source" in data_parsed:
@@ -170,7 +156,7 @@ class Branch(object):
         """
         trunk = get_default_database(self.trunk.settings)
         return trunk.leaves.find({
-            "branch": self.trunk.settings["name"],
+            "branch": self.trunk.settings["id"],
             "active": True
         })
 

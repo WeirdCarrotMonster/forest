@@ -48,12 +48,12 @@ class Druid():
             }
         }
 
-    def get_branch_logs(self, name, offset=0, limit=200, **kwargs):
+    def get_branch_logs(self, branch_id, offset=0, limit=200, **kwargs):
         trunk = get_default_database(self.settings)
 
         logs_raw = trunk.logs.find({
             "component_type": "branch",
-            "component_name": name,
+            "component": ObjectId(branch_id),
             "log_type": {"$ne": "leaf.event"}
         }).sort("added", -1)[offset:offset+limit]
 
@@ -70,7 +70,8 @@ class Druid():
         components = trunk.components
         for branch in components.find({"roles.branch": {"$exists": True}}):
             branches.append({
-                "name": branch["name"]
+                "name": branch["name"],
+                "id": branch["_id"]
             })
 
         return {
@@ -97,32 +98,9 @@ class Druid():
         self.trunk.send_message(root, {"function": "roots.update_state"})
 
     def update_repo(self, type, **kwargs):
-        result = {
-            "success": [],
-            "failure": [],
-            "warning": [],
-        }
+        pass
 
-        trunk = get_default_database(self.settings)
-
-        for branch in trunk.components.find({
-                "roles.branch": {"$exists": True},
-                "roles.branch.species.%s" % type: {"$exists": True}}):
-            response = self.trunk.send_message(
-                branch,
-                {
-                    "function": "branch.update_repository",
-                    "type": type
-                }
-            )
-            result[response["result"]].append({
-                "branch": branch["name"],
-                "response": response
-            })
-        return result
-
-    def create_leaf(self, name, type, settings, desc="", **kwargs):
-
+    def create_leaf(self, name, leaf_type, settings, desc="", **kwargs):
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
 
@@ -135,7 +113,7 @@ class Druid():
         leaf = leaves.insert({
             "name": name,
             "desc": desc,
-            "type": type,
+            "type": ObjectId(leaf_type),
             "active": True,
             "address": settings["common"]["urls"],
             "branch": settings["common"]["branch"],
@@ -163,10 +141,10 @@ class Druid():
             "species": species
         }
 
-    def get_default_settings(self, type, **kwargs):
+    def get_default_settings(self, specie_id, **kwargs):
         trunk = get_default_database(self.settings)
 
-        leaf_type = trunk.species.find_one({"name": type})
+        leaf_type = trunk.species.find_one({"_id": specie_id})
 
         return {
             "result": "success",

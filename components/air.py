@@ -68,9 +68,8 @@ class Air():
         trunk = get_default_database(self.trunk.settings)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
-        for branch in trunk.leaves.find():
-            address = branch["address"] if type(branch["address"]) == list else [branch["address"]]
-            for add in address:
+        for leaf in trunk.leaves.find():
+            for add in leaf["address"]:
                 keyfile = os.path.join(
                     self.settings["keydir"], add + ".pem")
                 if not os.path.isfile(keyfile):
