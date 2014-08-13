@@ -257,7 +257,7 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
                 $rootScope.$emit('leavesUpdateRequired', {});
-                window.location = '#/leaves/' + $scope.leaf_name +'/logs'
+                window.location = '/leaves/' + $scope.leaf_name +'/logs'
             }
         }).
         error(function(data, status, headers, config) {
