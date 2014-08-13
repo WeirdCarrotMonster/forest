@@ -22,11 +22,12 @@ class Leaf(object):
 
     def __init__(self,
                  name=None,
+                 leaf_id=None,
                  host="127.0.0.1",
                  settings=None,
                  fastrouters=None,
                  keyfile=None,
-                 address="",
+                 address=None,
                  logger=None,
                  component=None,
                  batteries=None,
@@ -47,6 +48,8 @@ class Leaf(object):
         self.batteries = batteries
         self.workers = workers
         self.threads = threads
+        self._log_port = None
+        self.id = leaf_id
 
         self._thread = None
         self._queue = None
@@ -62,6 +65,14 @@ class Leaf(object):
         r3 = self.workers == other.workers
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
+
+    @property
+    def log_port(self):
+        return self._log_port
+    @log_port.setter
+    def log_port(self, value):
+        self._log_port = value
+    
 
     def set_status(self, status):
         self.status = self.statuses[status]
@@ -80,7 +91,7 @@ class Leaf(object):
             "msecs": "%(msecs)",
             "time": "%(ltime)",
             "size": "%(size)",
-            "wid": "%(name)",
+            "log_source": str(self.id)
         }
 
         leaf_settings = {
@@ -100,7 +111,9 @@ class Leaf(object):
         env=APPLICATION_SETTINGS={app_settings}
         env=LEAF_SETTINGS={leaf_settings}
         logformat={logformat}
+        daemonize={logto}
         virtualenv={virtualenv}
+        log-prefix=[Leaf {id}]
         """.format(
             chdir=self.specie.path,
             virtualenv=self.specie.environment,
@@ -109,14 +122,15 @@ class Leaf(object):
             batteries=json.dumps(self.batteries),
             leaf_settings=json.dumps(leaf_settings),
             logformat=json.dumps(logs_format),
-            workers=self.workers
+            logto="127.0.0.1:{}".format(self._log_port),
+            workers=self.workers,
+            id=self.id
         )
         if self.threads:
             config += "enable-threads=1\n"
-        address_list = self.address if type(self.address) == list else [self.address]
 
         for router in self.fastrouters:
-            for address in address_list:
+            for address in self.address:
                 config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
                     address, self.keyfile)

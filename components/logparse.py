@@ -20,6 +20,10 @@ res = [
     (
         re.compile("\w+ - \[emperor\] vassal (?P<leaf>\w+)_\d+.ini is now loyal"),
         {"log_type": "emperor_vassal_loyal"}
+    ),
+    (
+        re.compile("\[Leaf (?P<log_source>\w+)\] - (?P<raw>.+)"),
+        {"log_type": "leaf.stdout_stderr"}
     )
 ]
 

@@ -14,7 +14,7 @@ class Specie():
     def __init__(self, directory, specie_id, name, url, last_update, triggers):
         self.directory = directory
         self.specie_id = specie_id
-        self.specie_path = os.path.join(self.directory, self.specie_id)
+        self.specie_path = os.path.join(self.directory, str(self.specie_id))
         self.url = url
         self.name = name
         self.triggers = triggers
@@ -86,4 +86,7 @@ class Specie():
     @property
     def environment(self):
         return self._environment
-    
+
+    @property
+    def id(self):
+        return self.specie_id

@@ -32,7 +32,7 @@ function Leaves($scope, $routeSegment, $http, $rootScope, loader) {
             url: '/',
             data: {
                 function: "toggle_leaf",
-                name: leaf.name
+                leaf_id: leaf.id
             }
         }).
         success(function(data, status, headers, config) {
@@ -59,7 +59,7 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
             url: '/',
             data: {
                 function: "get_leaf_logs",
-                name: $scope.$parent.leafid
+                leaf_id: $scope.$parent.leafid
             }
         }).
         success(function(data, status, headers, config) {
@@ -77,7 +77,7 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
             url: '/',
             data: {
                 function: "get_leaf_logs",
-                name: $scope.$parent.leafid,
+                leaf_id: $scope.$parent.leafid,
                 last: log_id
             }
         }).
@@ -120,7 +120,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
             url: '/',
             data: {
                 function: "get_leaf_settings",
-                name: $scope.$parent.leafid
+                leaf_id: $scope.$parent.leafid
             }
         }).
         success(function(data, status, headers, config) {
@@ -155,7 +155,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
             url: '/',
             data: {
                 function: "set_leaf_settings",
-                name: $scope.$parent.leafid,
+                leaf_id: $scope.$parent.leafid,
                 settings: $scope.settings
             }
         }).
@@ -257,7 +257,7 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
         success(function(data, status, headers, config) {
             if (data["result"] == "success"){
                 $rootScope.$emit('leavesUpdateRequired', {});
-                window.location = '/leaves/' + $scope.leaf_name +'/logs'
+                // window.location = '/leaves/' + $scope.leaf_name +'/logs'
             }
         }).
         error(function(data, status, headers, config) {

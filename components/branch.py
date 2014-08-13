@@ -19,6 +19,8 @@ from specie import Specie
 from components.emperor import Emperor
 from logparse import logparse
 from collections import defaultdict
+from bson import ObjectId
+from decimal import Decimal
 
 
 class Branch(object):
@@ -69,7 +71,7 @@ class Branch(object):
 
         trunk = get_default_database(self.trunk.settings)
 
-        spc = trunk.species.find_one({"name": specie_id})
+        spc = trunk.species.find_one({"_id": specie_id})
 
         if spc:
             specie_new = Specie(
@@ -146,16 +148,15 @@ class Branch(object):
                 data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["size"] = int(data_parsed["size"])
-                data_parsed["log_source"] = self.__get_leaf_by_url(data_parsed["host"]).name
-                data_parsed["specie"] = self.__get_leaf_by_url(data_parsed["host"]).type
-                data_parsed["added"] = datetime.datetime.now()
+                
             except json.JSONDecodeError as e:
                 data_parsed, important = logparse(data)
-                data_parsed.update({
-                    "component_name": self.trunk.settings["name"],
-                    "component_type": "branch",
-                    "added": datetime.datetime.now()
-                })
+
+            data_parsed["component_name"] = self.trunk.settings["name"]
+            data_parsed["component_type"] = "branch"
+            data_parsed["added"] = datetime.datetime.now()
+            if "log_source" in data_parsed:
+                data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
             trunk.logs.insert(data_parsed)
 
     def __get_assigned_leaves(self):
@@ -198,6 +199,7 @@ class Branch(object):
 
         new_leaf = Leaf(
             name=leaf["name"],
+            leaf_id=leaf.get("_id"),
             host=self.settings["host"],
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
@@ -252,7 +254,7 @@ class Branch(object):
         current = [leaf.name for leaf in self.leaves]
         assigned_leaves = {
             i["name"]: i
-            for i in self.__get_assigned_leaves() if i["type"] in self.settings["species"]
+            for i in self.__get_assigned_leaves()
         }
         assigned = [leaf for leaf in assigned_leaves.keys()]
 

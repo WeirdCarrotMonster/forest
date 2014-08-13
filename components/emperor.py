@@ -41,17 +41,19 @@ class Emperor():
         self.log_socket.settimeout(0.5)
 
         self.vassal_names = {}
+        self.vassal_ports = {}
 
     def stop_emperor(self):
         self.emperor.send_signal(signal.SIGINT)
         self.emperor.wait()
 
     def start_leaf(self, leaf):
-        if leaf.name in self.vassal_names.keys():
+        if leaf.id in self.vassal_names.keys():
             self.stop_leaf(leaf)
 
-        leaf_name = "{}_{}.ini".format(leaf.name, str(time.time()).replace(".", ""))
-        self.vassal_names[leaf.name] = leaf_name
+        leaf_name = "{}_{}.ini".format(str(leaf.id), str(time.time()).replace(".", ""))
+        self.vassal_names[leaf.id] = leaf_name
+        leaf.log_port = self.logs_port
 
         self.emperor_socket.send_multipart([
             bytes('touch'),
@@ -62,26 +64,27 @@ class Emperor():
         leaf.set_status(1)
 
     def stop_leaf(self, leaf):
-        leaf_name = self.vassal_names[leaf.name]
+        leaf_name = self.vassal_names[leaf.id]
         self.emperor_socket.send_multipart([
             bytes('destroy'),
             bytes(leaf_name)
         ])
         leaf.set_status(0)
-        del self.vassal_names[leaf.name]
+        del self.vassal_names[leaf.id]
 
     def soft_restart_leaf(self, leaf):
-        _leaf = self._get_leaves().get(leaf.name, None)
+        _leaf = self._get_leaves().get(leaf.id, None)
         if not _leaf:
             return
 
-        pid = int(_leaf.get("pid"))
+        pid = int(leaf.get("pid"))
         print(pid)
         os.kill(pid, signal.SIGHUP)
 
     def get_logs(self):
         try:
             data, addr = self.log_socket.recvfrom(2048)
+            print(data)
             return data
         except socket.timeout:
             return None
@@ -103,6 +106,6 @@ class Emperor():
     def _get_leaves(self):
         vassals = self._get_stats().get("vassals", [])
         return {
-            v.get("id")[:-4]: v for v in vassals
+            v.get("id")[:24]: v for v in vassals
         }
 

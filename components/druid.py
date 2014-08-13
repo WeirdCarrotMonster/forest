@@ -132,7 +132,7 @@ class Druid():
 
         # TODO: проверка адреса
 
-        leaves.insert({
+        leaf = leaves.insert({
             "name": name,
             "desc": desc,
             "type": type,
@@ -147,7 +147,8 @@ class Druid():
         self.update_air()
 
         return {
-            "result": "success"
+            "result": "success",
+            "id": leaf.get("_id")
         }
 
     def get_species(self, **kwargs):
@@ -175,13 +176,13 @@ class Druid():
             }
         }
 
-    def set_leaf_settings(self, name, settings, **kwargs):
+    def set_leaf_settings(self, leaf_id, settings, **kwargs):
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
 
         # TODO: переписать с итерацией по дефолтным настройкам
         leaves.update(
-            {"name": name},
+            {"_id": ObjectId(leaf_id)},
             {
                 "$set": {
                     "settings": settings["custom"],
@@ -198,14 +199,14 @@ class Druid():
             "result": "success"
         }
 
-    def get_leaf_settings(self, name, **kwargs):
+    def get_leaf_settings(self, leaf_id, **kwargs):
 
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
         species = trunk.species
 
-        leaf = leaves.find_one({"name": name})
-        leaf_type = species.find_one({"name": leaf["type"]})
+        leaf = leaves.find_one({"_id": ObjectId(leaf_id)})
+        leaf_type = species.find_one({"_id": leaf["type"]})
 
         return {
             "result": "success",
@@ -222,14 +223,14 @@ class Druid():
             }
         }
 
-    def toggle_leaf(self, name, **kwargs):
+    def toggle_leaf(self, leaf_id, **kwargs):
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
 
-        leaf = leaves.find_one({"name": name})
+        leaf = leaves.find_one({"_id": ObjectId(leaf_id)})
 
         leaves.update(
-            {"name": name},
+            {"_id": ObjectId(leaf_id)},
             {
                 "$set": {
                     "active": not leaf["active"]
@@ -240,8 +241,9 @@ class Druid():
         self.update_branches()
         self.update_air()
 
-        leaf_raw = leaves.find_one({"name": name})
+        leaf_raw = leaves.find_one({"_id": ObjectId(leaf_id)})
         leaf_response = {
+            "id": leaf_raw.get("_id"),
             "name": leaf_raw.get("name"),
             "desc": leaf_raw.get("desc"),
             "urls": leaf_raw.get("address") if type(leaf_raw.get("address")) == list else [leaf_raw.get("address")],
@@ -255,20 +257,20 @@ class Druid():
             "leaf": leaf_response
         }
 
-    def get_leaf_logs(self, name, offset=0, limit=200, last=None, **kwargs):
+    def get_leaf_logs(self, leaf_id, offset=0, limit=200, last=None, **kwargs):
         # Проверяем наличие требуемых аргументов
         trunk = get_default_database(self.settings)
 
         if last:
             last_log = trunk.logs.find_one({"_id": ObjectId(last)})
             logs_raw = trunk.logs.find({
-                "log_source": name,
+                "log_source": ObjectId(leaf_id),
                 "added": {
                     "$gt": last_log.get("added")
                 }
             }).sort("added", -1)
         else:
-            logs_raw = trunk.logs.find({"log_source": name}).sort("added", -1)[offset:offset+limit]
+            logs_raw = trunk.logs.find({"log_source": ObjectId(leaf_id)}).sort("added", -1)[offset:offset+limit]
 
         return {
             "result": "success",
@@ -282,6 +284,7 @@ class Druid():
         # TODO: генерировать список средствами MongoDB
         leaves_list = [
             {
+                "id": leaf.get("_id"),
                 "name": leaf.get("name"),
                 "desc": leaf.get("desc"),
                 "urls": leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
