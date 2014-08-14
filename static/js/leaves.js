@@ -153,6 +153,21 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
         }
     }
 
+    $scope.buttonText = function () {
+        if ($scope.status=="saved"){
+            return "Сохранить настройки";
+        }else
+        if ($scope.status=="saving"){
+            return "Сохраняем...";
+        }
+        if ($scope.status=="failed"){
+            return "Ошибка";
+        }
+        if ($scope.status=="success"){
+            return "Сохранено";
+        }
+    }
+
     $scope.loadSettings = function () {
         $http({
             method: 'POST',
