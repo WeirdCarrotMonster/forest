@@ -48,15 +48,8 @@ class Air():
         while True:
             try:
                 data, addr = self.log_socket.recvfrom(2048)
-
-                # ==============
-                # Проверяем соответствие регуляркам
                 data_parsed, important = logparse(data)
-                # print(data_parsed)
-
-            except socket.timeout:
-                pass
-            except socket.error:
+            except:
                 pass
 
 

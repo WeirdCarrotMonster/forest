@@ -22,6 +22,28 @@ function Leaves($scope, $routeSegment, $http, $rootScope, loader) {
 
     $scope.search = "";
 
+    $scope.leafButtonClass = function (leaf) {
+        if (leaf.busy) {
+            return "fa fa-refresh fa-spin";
+        }else
+        if (leaf.active) {
+            return "fa fa-check"
+        }else {
+            return "fa fa-times"
+        }
+    }
+
+    $scope.leafButtonBgClass = function (leaf) {
+        if (leaf.busy) {
+            return "statusbusy";
+        }else
+        if (leaf.active) {
+            return "statuson"
+        }else {
+            return "statusoff"
+        }
+    }
+
     $scope.toggleLeaf = function(leaf) {
         if (leaf.busy != undefined && !leaf.busy){
             return 0;
@@ -103,6 +125,8 @@ function LeafLogs($scope, $routeSegment, $http, loader) {
 }
 
 function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
+    $scope.status = "saved";
+
     $scope.checkbox_list_helper = function (settings_list, value) {
         var idx = settings_list.indexOf(value);
 
@@ -111,6 +135,21 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
         }
         else{
             settings_list.push(value);
+        }
+    }
+
+    $scope.buttonClass = function () {
+        if ($scope.status=="saved"){
+            return "fa fa-save";
+        }else
+        if ($scope.status=="saving"){
+            return "fa fa-circle-o-notch fa-spin";
+        }
+        if ($scope.status=="failed"){
+            return "fa fa-warning";
+        }
+        if ($scope.status=="success"){
+            return "fa fa-check";
         }
     }
 
@@ -150,22 +189,33 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
     $scope.loadSettings();
 
     $scope.saveSettings = function() {
+        if ($scope.status == "saving"){
+            return;
+        }
+        $scope.status = "saving";
         $http({
             method: 'POST',
             url: '/',
             data: {
                 function: "set_leaf_settings",
                 leaf_id: $scope.$parent.leafid,
-                settings: $scope.settings
+                settings: {
+                    custom: $scope.settings.custom,
+                    common: $scope.settings.common
+                }
             }
         }).
         success(function(data, status, headers, config) {
-            console.log(data);
             if (data["result"] == "success"){
                 $rootScope.$emit('leavesUpdateRequired', {});
+                $scope.status = "success";
+            }
+            else{
+                $scope.status = "failed";    
             }
         }).
         error(function(data, status, headers, config) {
+            $scope.status = "failed";
         });
     }
 }

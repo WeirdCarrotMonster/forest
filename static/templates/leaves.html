@@ -6,11 +6,8 @@
     <ul>
         <li ng-repeat="leaf in leaves| filter:search" class="leaf">
             <h3>
-                <a href="" ng-click="toggleLeaf(leaf)" class="icon-status" ng-class="{statuson: leaf.active, statusoff: !leaf.active, statusbusy: leaf.busy}">
-                    <i class="fa" ng-class="{facheck: leaf.active, fatimes: !leaf.active}"></i>
-                </a>
-                <a href="" class="icon-status statuswarning" ng-show="leaf.active && leaf.branch.length == 0">
-                    <i class="fa fa-warning"></i>
+                <a href="" ng-click="toggleLeaf(leaf)" class="icon-status {{leafButtonBgClass(leaf)}}">
+                    <i class="{{leafButtonClass(leaf)}}"></i>
                 </a>
                 <span><a class="link" href="/leaves/{{leaf.id}}/logs">{{leaf.name}}</a></span>
             </h3>

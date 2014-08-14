@@ -98,7 +98,7 @@ APPLICATION.listen(
 
 def cleanup(signum=None, frame=None):
     if signum:
-        log_message("Got signum: {0}".format(signum))
+        log_message("Got signum: {0}".format(signum), end="\r")
 
     log_message("Cleaning up...")
     APPLICATION.cleanup()

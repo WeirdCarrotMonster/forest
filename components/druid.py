@@ -31,21 +31,91 @@ class Druid():
             "get_branch_logs": self.get_branch_logs
         }
 
-    def __get_default_settings(self):
+    def __get_common_settings(self):
         trunk = get_default_database(self.settings)
         branches = trunk.components.find({"roles.branch": {"$exists": True}})
 
         return {
-            "urls": {
+            "address": {
                 "type": "list",
                 "elements": "string",
                 "verbose": "Адреса"
             },
             "branch": {
                 "type": "checkbox_list",
-                "values": [branch["name"] for branch in branches],
+                "values": [{
+                    "verbose": branch["name"],
+                    "value": branch["_id"]
+                } for branch in branches],
                 "verbose": "Ветви"
             }
+        }
+
+    def __parse_common_settings(self, settings):
+        return {
+            "branch": [ObjectId(adr) for adr in settings.get("branch", [])],
+            "address": settings.get("address", [])
+        }
+
+    def get_default_settings(self, specie_id, **kwargs):
+        trunk = get_default_database(self.settings)
+
+        leaf_type = trunk.species.find_one({"_id": ObjectId(specie_id)})
+
+        return {
+            "result": "success",
+            "settings": {
+                "common": self.__get_common_settings(),
+                "custom": leaf_type.get("settings", {})
+            }
+        }
+
+    def get_leaf_settings(self, leaf_id, **kwargs):
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+        species = trunk.species
+
+        leaf = leaves.find_one({"_id": ObjectId(leaf_id)})
+        leaf_type = species.find_one({"_id": leaf["type"]})
+
+        return {
+            "result": "success",
+            "settings": {
+                "custom": leaf.get("settings", {}),
+                "common": {
+                    "address": leaf.get("address"),
+                    "branch": leaf.get("branch")
+                },
+                "template": {
+                    "common": self.__get_common_settings(),
+                    "custom": leaf_type["settings"]
+                }
+            }
+        }
+
+    def set_leaf_settings(self, leaf_id, settings, **kwargs):
+        trunk = get_default_database(self.settings)
+        leaves = trunk.leaves
+
+        settings["common"] = self.__parse_common_settings(settings["common"])
+
+        # TODO: переписать с итерацией по дефолтным настройкам
+        leaves.update(
+            {"_id": ObjectId(leaf_id)},
+            {
+                "$set": {
+                    "settings": settings["custom"],
+                    "address": settings["common"]["address"],
+                    "branch": settings["common"]["branch"]
+                }
+            }
+        )
+
+        self.update_branches()
+        self.update_air()
+
+        return {
+            "result": "success"
         }
 
     def get_branch_logs(self, branch_id, offset=0, limit=200, **kwargs):
@@ -132,73 +202,13 @@ class Druid():
     def get_species(self, **kwargs):
         trunk = get_default_database(self.settings)
 
-        species = []
-        for specie in trunk.species.find():
-            species.append(specie["name"])
+        species = [
+            (specie["name"], specie["_id"]) for specie in trunk.species.find()
+        ]
 
         return {
             "result": "success",
             "species": species
-        }
-
-    def get_default_settings(self, specie_id, **kwargs):
-        trunk = get_default_database(self.settings)
-
-        leaf_type = trunk.species.find_one({"_id": specie_id})
-
-        return {
-            "result": "success",
-            "settings": {
-                "common": self.__get_default_settings(),
-                "custom": leaf_type.get("settings", {})
-            }
-        }
-
-    def set_leaf_settings(self, leaf_id, settings, **kwargs):
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-
-        # TODO: переписать с итерацией по дефолтным настройкам
-        leaves.update(
-            {"_id": ObjectId(leaf_id)},
-            {
-                "$set": {
-                    "settings": settings["custom"],
-                    "address": settings["common"]["urls"],
-                    "branch": settings["common"]["branch"]
-                }
-            }
-        )
-
-        self.update_branches()
-        self.update_air()
-
-        return {
-            "result": "success"
-        }
-
-    def get_leaf_settings(self, leaf_id, **kwargs):
-
-        trunk = get_default_database(self.settings)
-        leaves = trunk.leaves
-        species = trunk.species
-
-        leaf = leaves.find_one({"_id": ObjectId(leaf_id)})
-        leaf_type = species.find_one({"_id": leaf["type"]})
-
-        return {
-            "result": "success",
-            "settings": {
-                "custom": leaf.get("settings", {}),
-                "common": {
-                    "urls": leaf.get("address") if type(leaf.get("address")) == list else [leaf.get("address")],
-                    "branch": leaf.get("branch") if type(leaf.get("branch")) == list else [leaf.get("branch")]
-                },
-                "template": {
-                    "common": self.__get_default_settings(),
-                    "custom": leaf_type["settings"]
-                }
-            }
         }
 
     def toggle_leaf(self, leaf_id, **kwargs):
