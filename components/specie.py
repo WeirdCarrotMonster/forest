@@ -5,9 +5,12 @@
 автоматическое развертывание
 """
 from __future__ import print_function, unicode_literals
-from components.common import CallbackThread as Thread, log_message
+
 import os
 import subprocess
+
+from components.common import CallbackThread as Thread
+from components.common import log_message
 
 
 class Specie():
@@ -40,7 +43,7 @@ class Specie():
                 stdout=subprocess.PIPE
             )
             process.wait()
-        else: #TODO: условие обновления - дата
+        else:  # TODO: условие обновления - ревизия
             log_message("Updating repository for specie {}".format(self.name), component="Specie")
             process = subprocess.Popen(
                 [

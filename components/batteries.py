@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+
+import random
+import string
+
+import MySQLdb
+
 from components.common import log_message
 from components.database import get_default_database, get_settings_connection
-import string
-import random
-import MySQLdb
 
 
 class Battery(object):
@@ -120,7 +123,7 @@ class MySQL(Battery):
             env = MySQL.prepare_database(settings, leaf["name"])
             if env:
                 trunk.leaves.update(
-                    {"name": leaf["name"]},
+                    {"_id": leaf["_id"]},
                     {
                         "$set": {"batteries.mysql": env}
                     }
@@ -171,7 +174,7 @@ class Mongo(Battery):
             env = Mongo.prepare_database(settings, leaf["name"])
             if env:
                 trunk.leaves.update(
-                    {"name": leaf["name"]},
+                    {"_id": leaf["_id"]},
                     {"$set": {
                         "batteries.mongo": env}
                     }

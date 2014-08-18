@@ -5,22 +5,24 @@
 процессов.
 """
 from __future__ import print_function, unicode_literals
-from subprocess import CalledProcessError, check_output, STDOUT
-from components.leaf import Leaf
-from components.common import log_message, LogicError
-from components.database import get_default_database
-import traceback
-import simplejson as json
+
 import datetime
-from components.common import CallbackThread as Thread
-from components.common import ThreadPool
-from threading import Lock
-from specie import Specie
-from components.emperor import Emperor
-from logparse import logparse
+import traceback
 from collections import defaultdict
-from bson import ObjectId
 from decimal import Decimal
+from subprocess import CalledProcessError, check_output, STDOUT
+from threading import Lock
+
+import simplejson as json
+from bson import ObjectId
+
+from components.common import CallbackThread as Thread
+from components.common import log_message, LogicError, ThreadPool
+from components.database import get_default_database
+from components.emperor import Emperor
+from components.leaf import Leaf
+from logparse import logparse
+from specie import Specie
 
 
 class Branch(object):
@@ -34,10 +36,9 @@ class Branch(object):
         self.pool = ThreadPool(self.settings.get("thread_pool_limit", 0))
 
         self.functions = {
-            "branch.update_state": self.update_state,
-            "branch.update_repository": self.update_repository
+            "branch.update_state": self.update_state
         }
-       
+
         self.load_components()
 
         self.emperor = Emperor(self.settings["emperor_dir"])
@@ -69,7 +70,7 @@ class Branch(object):
                 triggers=spc.get("triggers", {})
             )
             thread = Thread(
-                target=specie_new.initialize, 
+                target=specie_new.initialize,
                 callback=(self.specie_initialization_finished, [], {"specie": specie_new})
             )
             thread.daemon = True
@@ -134,7 +135,7 @@ class Branch(object):
                 data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["size"] = int(data_parsed["size"])
-                
+
             except json.JSONDecodeError as e:
                 data_parsed, important = logparse(data)
 
@@ -227,15 +228,10 @@ class Branch(object):
         self.emperor.stop_leaf(leaf)
         self.leaves.remove(leaf)
 
-    def update_state(self, **kwargs):
-        """
-        Метод обновления состояния ветви.
-        Обновление включает поиск новых листьев, поиск листьев с
-        изменившейся конфигурацией, а так же листьев, требующих остановки
+    def _update_species(self):
+        pass
 
-        @rtype: dict
-        @return: Результат обновления состояния
-        """
+    def _update_leaves(self):
         # Составляем списки имеющихся листьев и требуемых
         current = [leaf.name for leaf in self.leaves]
         assigned_leaves = {
@@ -294,6 +290,25 @@ class Branch(object):
         for leaf in start_list:
             self.add_leaf(leaf)
 
+    def update_state(self, **kwargs):
+        """
+        Метод обновления состояния ветви.
+        В ходе обновления проверяется состояние двух частей ветви:
+        1) Репозитории
+        2) Листья
+
+        Репозитории обновляются в зависимости от их текущего состояния
+        и последней ревизии, указанной в базе.
+
+        Обновление листьев состоит в поиске тех листьев, состояние
+        которых на ветви не соответствует состоянию в базе.
+
+        @rtype: dict
+        @return: Результат обновления состояния
+        """
+        self._update_species()
+        self._update_leaves()
+
         return {
             "result": "success"
         }
@@ -316,57 +331,3 @@ class Branch(object):
         """
         self.emperor.stop_emperor()
         self.running = False
-
-    def update_repository(self, type, **kwargs):
-        """
-        Метод обновления репозитория.
-
-        @type message: dict
-        @param message: Данные репозитория для обновления
-        @rtype: dict
-        @return: Результат обновления репозитория и логи обновления
-        """
-        if not type in self.settings["species"].keys():
-            return {
-                "result": "failure",
-                "message": "Unknown repo type"
-            }
-
-        repo_path = self.settings["species"][type]["path"]
-        repo_type = self.settings["species"][type]["type"]
-
-        try:
-            if repo_type == "git":
-                cmd = [
-                    "git",
-                    "--git-dir={0}/.git".format(repo_path),
-                    "--work-tree={0}".format(repo_path),
-                    "pull"
-                ]
-                output = check_output(cmd, stderr=STDOUT)
-                result = {
-                    "result": "success",
-                    "message": output
-                }
-            else:
-                raise LogicError("configuration error: unknown repository type")
-        except CalledProcessError:
-            result = {
-                "result": "failure",
-                "message": traceback.format_exc()
-            }
-
-        to_update = [leaf for leaf in self.leaves if leaf.type == type]
-
-        for leaf in to_update:
-            print(leaf.name)
-            t = Thread(
-                target=leaf.run_tasks, 
-                args=([
-                    (leaf.before_start,   []),
-                    (self.emperor.soft_restart_leaf, [leaf])
-                ],)
-            )
-            self.pool.add_thread(t)
-
-        return result

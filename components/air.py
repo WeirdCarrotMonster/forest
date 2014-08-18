@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-import subprocess
 import os
+import re
 import shutil
 import signal
 import socket
+import subprocess
+from threading import Thread
+
 from components.common import log_message
 from components.database import get_default_database
-from threading import Thread
 from logparse import logparse
-import re
 
 
 class Air():
