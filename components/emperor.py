@@ -3,13 +3,14 @@
 Обертка вокруг uwsgi-emperor
 """
 from __future__ import print_function, unicode_literals
-import simplejson as json
-import time
-import subprocess
-import socket
-import signal
-import os
 
+import os
+import signal
+import socket
+import subprocess
+import time
+
+import simplejson as json
 import zmq
 
 
@@ -78,12 +79,11 @@ class Emperor():
             return
 
         pid = int(leaf.get("pid"))
-        print(pid)
         os.kill(pid, signal.SIGHUP)
 
     def get_logs(self):
         try:
-            data, addr = self.log_socket.recvfrom(2048)
+            data = self.log_socket.recv(4096)
             return data
         except socket.timeout:
             return None
@@ -107,4 +107,3 @@ class Emperor():
         return {
             v.get("id")[:24]: v for v in vassals
         }
-
