@@ -72,7 +72,7 @@ class Leaf(object):
     @log_port.setter
     def log_port(self, value):
         self._log_port = value
-    
+
 
     def set_status(self, status):
         self.status = self.statuses[status]
@@ -153,12 +153,13 @@ class Leaf(object):
         my_env = os.environ
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         my_env["BATTERIES"] = json.dumps(self.batteries)
+        my_env["PYTHONHOME"] = self.specie.environment
 
         for cmd in cmds:
             process = subprocess.Popen(
                 cmd.split(),
                 env=my_env,
-                cwd=self.self.specie.path,
+                cwd=self.specie.path,
                 shell=False,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE
@@ -166,14 +167,14 @@ class Leaf(object):
             process.wait()
             logs = ""
             for line in iter(process.stderr.readline, ''):
-                logs += line + "\n"
+                logs += line
             for line in iter(process.stdout.readline, ''):
-                logs += line + "\n"
+                logs += line
 
             self.logger.insert({
                 "component_name": self.component,
                 "component_type": "branch",
-                "log_source": self.name,
+                "log_source": self.id,
                 "log_type": "leaf.before_start",
                 "content": logs,
                 "added": datetime.datetime.now()
