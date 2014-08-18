@@ -1,7 +1,27 @@
 <a href="" class="btn btn-green btn-100 btn-monospase" ng-click="updateLogs()">Подгрузить ещё</a>
 <ul class="logs">
-    <div ng-repeat="log in logs" class="log_record" ng-class="{bgred: log.status == 500}">
-        <span>{{ convertDate(log.added) }}</span>
-        <span>{{ log }}</span>
+    <div ng-repeat="log in logs" class="log_record" ng-switch on="log.log_type"
+        ng-class="{
+            bgred: log.status == 500,
+            log_request: log.log_type == 'leaf.event',
+            log_stdout: log.log_type == 'leaf.stdout_stderr',
+            log_before_start: log.log_type == 'leaf.before_start',
+            }" >
+        <span ng-switch-when="leaf.event" class="log_request">
+            <span>{{ convertDate(log.added) }}</span><br/>
+            <span>{{ log.uri }}</span>
+        </span>
+        <span ng-switch-when="leaf.stdout_stderr" class="log_stdout">
+            <span>{{ convertDate(log.added) }}</span><br/>
+            <span>{{ log.raw }}</span>
+        </span>
+        <span ng-switch-when="leaf.before_start" class="log_before_start">
+            <span>{{ convertDate(log.added) }}</span><br/>
+            <pre>{{ log.content }}</pre>
+        </span>
+        <span ng-switch-default>
+            <span>{{ convertDate(log.added) }}</span><br/>
+            {{ log }}
+        </span>
     </div>
 </ul>

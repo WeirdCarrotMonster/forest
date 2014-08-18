@@ -529,11 +529,24 @@ Icons
 }
 
 .bgred {
-    /*background: #c0392b !important;*/
-    color: #e7c7c0;
+    background: #c0392b !important;
 }
 
 .log_record {
-    /*background: #1FBBA6;*/
-    margin-bottom: 2px;
+    margin-bottom: 15px;
+    padding: 5px;
+}
+
+.log_stdout {
+    background: #34495e;
+}
+
+.log_before_start {
+    background: #7f8c8d;
+    color: black;
+}
+
+.log_request {
+    background: #95a5a6;
+    color: black;
 }
