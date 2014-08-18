@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals
-import tornado.web
-import tornado.gen
-import simplejson as json
-from datetime import datetime
-import bson
-import traceback
-import os
-from multiprocessing import Process
+
 import hashlib
-from tornado import gen
+import os
+import traceback
+from datetime import datetime
+from multiprocessing import Process
+from threading import Lock, Thread
+
+import bson
+import simplejson as json
+import tornado.gen
+import tornado.web
 from simplejson import JSONEncoder
-from threading import Thread
+from tornado import gen
 
 
 class CallbackThread(Thread):
@@ -39,8 +41,11 @@ class ThreadPool(object):
         self.size = size
         self.working = []
         self.queue = []
+        self.lock = Lock()
+
 
     def add_thread(self, thread):
+        self.lock.acquire()
         if len(self.working) <= self.size or not self.size:
             self.working.append(thread)
             thread.callback = (self.thread_finished, [thread], {})
@@ -48,14 +53,17 @@ class ThreadPool(object):
             thread.start()
         else:
             self.queue.append(thread)
+        self.lock.release()
 
     def thread_finished(self, thread):
+        self.lock.acquire()
         self.working.remove(thread)
 
         if len(self.queue) > 0:
             thr = self.queue.pop()
             self.working.append(thr)
             thr.start()
+        self.lock.release()
 
 
 def hashfile(afile, blocksize=65536):
