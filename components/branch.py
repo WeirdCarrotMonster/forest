@@ -7,22 +7,36 @@
 from __future__ import print_function, unicode_literals
 
 import datetime
-import traceback
 from collections import defaultdict
-from decimal import Decimal
-from subprocess import CalledProcessError, check_output, STDOUT
-from threading import Lock
+from threading import RLock
 
 import simplejson as json
 from bson import ObjectId
 
 from components.common import CallbackThread as Thread
-from components.common import log_message, LogicError, ThreadPool
+from components.common import log_message, ThreadPool
 from components.database import get_default_database
 from components.emperor import Emperor
 from components.leaf import Leaf
 from logparse import logparse
 from specie import Specie
+from functools import wraps
+
+
+def synchronous(tlockname):
+    """A decorator to place an instance based lock around a method """
+
+    def _synched(func):
+        @wraps(func)
+        def _synchronizer(self, *args, **kwargs):
+            tlock = self.__getattribute__(tlockname)
+            tlock.acquire()
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                tlock.release()
+        return _synchronizer
+    return _synched
 
 
 class Branch(object):
@@ -48,10 +62,15 @@ class Branch(object):
         self.logger_thread.start()
 
         self.species = {}
-        self.species_lock = Lock()
+
+        # Целый набор локов
+        # When in doubt, C4
+        self.species_lock = RLock()
+        self.leaves_lock = RLock()
 
         self.init_leaves()
 
+    @synchronous('species_lock')
     def get_specie(self, specie_id):
         if specie_id in self.species:
             return self.species[specie_id]
@@ -80,15 +99,12 @@ class Branch(object):
 
         return None
 
+    @synchronous('species_lock')
     def specie_initialization_finished(self, specie):
-        self.species_lock.acquire()
-
         specie.is_ready = True
         for leaf in self.leaves:
             if leaf.specie == specie and leaf.status[0] in (0, 3):
                 self.start_leaf(leaf)
-
-        self.species_lock.release()
 
     def load_components(self):
         self.fastrouters = []
@@ -136,7 +152,7 @@ class Branch(object):
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["size"] = int(data_parsed["size"])
 
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
 
             data_parsed["component_name"] = self.trunk.settings["id"]
@@ -161,7 +177,8 @@ class Branch(object):
             "active": True
         })
 
-    def get_leaf(self, leaf_name):
+    @synchronous('leaves_lock')
+    def get_leaf(self, leaf_id):
         """
         Получает лист по его имени
 
@@ -171,11 +188,19 @@ class Branch(object):
         @return: Лист по искомому имени
         """
         for leaf in self.leaves:
-            if leaf.name == leaf_name:
+            if leaf.id == leaf_id:
                 return leaf
         return None
 
     def create_leaf(self, leaf):
+        """
+        Создает экземпляр листа  по данным из базы
+
+        @type leaf: dict
+        @param leaf: Словарь с конфигурацией листа
+        @rtype: Leaf
+        @return: Созданный по данным базы экземпляр листа
+        """
         batteries = leaf.get("batteries", {})
         for key, value in batteries.items():
             if key in self.batteries:
@@ -186,7 +211,7 @@ class Branch(object):
 
         new_leaf = Leaf(
             name=leaf["name"],
-            leaf_id=leaf.get("_id"),
+            _id=leaf.get("_id"),
             host=self.settings["host"],
             settings=leaf.get("settings", {}),
             fastrouters=self.fastrouters,
@@ -205,12 +230,14 @@ class Branch(object):
         t = Thread(
             target=leaf.run_tasks,
             args=([
-                (leaf.before_start,   []),
+                (leaf.before_start, []),
                 (self.emperor.start_leaf, [leaf])
             ],)
         )
         self.pool.add_thread(t)
 
+    @synchronous('leaves_lock')
+    @synchronous('species_lock')
     def add_leaf(self, leaf):
         """
         Запускает лист и добавляет его в список запущенных
@@ -219,23 +246,25 @@ class Branch(object):
         @param leaf: Словарь настроек листа
         """
         self.leaves.append(leaf)
-        self.species_lock.acquire()
+
         if leaf.specie.is_ready:
             self.start_leaf(leaf)
-        self.species_lock.release()
 
+    @synchronous('leaves_lock')
     def del_leaf(self, leaf):
         self.emperor.stop_leaf(leaf)
         self.leaves.remove(leaf)
 
+    @synchronous('species_lock')
     def _update_species(self):
         pass
 
+    @synchronous('leaves_lock')
     def _update_leaves(self):
         # Составляем списки имеющихся листьев и требуемых
-        current = [leaf.name for leaf in self.leaves]
+        current = [leaf.id for leaf in self.leaves]
         assigned_leaves = {
-            i["name"]: i
+            i["_id"]: i
             for i in self.__get_assigned_leaves()
         }
         assigned = [leaf for leaf in assigned_leaves.keys()]
@@ -243,7 +272,7 @@ class Branch(object):
         # Сравниваем списки листьев
         # Выбираем все листы, которые есть локально, но не
         # указаны в базе и выключаем их
-        to_stop  = list(set(current) - set(assigned))
+        to_stop = list(set(current) - set(assigned))
         to_start = list(set(assigned) - set(current))
         to_check = list(set(current) & set(assigned))
 
@@ -264,7 +293,10 @@ class Branch(object):
             leaf_shouldb = self.create_leaf(assigned_leaves[leaf])
 
             if leaf_running != leaf_shouldb:
-                log_message("Leaf {0} changed".format(leaf), component="Branch")
+                log_message(
+                    "Leaf {0} changed".format(leaf),
+                    component="Branch"
+                )
                 start_list.append(leaf_shouldb)
                 stop_list.append(leaf_running)
                 log_restart.append(leaf)
@@ -274,13 +306,22 @@ class Branch(object):
             start_list.append(leaf_shouldb)
 
         if log_stop:
-            log_message("Stopping leaves: {0}".format(log_stop), component="Branch")
+            log_message(
+                "Stopping leaves: {0}".format(log_stop),
+                component="Branch"
+            )
 
         if to_start:
-            log_message("Starting leaves: {0}".format(to_start), component="Branch")
+            log_message(
+                "Starting leaves: {0}".format(to_start),
+                component="Branch"
+            )
 
         if log_restart:
-            log_message("Restarting leaves: {0}".format(log_restart), component="Branch")
+            log_message(
+                "Restarting leaves: {0}".format(log_restart),
+                component="Branch"
+            )
 
         # Выполняем обработку листьев
 
@@ -313,6 +354,7 @@ class Branch(object):
             "result": "success"
         }
 
+    @synchronous('leaves_lock')
     def init_leaves(self):
         """
         Метод инициализации листьев при запуске.

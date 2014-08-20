@@ -22,7 +22,7 @@ class Leaf(object):
 
     def __init__(self,
                  name=None,
-                 leaf_id=None,
+                 _id=None,
                  host="127.0.0.1",
                  settings=None,
                  fastrouters=None,
@@ -49,7 +49,7 @@ class Leaf(object):
         self.workers = workers
         self.threads = threads
         self._log_port = None
-        self.id = leaf_id
+        self.id = _id
 
         self._thread = None
         self._queue = None
