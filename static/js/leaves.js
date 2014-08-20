@@ -226,7 +226,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
                 $scope.status = "success";
             }
             else{
-                $scope.status = "failed";    
+                $scope.status = "failed";
             }
         }).
         error(function(data, status, headers, config) {
@@ -271,7 +271,7 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
             url: '/',
             data: {
                 function: "get_default_settings",
-                type: $scope.leaf_type
+                specie_id: $scope.leaf_type
             }
         }).
         success(function(data, status, headers, config) {
@@ -314,7 +314,7 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
             data: {
                 function: "create_leaf",
                 name: $scope.leaf_name,
-                type: $scope.leaf_type,
+                leaf_type: $scope.leaf_type,
                 desc: $scope.leaf_description,
                 settings: $scope.settings
             }

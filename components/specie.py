@@ -9,7 +9,6 @@ from __future__ import print_function, unicode_literals
 import os
 import subprocess
 
-from components.common import CallbackThread as Thread
 from components.common import log_message
 
 
@@ -28,10 +27,16 @@ class Specie():
 
     def initialize(self):
         if not os.path.exists(self.specie_path):
-            log_message("Creating directory for {}".format(self.name), component="Specie")
+            log_message(
+                "Creating directory for {}".format(self.name),
+                component="Specie"
+            )
             os.makedirs(self.specie_path)
         if not os.path.exists(self._path):
-            log_message("Cloning repository for {}".format(self.name), component="Specie")
+            log_message(
+                "Cloning repository for {}".format(self.name),
+                component="Specie"
+            )
             process = subprocess.Popen(
                 [
                     "git",
@@ -44,7 +49,11 @@ class Specie():
             )
             process.wait()
         else:  # TODO: условие обновления - ревизия
-            log_message("Updating repository for specie {}".format(self.name), component="Specie")
+            log_message(
+                "Updating repository for specie {}".format(self.name),
+                component="Specie"
+            )
+            my_env = os.environ.copy()
             process = subprocess.Popen(
                 [
                     "git",
@@ -52,24 +61,35 @@ class Specie():
                     self._path,
                     "pull"
                 ],
+                env=my_env,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE
             )
             process.wait()
 
         if not os.path.exists(self._environment):
-            log_message("Creating virtualenv for specie {}".format(self.name), component="Specie")
+            log_message(
+                "Creating virtualenv for specie {}".format(self.name),
+                component="Specie"
+            )
+            my_env = os.environ.copy()
             process = subprocess.Popen(
                 [
                     "virtualenv",
                     "--python=python2.7",
                     self._environment
                 ],
+                env=my_env,
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE
             )
             process.wait()
-        log_message("Installing virtualenv requirements for {}".format(self.name), component="Specie")
+        log_message(
+            "Installing virtualenv requirements for {}".format(self.name),
+            component="Specie"
+        )
+
+        my_env = os.environ.copy()
         process = subprocess.Popen(
             [
                 os.path.join(self._environment, "bin/pip"),
@@ -77,6 +97,7 @@ class Specie():
                 "-r",
                 os.path.join(self._path, "requirements.txt")
             ],
+            env=my_env,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE
         )

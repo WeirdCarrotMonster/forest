@@ -113,7 +113,7 @@ class MySQL(Battery):
 
     @staticmethod
     def prepare(settings, trunk):
-        species = [s["name"] for s in trunk.species.find({"requires": "mysql"})]
+        species = [s["_id"] for s in trunk.species.find({"requires": "mysql"})]
 
         to_prepare = trunk.leaves.find({
             "type": {"$in": species},
@@ -163,7 +163,7 @@ class Mongo(Battery):
 
     @staticmethod
     def prepare(settings, trunk):
-        species = [s["name"] for s in trunk.species.find({"requires": "mongo"})]
+        species = [s["_id"] for s in trunk.species.find({"requires": "mongo"})]
 
         to_prepare = trunk.leaves.find({
             "type": {"$in": species},

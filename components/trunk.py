@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-import tornado.web
+import traceback
+
 import simplejson as json
 import tornado.httpclient
 import tornado.template
-import traceback
+import tornado.web
+
 from components.common import LogicError
-from components.database import get_default_database, authenticate_user
+from components.database import authenticate_user, get_default_database
 
 
 class Trunk(tornado.web.Application):
@@ -44,7 +46,6 @@ class Trunk(tornado.web.Application):
             }
             instance = trunk.components.insert(about)
         self.settings["id"] = instance.get("_id")
-
 
     def publish_self(self):
         trunk = get_default_database(self.settings)

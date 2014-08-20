@@ -69,10 +69,10 @@ class Leaf(object):
     @property
     def log_port(self):
         return self._log_port
+
     @log_port.setter
     def log_port(self, value):
         self._log_port = value
-
 
     def set_status(self, status):
         self.status = self.statuses[status]
@@ -150,7 +150,7 @@ class Leaf(object):
         triggers = self.specie.triggers
         cmds = triggers.get("before_start", [])
 
-        my_env = os.environ
+        my_env = os.environ.copy()
         my_env["APPLICATION_SETTINGS"] = json.dumps(self.settings)
         my_env["BATTERIES"] = json.dumps(self.batteries)
         my_env["PYTHONHOME"] = self.specie.environment

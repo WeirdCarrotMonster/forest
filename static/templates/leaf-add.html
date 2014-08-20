@@ -2,16 +2,16 @@
     <h2>Добавить лист</h2>
     <form class="add-leaf">
     	<label>
-    		Имя: 
+    		Имя:
     		<input ng-model="leaf_name" type="text" class="input-settings" placeholder="example_name"/>
     	</label>
     	<label>
-    		Описание: 
+    		Описание:
     		<input ng-model="leaf_description" type="text" class="input-settings" placeholder="Example description"/>
     	</label>
     	<label>
     		Тип:
-    		<select ng-model='leaf_type' class="select-settings" ng-change="loadSettingsTemplate()" ng-options='choice for choice in species'>
+    		<select ng-model='leaf_type' class="select-settings" ng-change="loadSettingsTemplate()" ng-options='choice[1] as choice[0] for choice in species'>
         </select>
     	</label>
     </form>
@@ -34,8 +34,8 @@
                 <ul class="checkbox-list" ng-repeat="checkbox_value in template.common[key].values">
                     <li>
                         <label>
-                            <input type="checkbox" ng-checked="settings.common[key].indexOf(checkbox_value) > -1" ng-click="checkbox_list_helper(settings.common[key], checkbox_value)"/>
-                            {{ checkbox_value }}
+                            <input type="checkbox" ng-checked="settings.common[key].indexOf(checkbox_value.value) > -1" ng-click="checkbox_list_helper(settings.common[key], checkbox_value.value)"/>
+                            {{ checkbox_value.verbose }}
                         </label>
                     </li>
                 </ul>

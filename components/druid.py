@@ -5,9 +5,9 @@
 лесом и выполнением запросов к другим компонентам.
 """
 import pymongo
-from components.common import LogicError
-from components.database import get_default_database
 from bson.objectid import ObjectId
+
+from components.database import get_default_database
 
 
 class Druid():
@@ -174,19 +174,13 @@ class Druid():
         trunk = get_default_database(self.settings)
         leaves = trunk.leaves
 
-        if leaves.find_one({"name": name}):
-            raise LogicError("Leaf with name '{0}' \
-                              already exists".format(name))
-
-        # TODO: проверка адреса
-
         leaf = leaves.insert({
             "name": name,
             "desc": desc,
             "type": ObjectId(leaf_type),
             "active": True,
-            "address": settings["common"]["urls"],
-            "branch": settings["common"]["branch"],
+            "address": settings["common"]["address"],
+            "branch": [ObjectId(b) for b in settings["common"]["branch"]],
             "settings": settings["custom"]
         })
 
@@ -196,7 +190,7 @@ class Druid():
 
         return {
             "result": "success",
-            "id": leaf.get("_id")
+            "id": str(leaf)
         }
 
     def get_species(self, **kwargs):
@@ -234,10 +228,10 @@ class Druid():
             "id": leaf_raw.get("_id"),
             "name": leaf_raw.get("name"),
             "desc": leaf_raw.get("desc"),
-            "urls": leaf_raw.get("address") if type(leaf_raw.get("address")) == list else [leaf_raw.get("address")],
+            "urls": leaf_raw.get("address"),
             "type": leaf_raw.get("type"),
             "active": leaf_raw.get("active"),
-            "branch": leaf_raw.get("branch") if type(leaf_raw.get("branch")) == list else [leaf_raw.get("branch")]
+            "branch": leaf_raw.get("branch")
         }
 
         return {
@@ -282,4 +276,3 @@ class Druid():
             } for leaf in leaves
         ]
         return {"result": "success", "leaves": leaves_list}
-

@@ -99,7 +99,7 @@ class Branch(object):
 
         return None
 
-    @synchronous('species_lock')
+    @synchronous('leaves_lock')
     def specie_initialization_finished(self, specie):
         specie.is_ready = True
         for leaf in self.leaves:
@@ -235,6 +235,10 @@ class Branch(object):
             ],)
         )
         self.pool.add_thread(t)
+        log_message(
+            "Starting leaf {}".format(leaf.id),
+            component="Branch"
+        )
 
     @synchronous('leaves_lock')
     @synchronous('species_lock')
@@ -249,6 +253,11 @@ class Branch(object):
 
         if leaf.specie.is_ready:
             self.start_leaf(leaf)
+        else:
+            log_message(
+                "Queued leaf {}".format(leaf.id),
+                component="Branch"
+            )
 
     @synchronous('leaves_lock')
     def del_leaf(self, leaf):

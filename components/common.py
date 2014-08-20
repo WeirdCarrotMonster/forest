@@ -27,11 +27,11 @@ class CallbackThread(Thread):
     def run(self, *args, **kwargs):
         super(CallbackThread, self).run(*args, **kwargs)
         if self.callback \
-            and type(self.callback) == tuple \
-            and len(self.callback) == 3 \
-            and hasattr(self.callback[0], '__call__') \
-            and type(self.callback[1]) == list \
-            and type(self.callback[2]) == dict:
+                and type(self.callback) == tuple \
+                and len(self.callback) == 3 \
+                and hasattr(self.callback[0], '__call__') \
+                and type(self.callback[1]) == list \
+                and type(self.callback[2]) == dict:
             self.callback[0](*self.callback[1], **self.callback[2])
 
 
@@ -42,7 +42,6 @@ class ThreadPool(object):
         self.working = []
         self.queue = []
         self.lock = Lock()
-
 
     def add_thread(self, thread):
         self.lock.acquire()
