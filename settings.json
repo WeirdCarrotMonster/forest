@@ -1,7 +1,7 @@
 {
     "connections":
     {
-        "trunk_host": "127.0.0.1",
+        "trunk_host": "192.168.0.110",
         "trunk_port": 1234
     },
     "roles": {
@@ -30,7 +30,7 @@
             "keydir": "/home/wcm/coding/forest/keys",
             "emperor_dir": "/home/wcm/coding/forest/bin",
             "statichandler": "/home/wcm/coding/forest/components/statichandler.py",
-            "host": "127.0.0.1",
+            "host": "192.168.0.110",
             "fastrouter": 3333
         }
     },

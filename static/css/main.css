@@ -300,7 +300,7 @@ Navigation
 .global-nav nav.vertical ul li a i.triangle {
     width: 0px;
     height: 0px;
-    border-style: solid;
+    border-style: inset;
     border-width: 21px 12px 21px 0;
     border-color: transparent #ffffff transparent transparent;
     position: absolute;
