@@ -16,35 +16,35 @@
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 </head>
-<body ng-controller="Login">
-<div class="container">
-    <main id="login" class="animated fadeInDown">
-        <section class="units-row">
-            <div class="unit-centered unit-30 unit-white">
-                <header class="units-row unit-header unit-green">
-                    <div class="unit-centered unit-80">
-                        <a href=""><img src="/static/images/logo.png" alt="Forest"></a>
-                    </div>
-                </header>
+    <body ng-controller="Login">
+        <div class="container-login">
+            <main id="login" class="animated fadeInDown">
                 <section class="units-row">
-                    <div class="unit-centered unit-80">
-                        <form>
-                            <p>
-                                <input ng-model="username" type="text" class="width-100" placeholder="Логин">
-                                <input ng-model="password" type="password" class="width-100" placeholder="Пароль">
-                            </p>
-                            <p><a href="#" ng-click="loginUser()" class="button medium">Войти</a></p>
-                        </form>
+                    <div class="unit-centered unit-30 unit-white">
+                        <header class="units-row unit-header unit-green">
+                            <div class="unit-centered unit-80">
+                                <a href=""><img src="/static/images/logo.png" alt="Forest"></a>
+                            </div>
+                        </header>
+                        <section class="units-row">
+                            <div class="unit-centered unit-80">
+                                <form ng-submit="loginUser()">
+                                    <p>
+                                        <input ng-model="username" type="text" class="width-100 form-control" placeholder="Логин">
+                                        <input ng-model="password" type="password" class="width-100 form-control" placeholder="Пароль">
+                                    </p>
+                                    <p><button type="submit" class="button medium green">Войти</button></p>
+                                </form>
+                            </div>
+                        </section>
                     </div>
                 </section>
-            </div>
-        </section>
-    </main>
-    <footer class="footer units-row">
-        <div class="container">
-            <p>ç 2013 Noble code</p>
+            </main>
+            <footer class="footer units-row">
+                <div class="container">
+                    <p>ç 2013 Noble code</p>
+                </div>
+            </footer>
         </div>
-    </footer>
-</div>
-</body>
+    </body>
 </html>
