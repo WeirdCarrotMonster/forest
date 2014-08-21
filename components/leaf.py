@@ -100,6 +100,7 @@ class Leaf(object):
 
         config = """
         [uwsgi]
+        strict=1
         chdir={chdir}
         heartbeat=10
         module=wsgi:application
@@ -114,6 +115,7 @@ class Leaf(object):
         daemonize={logto}
         virtualenv={virtualenv}
         log-prefix=[Leaf {id}]
+        static-map=/static={chdir}/static
         """.format(
             chdir=self.specie.path,
             virtualenv=self.specie.environment,

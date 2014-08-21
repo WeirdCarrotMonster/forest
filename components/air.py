@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import re
 import shutil
 import signal
 import socket
@@ -52,7 +51,6 @@ class Air():
                 data_parsed, important = logparse(data)
             except:
                 pass
-
 
     def cleanup(self):
         self.fastrouter.send_signal(signal.SIGINT)
