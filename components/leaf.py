@@ -112,10 +112,10 @@ class Leaf(object):
         env=APPLICATION_SETTINGS={app_settings}
         env=LEAF_SETTINGS={leaf_settings}
         logformat={logformat}
-        daemonize={logto}
         virtualenv={virtualenv}
-        log-prefix=[Leaf {id}]
         static-map=/static={chdir}/static
+        req-logger = socket:{logto}
+        log-encoder = prefix [Leaf {id}]
         """.format(
             chdir=self.specie.path,
             virtualenv=self.specie.environment,
