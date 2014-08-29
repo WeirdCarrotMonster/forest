@@ -22,7 +22,7 @@ res = [
         {"log_type": "emperor_vassal_loyal"}
     ),
     (
-        re.compile("\[Leaf (?P<log_source>\w+)\](?P<raw>.+)"),
+        re.compile("\[Leaf (?P<log_source>\w+)\](?P<raw>.*)", re.S),
         {"log_type": "leaf.stdout_stderr"}
     )
 ]

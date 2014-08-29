@@ -13,7 +13,7 @@
         </span>
         <span ng-switch-when="leaf.stdout_stderr" class="log_stdout">
             <span>{{ convertDate(log.added) }}</span><br/>
-            <span>{{ log.raw }}</span>
+            <pre>{{ log.raw }}</pre>
         </span>
         <span ng-switch-when="leaf.before_start" class="log_before_start">
             <span>{{ convertDate(log.added) }}</span><br/>
