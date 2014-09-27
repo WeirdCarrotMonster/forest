@@ -20,23 +20,7 @@ from components.emperor import Emperor
 from components.leaf import Leaf
 from logparse import logparse
 from specie import Specie
-from functools import wraps
-
-
-def synchronous(tlockname):
-    """A decorator to place an instance based lock around a method """
-
-    def _synched(func):
-        @wraps(func)
-        def _synchronizer(self, *args, **kwargs):
-            tlock = self.__getattribute__(tlockname)
-            tlock.acquire()
-            try:
-                return func(self, *args, **kwargs)
-            finally:
-                tlock.release()
-        return _synchronizer
-    return _synched
+from components.common import synchronous
 
 
 class Branch(object):
@@ -227,14 +211,7 @@ class Branch(object):
         return new_leaf
 
     def start_leaf(self, leaf):
-        t = Thread(
-            target=leaf.run_tasks,
-            args=([
-                (leaf.before_start, []),
-                (self.emperor.start_leaf, [leaf])
-            ],)
-        )
-        self.pool.add_thread(t)
+        self.emperor.start_leaf(leaf)
         log_message(
             "Starting leaf {}".format(leaf.id),
             component="Branch"

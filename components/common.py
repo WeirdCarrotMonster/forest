@@ -15,6 +15,23 @@ import tornado.gen
 import tornado.web
 from simplejson import JSONEncoder
 from tornado import gen
+from functools import wraps
+
+
+def synchronous(tlockname):
+    """A decorator to place an instance based lock around a method """
+
+    def _synched(func):
+        @wraps(func)
+        def _synchronizer(self, *args, **kwargs):
+            tlock = self.__getattribute__(tlockname)
+            tlock.acquire()
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                tlock.release()
+        return _synchronizer
+    return _synched
 
 
 class CallbackThread(Thread):

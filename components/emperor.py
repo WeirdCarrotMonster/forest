@@ -8,10 +8,13 @@ import os
 import signal
 import socket
 import subprocess
+from threading import RLock
 import time
 
 import simplejson as json
 import zmq
+
+from components.common import synchronous
 
 
 class Emperor():
@@ -44,10 +47,13 @@ class Emperor():
         self.vassal_names = {}
         self.vassal_ports = {}
 
+        self.emperor_lock = RLock()
+
     def stop_emperor(self):
         self.emperor.send_signal(signal.SIGINT)
         self.emperor.wait()
 
+    @synchronous('emperor_lock')
     def start_leaf(self, leaf):
         if leaf.id in self.vassal_names.keys():
             self.stop_leaf(leaf)
@@ -64,6 +70,7 @@ class Emperor():
 
         leaf.set_status(1)
 
+    @synchronous('emperor_lock')
     def stop_leaf(self, leaf):
         leaf_name = self.vassal_names[leaf.id]
         self.emperor_socket.send_multipart([
