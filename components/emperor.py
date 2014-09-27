@@ -17,7 +17,7 @@ import zmq
 from components.common import synchronous
 
 
-class Emperor():
+class Emperor(object):
     def __init__(self, binary_dir, port=5121, logs_port=5122, stats_port=5123):
         self.port = port
         self.logs_port = logs_port
