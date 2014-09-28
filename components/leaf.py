@@ -63,6 +63,14 @@ class Leaf(object):
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
 
+    @property
+    def log_port(self):
+        return self._log_port
+
+    @log_port.setter
+    def log_port(self, value):
+        self._log_port = value
+
     def get_config(self):
         logs_format = {
             "uri": "%(uri)",
