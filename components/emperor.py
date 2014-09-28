@@ -14,8 +14,6 @@ import time
 import simplejson as json
 import zmq
 
-from components.common import synchronous
-
 
 class Emperor(object):
     def __init__(self, binary_dir, port=5121, logs_port=5122, stats_port=5123):
@@ -53,11 +51,9 @@ class Emperor(object):
         self.emperor.send_signal(signal.SIGINT)
         self.emperor.wait()
 
-    @synchronous('emperor_lock')
     def start_leaf(self, leaf):
         if leaf.id in self.vassal_names.keys():
             self.stop_leaf(leaf)
-
         leaf_name = "{}_{}.ini".format(str(leaf.id), str(time.time()).replace(".", ""))
         self.vassal_names[leaf.id] = leaf_name
         leaf.log_port = self.logs_port
@@ -68,16 +64,13 @@ class Emperor(object):
             bytes(leaf.get_config())
         ])
 
-        leaf.set_status(1)
-
-    @synchronous('emperor_lock')
     def stop_leaf(self, leaf):
         leaf_name = self.vassal_names[leaf.id]
         self.emperor_socket.send_multipart([
             bytes('destroy'),
             bytes(leaf_name)
         ])
-        leaf.set_status(0)
+
         del self.vassal_names[leaf.id]
 
     def soft_restart_leaf(self, leaf):

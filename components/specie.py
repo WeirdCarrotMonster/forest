@@ -13,7 +13,11 @@ from components.common import log_message
 from tornado.process import Subprocess
 
 
-class Specie():
+class Specie(object):
+    """
+    Класс, представляющий вид листа - совокупность исходного кода и виртуального
+    окружения python
+    """
     def __init__(self, directory, specie_id, name, url, last_update, triggers, ready_callback):
         self.directory = directory
         self.specie_id = specie_id
@@ -49,10 +53,10 @@ class Specie():
                     self.url,
                     self._path
                 ],
-                # stderr=subprocess.PIPE,
-                # stdout=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
             )
-        else:  # TODO: условие обновления - ревизия
+        else:
             log_message(
                 "Updating repository for specie {}".format(self.name),
                 component="Specie"
@@ -113,6 +117,10 @@ class Specie():
         process.set_exit_callback(self.initialization_finished)
 
     def initialization_finished(self, result):
+        log_message(
+            "Done initializing {}".format(self.name),
+            component="Specie"
+        )
         self.ready_callback(self)
 
     @property

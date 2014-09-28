@@ -55,7 +55,6 @@ class Leaf(object):
 
         self._last_req_measurement = datetime.datetime.now()
         self._last_req_count = 0
-        self.set_status(0)
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -63,20 +62,6 @@ class Leaf(object):
         r3 = self.workers == other.workers
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
-
-    @property
-    def log_port(self):
-        return self._log_port
-
-    @log_port.setter
-    def log_port(self, value):
-        self._log_port = value
-
-    def set_status(self, status):
-        self.status = self.statuses[status]
-
-    def set_settings(self, settings):
-        self.settings = settings
 
     def get_config(self):
         logs_format = {
@@ -139,7 +124,3 @@ class Leaf(object):
                     address, self.keyfile)
 
         return config
-
-    def run_tasks(self, tasks):
-        for task, args in tasks:
-            task(*args)

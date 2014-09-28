@@ -8,7 +8,6 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
-from threading import RLock
 
 import simplejson as json
 from bson import ObjectId
@@ -18,8 +17,8 @@ from components.common import log_message
 from components.database import get_default_database
 from components.emperor import Emperor
 from components.leaf import Leaf
-from logparse import logparse
-from specie import Specie
+from components.logparse import logparse
+from components.specie import Specie
 
 
 class Branch(object):
@@ -41,13 +40,7 @@ class Branch(object):
 
         self.species = {}
 
-        # Целый набор локов
-        # When in doubt, C4
-        self.species_lock = RLock()
-        self.leaves_lock = RLock()
-
         self.last_update = None
-        self.current_iteration = 0
 
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
@@ -60,10 +53,7 @@ class Branch(object):
 
     def _found_leaf(self, result, error):
         if not result:
-            if not error:
-                self._finalize_update()
             return
-        self.current_iteration += 1
 
         if not self.last_update or self.last_update < result.get("modified"):
             self.last_update = result.get("modified")
@@ -78,9 +68,6 @@ class Branch(object):
                 self.add_leaf(leaf)
             elif _id in self.leaves.keys():
                 self.del_leaf(_id)
-
-    def _finalize_update(self):
-        self.current_iteration = 0
 
     def get_specie(self, specie_id):
         if specie_id in self.species:
@@ -169,43 +156,14 @@ class Branch(object):
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
             trunk.logs.insert(data_parsed)
 
-    def __get_assigned_leaves(self):
-        """
-        Метод получения всех листьев, назначенных на данную ветвь.
-        Отношение листа к верви определяется соответствием значения поля
-        branch листа имени данной ветви
-
-        @rtype: list
-        @return: Список всех листьев, назначенных на данную ветвь
-        """
-        trunk = get_default_database(self.trunk.settings)
-        return trunk.leaves.find({
-            "branch": self.trunk.settings["id"],
-            "active": True
-        })
-
-    def get_leaf(self, leaf_id):
-        """
-        Получает лист по его имени
-
-        @type leaf_name: unicode
-        @param leaf_name: Имя искомого листа
-        @rtype: Leaf
-        @return: Лист по искомому имени
-        """
-        for leaf in self.leaves:
-            if leaf.id == leaf_id:
-                return leaf
-        return None
-
     def create_leaf(self, leaf):
         """
         Создает экземпляр листа  по данным из базы
 
-        @type leaf: dict
-        @param leaf: Словарь с конфигурацией листа
-        @rtype: Leaf
-        @return: Созданный по данным базы экземпляр листа
+        :type leaf: dict
+        :param leaf: Словарь с конфигурацией листа
+        :rtype: Leaf
+        :return: Созданный по данным базы экземпляр листа
         """
         batteries = leaf.get("batteries", {})
         for key, value in batteries.items():
@@ -240,8 +198,8 @@ class Branch(object):
         """
         Запускает лист и добавляет его в список запущенных
 
-        @type leaf: Leaf
-        @param leaf: Словарь настроек листа
+        :type leaf: Leaf
+        :param leaf: Словарь настроек листа
         """
         self.leaves[leaf.id] = leaf
 
@@ -254,6 +212,12 @@ class Branch(object):
             )
 
     def del_leaf(self, _id):
+        """
+        Останавливает лист и удаляет его из списка активных
+
+        :type _id: ObjectId
+        :param _id: Идентификатор листа
+        """
         self.emperor.stop_leaf(self.leaves[_id])
         del self.leaves[_id]
 
