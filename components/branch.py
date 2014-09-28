@@ -225,6 +225,10 @@ class Branch(object):
         :type _id: ObjectId
         :param _id: Идентификатор листа
         """
+        log_message(
+            "Stopping leaf {}".format(str(_id)),
+            component="Branch"
+        )
         self.emperor.stop_leaf(self.leaves[_id])
         del self.leaves[_id]
 
