@@ -29,10 +29,11 @@ class Emperor(object):
             [
                 os.path.join(self.binary_dir, "uwsgi"),
                 "--plugin", os.path.join(self.binary_dir, "emperor_zeromq"),
+                "--plugin", os.path.join(self.binary_dir, "logzmq"),
                 "--emperor", "zmq://tcp://127.0.0.1:%d" % self.port,
                 "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
                 "--master",
-                "--logger", "socket:127.0.0.1:%d" % self.logs_port,
+                "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
                 "--emperor-required-heartbeat", "40"
             ],
             bufsize=1,
@@ -57,6 +58,7 @@ class Emperor(object):
         leaf_name = "{}_{}.ini".format(str(leaf.id), str(time.time()).replace(".", ""))
         self.vassal_names[leaf.id] = leaf_name
         leaf.log_port = self.logs_port
+        leaf.emperor_dir = self.binary_dir
 
         self.emperor_socket.send_multipart([
             bytes('touch'),

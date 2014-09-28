@@ -52,6 +52,7 @@ class Leaf(object):
         self._thread = None
         self._queue = None
         self.logs = []
+        self.emperor_dir = None
 
         self._last_req_measurement = datetime.datetime.now()
         self._last_req_count = 0
@@ -90,23 +91,24 @@ class Leaf(object):
         }
 
         config = """
-        [uwsgi]
-        strict=1
-        chdir={chdir}
-        heartbeat=10
-        module=wsgi:application
-        socket={socket}:0
-        processes={workers}
-        master=1
-        buffer-size=65535
-        env=BATTERIES={batteries}
-        env=APPLICATION_SETTINGS={app_settings}
-        env=LEAF_SETTINGS={leaf_settings}
-        logformat={logformat}
-        virtualenv={virtualenv}
-        static-map=/static={chdir}/static
-        req-logger = socket:{logto}
-        log-encoder = prefix [Leaf {id}]
+[uwsgi]
+strict=1
+chdir={chdir}
+heartbeat=10
+module=wsgi:application
+socket={socket}:0
+processes={workers}
+master=1
+buffer-size=65535
+env=BATTERIES={batteries}
+env=APPLICATION_SETTINGS={app_settings}
+env=LEAF_SETTINGS={leaf_settings}
+logformat={logformat}
+virtualenv={virtualenv}
+static-map=/static={chdir}/static
+plugin={plugin}
+req-logger = zeromq:tcp://{logto}
+log-encoder = prefix [Leaf {id}]
         """.format(
             chdir=self.specie.path,
             virtualenv=self.specie.environment,
@@ -117,7 +119,8 @@ class Leaf(object):
             logformat=json.dumps(logs_format),
             logto="127.0.0.1:{}".format(self._log_port),
             workers=self.workers,
-            id=self.id
+            id=self.id,
+            plugin=os.path.join(self.emperor_dir, "logzmq")
         )
         if self.threads:
             config += "enable-threads=1\n"

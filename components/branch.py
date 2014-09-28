@@ -8,17 +8,19 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
+from zmq.eventloop.zmqstream import ZMQStream
 
 import simplejson as json
 from bson import ObjectId
 
-from components.common import CallbackThread as Thread
 from components.common import log_message
 from components.database import get_default_database
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.specie import Specie
+from tornado.gen import coroutine
+import zmq
 
 
 class Branch(object):
@@ -34,13 +36,47 @@ class Branch(object):
 
         self.emperor = Emperor(self.settings["emperor_dir"])
 
-        self.running = True
-        self.logger_thread = Thread(target=self.__log_events)
-        self.logger_thread.start()
-
         self.species = {}
 
         self.last_update = None
+
+        ctx = zmq.Context()
+        s = ctx.socket(zmq.PULL)
+        s.bind('tcp://127.0.0.1:5122')
+        self.stream = ZMQStream(s)
+        self.stream.on_recv(self.log_message)
+
+    @coroutine
+    def log_message(self, message):
+        for data in message:
+            data = data.strip()
+
+            add_info = {
+                "component_name": self.trunk.settings["name"],
+                "component_type": "branch",
+                "log_type": "leaf.event"
+            }
+
+            if not data:
+                return
+            try:
+                data_parsed = json.loads(data)
+                data_parsed.update(add_info)
+                data_parsed["status"] = int(data_parsed["status"])
+                data_parsed["msecs"] = int(data_parsed["msecs"])
+                data_parsed["size"] = int(data_parsed["size"])
+
+            except json.JSONDecodeError:
+                data_parsed, important = logparse(data)
+
+            data_parsed["component_name"] = self.trunk.settings["id"]
+            data_parsed["component_type"] = "branch"
+            data_parsed["added"] = datetime.datetime.now()
+            if "log_source" in data_parsed:
+                data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
+
+            trunk = get_default_database(self.trunk.settings, async=True)
+            yield trunk.logs.insert(data_parsed)
 
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
@@ -126,35 +162,6 @@ class Branch(object):
                     component["roles"]["roots"]["mongo"]["port"]
                 )
             )
-
-    def __log_events(self):
-        add_info = {
-            "component_name": self.trunk.settings["name"],
-            "component_type": "branch",
-            "log_type": "leaf.event"
-        }
-
-        trunk = get_default_database(self.trunk.settings)
-        while self.running:
-            data = self.emperor.get_logs()
-            if not data:
-                continue
-            try:
-                data_parsed = json.loads(data)
-                data_parsed.update(add_info)
-                data_parsed["status"] = int(data_parsed["status"])
-                data_parsed["msecs"] = int(data_parsed["msecs"])
-                data_parsed["size"] = int(data_parsed["size"])
-
-            except json.JSONDecodeError:
-                data_parsed, important = logparse(data)
-
-            data_parsed["component_name"] = self.trunk.settings["id"]
-            data_parsed["component_type"] = "branch"
-            data_parsed["added"] = datetime.datetime.now()
-            if "log_source" in data_parsed:
-                data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
-            trunk.logs.insert(data_parsed)
 
     def create_leaf(self, leaf):
         """

@@ -5,6 +5,7 @@ cd uwsgi-2.0.6
 python2 uwsgiconfig.py --build
 printf "NAME='emperor_zeromq'\nCFLAGS = ['-lzmq']\nLDFLAGS = ['-lzmq']\nLIBS = []\nGCC_LIST = ['emperor_zeromq']\n" > plugins/emperor_zeromq/uwsgiplugin.py
 python2 uwsgiconfig.py --plugin plugins/emperor_zeromq
-cp uwsgi emperor_zeromq_plugin.so ../../
+python2 uwsgiconfig.py --plugin plugins/logzmq
+cp uwsgi emperor_zeromq_plugin.so logzmq_plugin.so ../../
 cd ../..
 rm build -r

@@ -5,7 +5,9 @@ from __future__ import print_function, unicode_literals
 import sys
 import os
 import signal
-import tornado.ioloop
+from tornado.ioloop import IOLoop
+from zmq.eventloop import ioloop
+
 import tornado.web
 import simplejson as json
 
@@ -36,8 +38,8 @@ JSON_DATA = open(os.path.join(FOREST_DIR, FILENAME))
 SETTINGS = json.load(JSON_DATA)
 JSON_DATA.close()
 
-# Определяем слушателей по ролям
-loop = tornado.ioloop.IOLoop.instance()
+ioloop.install()
+loop = IOLoop.instance()
 
 LISTENERS = [
     # Слушаем статику на случай, если не выдаем её чем-нибудь другим
@@ -120,5 +122,4 @@ for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
     signal.signal(sig, cleanup)
 
 signal.signal(signal.SIGHUP, reload_druid)
-
 loop.start()
