@@ -6,6 +6,7 @@
 """
 import pymongo
 from bson.objectid import ObjectId
+from datetime import datetime
 
 from components.database import get_default_database
 
@@ -106,12 +107,12 @@ class Druid():
                 "$set": {
                     "settings": settings["custom"],
                     "address": settings["common"]["address"],
-                    "branch": settings["common"]["branch"]
+                    "branch": settings["common"]["branch"],
+                    "modified": datetime.now()
                 }
             }
         )
 
-        self.update_branches()
         self.update_air()
 
         return {
@@ -155,12 +156,6 @@ class Druid():
         for component in components.find({"roles.air": {"$exists": True}}):
             self.trunk.send_message(component, {"function": "air.update_state"})
 
-    def update_branches(self):
-        trunk = get_default_database(self.settings)
-        components = trunk.components
-        for branch in components.find({"roles.branch": {"$exists": True}}):
-            self.trunk.send_message(branch, {"function": "branch.update_state"})
-
     def update_roots(self):
         trunk = get_default_database(self.settings)
         components = trunk.components
@@ -181,11 +176,11 @@ class Druid():
             "active": True,
             "address": settings["common"]["address"],
             "branch": [ObjectId(b) for b in settings["common"]["branch"]],
-            "settings": settings["custom"]
+            "settings": settings["custom"],
+            "modified": datetime.now()
         })
 
         self.update_roots()
-        self.update_branches()
         self.update_air()
 
         return {
@@ -215,12 +210,12 @@ class Druid():
             {"_id": ObjectId(leaf_id)},
             {
                 "$set": {
-                    "active": not leaf["active"]
+                    "active": not leaf["active"],
+                    "modified": datetime.now()
                 }
             }
         )
 
-        self.update_branches()
         self.update_air()
 
         leaf_raw = leaves.find_one({"_id": ObjectId(leaf_id)})

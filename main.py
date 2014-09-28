@@ -74,7 +74,8 @@ if "branch" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["branch"]
     branch = Branch(role_settings, APPLICATION)
     APPLICATION.branch = branch
-    APPLICATION.functions.update(branch.functions)
+    clbk = tornado.ioloop.PeriodicCallback(branch.periodic_event, 5000)
+    clbk.start()
 
 if True:  # Предполагаем, что каждый компонент может выступать в роли интерфейса
     role_settings = {}  # Будут настройки?

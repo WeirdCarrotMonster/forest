@@ -14,13 +14,12 @@ import simplejson as json
 from bson import ObjectId
 
 from components.common import CallbackThread as Thread
-from components.common import log_message, ThreadPool
+from components.common import log_message
 from components.database import get_default_database
 from components.emperor import Emperor
 from components.leaf import Leaf
 from logparse import logparse
 from specie import Specie
-from components.common import synchronous
 
 
 class Branch(object):
@@ -30,12 +29,7 @@ class Branch(object):
     def __init__(self, settings, trunk):
         self.settings = settings
         self.trunk = trunk
-        self.leaves = []
-        self.pool = ThreadPool(self.settings.get("thread_pool_limit", 0))
-
-        self.functions = {
-            "branch.update_state": self.update_state
-        }
+        self.leaves = {}
 
         self.load_components()
 
@@ -52,9 +46,42 @@ class Branch(object):
         self.species_lock = RLock()
         self.leaves_lock = RLock()
 
-        self.init_leaves()
+        self.last_update = None
+        self.current_iteration = 0
 
-    @synchronous('species_lock')
+    def periodic_event(self):
+        trunk = get_default_database(self.trunk.settings, async=True)
+        query = {}
+        if self.last_update:
+            query["modified"] = {"$gt": self.last_update}
+
+        cursor = trunk.leaves.find(query)
+        cursor.each(callback=self._found_leaf)
+
+    def _found_leaf(self, result, error):
+        if not result:
+            if not error:
+                self._finalize_update()
+            return
+        self.current_iteration += 1
+
+        if not self.last_update or self.last_update < result.get("modified"):
+            self.last_update = result.get("modified")
+        _id = result.get("_id")
+
+        if self.trunk.settings["id"] not in result.get("branch"):
+            if _id in self.leaves.keys():
+                self.del_leaf(_id)
+        else:
+            if result.get("active", False):
+                leaf = self.create_leaf(result)
+                self.add_leaf(leaf)
+            elif _id in self.leaves.keys():
+                self.del_leaf(_id)
+
+    def _finalize_update(self):
+        self.current_iteration = 0
+
     def get_specie(self, specie_id):
         if specie_id in self.species:
             return self.species[specie_id]
@@ -70,24 +97,20 @@ class Branch(object):
                 name=spc.get("name"),
                 url=spc.get("url"),
                 last_update=spc.get("last_update"),
-                triggers=spc.get("triggers", {})
+                triggers=spc.get("triggers", {}),
+                ready_callback=self.specie_initialization_finished
             )
-            thread = Thread(
-                target=specie_new.initialize,
-                callback=(self.specie_initialization_finished, [], {"specie": specie_new})
-            )
-            thread.daemon = True
-            thread.start()
+            specie_new.initialize()
+
             self.species[specie_id] = specie_new
             return self.species[specie_id]
 
         return None
 
-    @synchronous('leaves_lock')
     def specie_initialization_finished(self, specie):
         specie.is_ready = True
-        for leaf in self.leaves:
-            if leaf.specie == specie and leaf.status[0] in (0, 3):
+        for leaf in self.leaves.values():
+            if leaf.specie == specie:
                 self.start_leaf(leaf)
 
     def load_components(self):
@@ -161,7 +184,6 @@ class Branch(object):
             "active": True
         })
 
-    @synchronous('leaves_lock')
     def get_leaf(self, leaf_id):
         """
         Получает лист по его имени
@@ -191,8 +213,6 @@ class Branch(object):
                 batteries[key]["host"] = self.batteries[key][0][0]
                 batteries[key]["port"] = self.batteries[key][0][1]
 
-        trunk = get_default_database(self.trunk.settings)
-
         new_leaf = Leaf(
             name=leaf["name"],
             _id=leaf.get("_id"),
@@ -201,7 +221,6 @@ class Branch(object):
             fastrouters=self.fastrouters,
             keyfile=self.settings.get("keyfile", None),
             address=leaf.get("address"),
-            logger=trunk.logs,
             component=self.trunk.settings["name"],
             batteries=batteries,
             workers=leaf.get("workers", 4),
@@ -217,8 +236,6 @@ class Branch(object):
             component="Branch"
         )
 
-    @synchronous('leaves_lock')
-    @synchronous('species_lock')
     def add_leaf(self, leaf):
         """
         Запускает лист и добавляет его в список запущенных
@@ -226,7 +243,7 @@ class Branch(object):
         @type leaf: Leaf
         @param leaf: Словарь настроек листа
         """
-        self.leaves.append(leaf)
+        self.leaves[leaf.id] = leaf
 
         if leaf.specie.is_ready:
             self.start_leaf(leaf)
@@ -236,122 +253,9 @@ class Branch(object):
                 component="Branch"
             )
 
-    @synchronous('leaves_lock')
-    def del_leaf(self, leaf):
-        self.emperor.stop_leaf(leaf)
-        self.leaves.remove(leaf)
-
-    @synchronous('species_lock')
-    def _update_species(self):
-        pass
-
-    @synchronous('leaves_lock')
-    def _update_leaves(self):
-        # Составляем списки имеющихся листьев и требуемых
-        current = [leaf.id for leaf in self.leaves]
-        assigned_leaves = {
-            i["_id"]: i
-            for i in self.__get_assigned_leaves()
-        }
-        assigned = [leaf for leaf in assigned_leaves.keys()]
-
-        # Сравниваем списки листьев
-        # Выбираем все листы, которые есть локально, но не
-        # указаны в базе и выключаем их
-        to_stop = list(set(current) - set(assigned))
-        to_start = list(set(assigned) - set(current))
-        to_check = list(set(current) & set(assigned))
-
-        log_message("Triggering update", component="Branch")
-        log_stop = []
-        log_restart = []
-
-        # Формируем списки листьев, с которыми работаем
-        stop_list = []
-        start_list = []
-
-        for leaf in to_stop:
-            stop_list.append(self.get_leaf(leaf))
-            log_stop.append(leaf)
-
-        for leaf in to_check:
-            leaf_running = self.get_leaf(leaf)
-            leaf_shouldb = self.create_leaf(assigned_leaves[leaf])
-
-            if leaf_running != leaf_shouldb:
-                log_message(
-                    "Leaf {0} changed".format(leaf),
-                    component="Branch"
-                )
-                start_list.append(leaf_shouldb)
-                stop_list.append(leaf_running)
-                log_restart.append(leaf)
-
-        for leaf in to_start:
-            leaf_shouldb = self.create_leaf(assigned_leaves[leaf])
-            start_list.append(leaf_shouldb)
-
-        if log_stop:
-            log_message(
-                "Stopping leaves: {0}".format(log_stop),
-                component="Branch"
-            )
-
-        if to_start:
-            log_message(
-                "Starting leaves: {0}".format(to_start),
-                component="Branch"
-            )
-
-        if log_restart:
-            log_message(
-                "Restarting leaves: {0}".format(log_restart),
-                component="Branch"
-            )
-
-        # Выполняем обработку листьев
-
-        for leaf in stop_list:
-            self.del_leaf(leaf)
-
-        for leaf in start_list:
-            self.add_leaf(leaf)
-
-    def update_state(self, **kwargs):
-        """
-        Метод обновления состояния ветви.
-        В ходе обновления проверяется состояние двух частей ветви:
-        1) Репозитории
-        2) Листья
-
-        Репозитории обновляются в зависимости от их текущего состояния
-        и последней ревизии, указанной в базе.
-
-        Обновление листьев состоит в поиске тех листьев, состояние
-        которых на ветви не соответствует состоянию в базе.
-
-        @rtype: dict
-        @return: Результат обновления состояния
-        """
-        self._update_species()
-        self._update_leaves()
-
-        return {
-            "result": "success"
-        }
-
-    @synchronous('leaves_lock')
-    def init_leaves(self):
-        """
-        Метод инициализации листьев при запуске.
-        Выбирает назначенные на данную ветвь листья и запускает их
-        """
-        for leaf in self.__get_assigned_leaves():
-            log_message("Found leaf {0} in configuration".format(
-                leaf["name"]),
-                component="Branch"
-            )
-            self.add_leaf(self.create_leaf(leaf))
+    def del_leaf(self, _id):
+        self.emperor.stop_leaf(self.leaves[_id])
+        del self.leaves[_id]
 
     def cleanup(self):
         """

@@ -28,7 +28,6 @@ class Leaf(object):
                  fastrouters=None,
                  keyfile=None,
                  address=None,
-                 logger=None,
                  component=None,
                  batteries=None,
                  workers=4,
@@ -43,7 +42,6 @@ class Leaf(object):
         self.fastrouters = fastrouters or []
         self.keyfile = keyfile
         self.address = address
-        self.logger = logger
         self.component = component
         self.batteries = batteries
         self.workers = workers

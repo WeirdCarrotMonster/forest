@@ -3,31 +3,25 @@
 import motor
 import pymongo
 
-def get_connection_async(host, port, user, password, replica, auth=True):
-    if not replica:
-        con = motor.MotorClient(host, port)
-    else:
-        con = motor.MotorReplicaSetClient(host, port, replicaSet=replica)
 
-    if auth:
-        con.admin.authenticate(user, password)
+def get_connection_async(host, port, user, password, replica):
+    if not replica:
+        con = motor.MotorClient("mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()))
+    else:
+        con = motor.MotorReplicaSetClient(
+            "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()),
+            replicaSet=replica)
     return con
 
 
-def get_settings_connection_async(settings, auth=True):
+def get_settings_connection_async(settings):
     return get_connection_async(
         settings.get("host", "127.0.0.1"),
         settings.get("port", 27017),
         settings.get("user", "admin"),
         settings.get("pass", "password"),
-        settings.get("replica", None),
-        auth=auth
+        settings.get("replica", None)
     )
-
-
-def get_default_database_async(settings):
-    connection = get_settings_connection_async(settings)
-    return connection[settings.get("database", "trunk")]
 
 
 def get_connection(host, port, user, password, replica, auth=True):
@@ -52,8 +46,11 @@ def get_settings_connection(settings, auth=True):
     )
 
 
-def get_default_database(settings):
-    connection = get_settings_connection(settings)
+def get_default_database(settings, async=False):
+    if async:
+        connection = get_settings_connection_async(settings)
+    else:
+        connection = get_settings_connection(settings)
     return connection[settings.get("database", "trunk")]
 
 
