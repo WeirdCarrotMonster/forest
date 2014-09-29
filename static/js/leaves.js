@@ -1,130 +1,72 @@
-function Leaves($scope, $routeSegment, $http, $rootScope, loader) {
-    $scope.loadLeaves = function () {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "get_leaves"
-            }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                $scope.leaves = data["leaves"];
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    }
+forest.factory("Leaves", function($resource) {
+  return $resource("/api/leaves/:id/:query", null, {
+    'update': {method: 'PATCH', params: {id: "@_id"}}
+  });
+});
+
+forest.controller("LeavesIndex", function($scope, $routeSegment, $rootScope, Leaves) {
+  Leaves.query(function(data) {
+    $scope.leaves = data;
+  });
+
+  $rootScope.$on('leavesUpdateRequired', function(event, args) {
     $scope.loadLeaves();
-    $rootScope.$on('leavesUpdateRequired', function(event, args) {
-        $scope.loadLeaves();
+  });
+
+  $scope.search = "";
+});
+
+forest.controller("LeavesIndexItem", function($scope, $routeSegment, Leaves) {
+  $scope.init = function(data) {
+    $scope.resource = data;
+  }
+
+  $scope.leafButtonClass = function () {
+    if ($scope.busy) {
+      return "fa fa-refresh fa-spin";
+    }else
+    if ($scope.resource.active) {
+      return "fa fa-check"
+    }else {
+      return "fa fa-times"
+    }
+  }
+
+  $scope.leafButtonBgClass = function () {
+    if ($scope.busy) {
+      return "statusbusy";
+    }else
+    if ($scope.resource.active) {
+      return "statuson"
+    }else {
+      return "statusoff"
+    }
+  }
+
+  $scope.toggleLeaf = function() {
+    $scope.busy = true;
+    $scope.resource.active = !$scope.resource.active;
+    $scope.resource.$update().then(function (a){
+      $scope.busy = false;
     });
+  }
+});
 
-    $scope.search = "";
+forest.controller("LeafIndex", function($scope, $routeSegment) {
+    $scope.id = $routeSegment.$routeParams.id;
+});
 
-    $scope.leafButtonClass = function (leaf) {
-        if (leaf.busy) {
-            return "fa fa-refresh fa-spin";
-        }else
-        if (leaf.active) {
-            return "fa fa-check"
-        }else {
-            return "fa fa-times"
-        }
-    }
+forest.controller("LeafLogs", function($scope, $routeSegment, $http, Leaves) {
+  Leaves.query({id: $scope.$parent.id, query: "logs"}, function(data) {
+    $scope.logs = data;
+  });
+  $scope.convertDate = function (date) {
+    moment.lang("ru");
+    return moment(date).format('LLLL');
+  };
+});
 
-    $scope.leafButtonBgClass = function (leaf) {
-        if (leaf.busy) {
-            return "statusbusy";
-        }else
-        if (leaf.active) {
-            return "statuson"
-        }else {
-            return "statusoff"
-        }
-    }
-
-    $scope.toggleLeaf = function(leaf) {
-        if (leaf.busy != undefined && !leaf.busy){
-            return 0;
-        }
-        leaf.busy = true;
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "toggle_leaf",
-                leaf_id: leaf.id
-            }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                $scope.leaves[$scope.leaves.indexOf(leaf)] = data["leaf"];
-            }
-            leaf.busy = false;
-        }).
-        error(function(data, status, headers, config) {
-            leaf.busy = false;
-        });
-    }
-}
-
-function Leaf($scope, $routeSegment, loader) {
-    $scope.leafid = $routeSegment.$routeParams.leafid;
-}
-
-function LeafLogs($scope, $routeSegment, $http, loader) {
-    $scope.logs = [];
-    $scope.loadLogs = function () {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "get_leaf_logs",
-                leaf_id: $scope.$parent.leafid
-            }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                $scope.logs = data["logs"];
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-    $scope.updateLogs = function () {
-        var log_id = $scope.logs[0]["_id"];
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "get_leaf_logs",
-                leaf_id: $scope.$parent.leafid,
-                last: log_id
-            }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                var new_logs = data["logs"];
-                new_logs.push.apply(new_logs, $scope.logs);
-                $scope.logs = new_logs;
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    };
-    $scope.convertDate = function (date) {
-        moment.lang("ru");
-        return moment(date).format('LLLL');
-    };
-    $scope.fixNewline = function (text) {
-        text = text.replace(/\n\n/g,"\n");
-        return text;
-    }
-    $scope.loadLogs();
-}
-
-function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
+forest.controller("LeafSettings", function($scope, $routeSegment, $http, $rootScope) {
     $scope.status = "saved";
 
     $scope.checkbox_list_helper = function (settings_list, value) {
@@ -174,7 +116,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
             url: '/',
             data: {
                 function: "get_leaf_settings",
-                leaf_id: $scope.$parent.leafid
+                leaf_id: $scope.$parent.id
             }
         }).
         success(function(data, status, headers, config) {
@@ -233,7 +175,7 @@ function LeafSettings($scope, $routeSegment, $http, $rootScope, loader) {
             $scope.status = "failed";
         });
     }
-}
+})
 
 function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
     $scope.checkbox_list_helper = function (settings_list, value) {

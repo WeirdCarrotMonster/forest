@@ -1,17 +1,9 @@
-forest = angular.module('Forest', ['ngRoute', 'ngAnimate', 'route-segment', 'view-segment']);
+forest = angular.module('Forest', ['ngResource', 'ngRoute', 'ngAnimate', 'route-segment', 'view-segment']);
 
 forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider) {
-
-    // Configuring provider options
-
     $routeSegmentProvider.options.autoLoadTemplates = true;
 
-    // Setting routes. This consists of two parts:
-    // 1. `when` is similar to vanilla $route `when` but takes segment name instead of params hash
-    // 2. traversing through segment tree to set it up
-
     $routeSegmentProvider
-
         .when('/', 'dashboard')
         .when('/air', 'air')
         .when('/branches', 'branches')
@@ -22,9 +14,9 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         .when('/roots', 'roots')
         .when('/fauna', 'fauna')
         .when('/leaves/add', 'leaves.add')
-        .when('/leaves/:leafid', 'leaves.leaf')
-        .when('/leaves/:leafid/settings', 'leaves.leaf.settings')
-        .when('/leaves/:leafid/logs', 'leaves.leaf.logs')
+        .when('/leaves/:id', 'leaves.leaf')
+        .when('/leaves/:id/settings', 'leaves.leaf.settings')
+        .when('/leaves/:id/logs', 'leaves.leaf.logs')
 
         .segment('dashboard', {
             templateUrl: "/static/templates/dashboard.html",
@@ -32,7 +24,7 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         })
 
         .segment('leaves', {
-            controller: Leaves,
+            controller: this.LeavesIndex,
             templateUrl: '/static/templates/leaves.html'
         })
 
@@ -48,15 +40,15 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         .within()
 
         .segment('leaf', {
-            controller: Leaf,
-            dependencies: ['leafid'],
+            controller: this.LeafIndex,
+            dependencies: ['id'],
             templateUrl: '/static/templates/leaf.html'
         })
 
         .within()
 
         .segment('logs', {
-            controller: LeafLogs,
+            controller: this.LeafLogs,
             templateUrl: '/static/templates/leaf-logs.html'
         })
 
@@ -65,7 +57,7 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         .within()
 
         .segment('settings', {
-            controller: LeafSettings,
+            controller: this.LeafSettings,
             templateUrl: '/static/templates/leaf-settings.html'
         })
 

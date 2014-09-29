@@ -1,4 +1,4 @@
-<div>
+<div ng-controller="LeafSettings">
     <div ng-repeat="(key, value) in settings.template.common">
 				<h3>{{ settings.template.common[key].verbose }}</h3>
 				<div ng-switch on='settings.template.common[key].type'>

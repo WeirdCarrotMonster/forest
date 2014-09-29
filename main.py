@@ -21,6 +21,7 @@ from components.branch import Branch
 from components.air import Air
 from components.common import TransparentListener, log_message
 import components.druid
+from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler
 
 if len(sys.argv) < 2:
     log_message(
@@ -46,6 +47,9 @@ LISTENERS = [
     (r'/static/(.*)',
      tornado.web.StaticFileHandler,
      {'path': os.path.join(FOREST_DIR, 'static')}),
+    (r"/api/leaves", LeavesHandler),
+    (r"/api/leaves/([^/]*)", LeafHandler),
+    (r"/api/leaves/([^/]*)/logs", LeafLogsHandler),
     (r"/(.*)", TransparentListener)
 ]
 base_settings = SETTINGS["settings"]
