@@ -8,7 +8,6 @@ import os
 import signal
 import socket
 import subprocess
-from threading import RLock
 import time
 
 import simplejson as json
@@ -45,8 +44,6 @@ class Emperor(object):
 
         self.vassal_names = {}
         self.vassal_ports = {}
-
-        self.emperor_lock = RLock()
 
     def stop_emperor(self):
         self.emperor.send_signal(signal.SIGINT)

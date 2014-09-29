@@ -7,8 +7,9 @@
         <li ng-repeat="leaf in leaves| filter:search" class="leaf">
             <div ng-controller="LeavesIndexItem" ng-init="init(leaf)">
                 <h3>
-                    <a href="" ng-click="toggleLeaf()" class="icon-status {{leafButtonBgClass()}}">
-                        <i class="{{leafButtonClass()}}"></i>
+                    <a href="" ng-click="toggleLeaf()" class="icon-status"
+                        ng-class="{'statusbusy':busy,'statuson':!busy&&resource.active,'statusoff':!busy&&!resource.active}">
+                        <i class="fa" ng-class="{'fa-refresh fa-spin':busy,'fa-check':!busy&&resource.active,'fa-times':!busy&&!resource.active}"></i>
                     </a>
                     <span><a class="link" href="/leaves/{{resource._id}}/logs">{{resource.name}}</a></span>
                 </h3>

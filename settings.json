@@ -21,15 +21,15 @@
         },
         "branch": {
             "host": "127.0.0.1",
-            "keyfile": "/home/wcm/coding/forest/keys/private.pem",
-            "emperor_dir": "/home/wcm/coding/forest/bin",
+            "keyfile": "/home/wcm/forest/keys/private.pem",
+            "emperor_dir": "/home/wcm/forest/bin",
             "thread_pool_limit": 5,
-            "species": "/home/wcm/coding/forest/species/"
+            "species": "/home/wcm/forest/species/"
         },
         "air": {
-            "keydir": "/home/wcm/coding/forest/keys",
-            "emperor_dir": "/home/wcm/coding/forest/bin",
-            "statichandler": "/home/wcm/coding/forest/components/statichandler.py",
+            "keydir": "/home/wcm/forest/keys",
+            "emperor_dir": "/home/wcm/forest/bin",
+            "statichandler": "/home/wcm/forest/components/statichandler.py",
             "host": "127.0.0.1",
             "fastrouter": 3333
         }

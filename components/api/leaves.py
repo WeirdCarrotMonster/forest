@@ -1,12 +1,10 @@
-#coding-utf8
+# coding=utf-8
 
 from __future__ import unicode_literals, print_function
 from datetime import datetime
 
-import tornado
 from tornado import gen, web
 from tornado.web import asynchronous
-from components.common import log_message
 import simplejson as json
 from components.common import CustomEncoder
 from components.database import get_default_database
@@ -93,3 +91,101 @@ class LeafLogsHandler(web.RequestHandler):
             else:
                 current += 1
         self.finish("]")
+
+
+class LeafSettingsHandler(web.RequestHandler):
+    @asynchronous
+    @gen.engine
+    def get(self, _id):
+        db = get_default_database(self.application.settings, async=True)
+
+        leaf = yield db.leaves.find_one(
+            {"_id": ObjectId(_id)},
+            {'batteries': False}
+        )
+        leaf_type = yield db.species.find_one({"_id": leaf["type"]})
+
+        cursor = db.components.find({"roles.branch": {"$exists": True}})
+        branches = yield cursor.to_list(length=100)
+
+        common = {
+            "address": {
+                "type": "list",
+                "elements": "string",
+                "verbose": "Адреса"
+            },
+            "branch": {
+                "type": "checkbox_list",
+                "values": [{
+                    "verbose": branch["name"],
+                    "value": branch["_id"]
+                } for branch in branches],
+                "verbose": "Ветви"
+            }
+        }
+
+        result = {
+            "custom": leaf.get("settings", {}),
+            "common": {
+                "address": leaf.get("address"),
+                "branch": leaf.get("branch")
+            },
+            "template": {
+                "common": common,
+                "custom": leaf_type["settings"]
+            }
+        }
+        self.finish(json.dumps(result, cls=CustomEncoder))
+
+    @asynchronous
+    @gen.engine
+    def post(self, _id):
+        data = json.loads(self.request.body)
+        db = get_default_database(self.application.settings, async=True)
+        yield db.leaves.update(
+            {"_id": ObjectId(_id)},
+            {"$set": {
+                "settings": data.get("custom", ""),
+                "address": data.get("common", {}).get("address", []),
+                "branch": [ObjectId(a) for a in data.get("common", {}).get("branch", [])],
+                "modified": datetime.now()
+            }}
+        )
+
+        leaf = yield db.leaves.find_one(
+            {"_id": ObjectId(_id)},
+            {'batteries': False}
+        )
+        leaf_type = yield db.species.find_one({"_id": leaf["type"]})
+
+        cursor = db.components.find({"roles.branch": {"$exists": True}})
+        branches = yield cursor.to_list(length=100)
+
+        common = {
+            "address": {
+                "type": "list",
+                "elements": "string",
+                "verbose": "Адреса"
+            },
+            "branch": {
+                "type": "checkbox_list",
+                "values": [{
+                    "verbose": branch["name"],
+                    "value": branch["_id"]
+                } for branch in branches],
+                "verbose": "Ветви"
+            }
+        }
+
+        result = {
+            "custom": leaf.get("settings", {}),
+            "common": {
+                "address": leaf.get("address"),
+                "branch": leaf.get("branch")
+            },
+            "template": {
+                "common": common,
+                "custom": leaf_type["settings"]
+            }
+        }
+        self.finish(json.dumps(result, cls=CustomEncoder))

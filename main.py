@@ -21,7 +21,7 @@ from components.branch import Branch
 from components.air import Air
 from components.common import TransparentListener, log_message
 import components.druid
-from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler
+from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
 
 if len(sys.argv) < 2:
     log_message(
@@ -50,6 +50,7 @@ LISTENERS = [
     (r"/api/leaves", LeavesHandler),
     (r"/api/leaves/([^/]*)", LeafHandler),
     (r"/api/leaves/([^/]*)/logs", LeafLogsHandler),
+    (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
     (r"/(.*)", TransparentListener)
 ]
 base_settings = SETTINGS["settings"]
