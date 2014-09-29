@@ -237,4 +237,3 @@ class Branch(object):
         Метод выключения листьев при остановке.
         """
         self.emperor.stop_emperor()
-        self.running = False

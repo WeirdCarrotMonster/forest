@@ -16,7 +16,7 @@ class Battery(object):
         pass
 
     @staticmethod
-    def prepare(settings):
+    def prepare(settings, trunk):
         raise NotImplemented
 
 

@@ -26,7 +26,8 @@ def get_settings_connection_async(settings):
 
 def get_connection(host, port, user, password, replica):
     if not replica:
-        con = pymongo.MongoClient("mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()))
+        con = pymongo.MongoClient(
+            "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()))
     else:
         con = pymongo.MongoReplicaSetClient(
             "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()),
@@ -53,7 +54,7 @@ def get_default_database(settings, async=False):
 
 
 def authenticate_user(settings, user, password):
-    connection = get_settings_connection(settings, auth=False)
+    connection = get_settings_connection(settings)
     try:
         connection.admin.authenticate(user, password)
         return True
