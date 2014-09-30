@@ -10,6 +10,8 @@ from zmq.eventloop import ioloop
 
 import tornado.web
 import simplejson as json
+from components.api.settings import CommonLeafSettingsHandler
+from components.api.species import SpeciesHandler
 
 from components.trunk import Trunk
 try:
@@ -19,8 +21,7 @@ except ImportError:
     ROOTS_CAPABLE = False
 from components.branch import Branch
 from components.air import Air
-from components.common import TransparentListener, log_message
-import components.druid
+from components.common import log_message
 from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
 
 if len(sys.argv) < 2:
@@ -47,11 +48,14 @@ LISTENERS = [
     (r'/static/(.*)',
      tornado.web.StaticFileHandler,
      {'path': os.path.join(FOREST_DIR, 'static')}),
+
     (r"/api/leaves", LeavesHandler),
+    (r"/api/leaves/settings", CommonLeafSettingsHandler),
     (r"/api/leaves/([^/]*)", LeafHandler),
     (r"/api/leaves/([^/]*)/logs", LeafLogsHandler),
     (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
-    (r"/(.*)", TransparentListener)
+
+    (r"/api/species", SpeciesHandler)
 ]
 base_settings = SETTINGS["settings"]
 base_settings["REALPATH"] = FOREST_DIR
@@ -75,7 +79,8 @@ if "roots" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["roots"]
     roots = Roots(role_settings, APPLICATION)
     APPLICATION.roots = roots
-    APPLICATION.functions.update(roots.functions)
+    clbk = tornado.ioloop.PeriodicCallback(roots.periodic_event, 5000)
+    clbk.start()
 
 if "branch" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["branch"]
@@ -87,9 +92,6 @@ if "branch" in SETTINGS["roles"].keys():
 if True:  # Предполагаем, что каждый компонент может выступать в роли интерфейса
     role_settings = {}  # Будут настройки?
     role_settings.update(base_settings)
-    druid = components.druid.Druid(role_settings, APPLICATION)
-    APPLICATION.druid = druid
-    APPLICATION.functions.update(druid.functions)
 
 
 APPLICATION.publish_self()
@@ -113,18 +115,7 @@ def cleanup(signum=None, frame=None):
     log_message("Done!")
     sys.exit(0)
 
-
-def reload_druid(signum=None, frame=None):
-    log_message("Got SIGHUP, reloading web interface module")
-    reload(components.druid)
-    role_settings = {}  # Будут настройки?
-    role_settings.update(base_settings)
-    druid = components.druid.Druid(role_settings, APPLICATION)
-    APPLICATION.druid = druid
-    APPLICATION.functions.update(druid.functions)
-
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
     signal.signal(sig, cleanup)
 
-signal.signal(signal.SIGHUP, reload_druid)
 loop.start()

@@ -31,7 +31,7 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
         .within()
 
         .segment('add', {
-            controller: LeafAdd,
+            controller: this.LeafAdd,
             templateUrl: '/static/templates/leaf-add.html'
         })
 

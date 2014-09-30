@@ -1,9 +1,3 @@
-forest.factory("Leaves", function($resource) {
-  return $resource("/api/leaves/:id/:query", null, {
-    'update': {method: 'PATCH', params: {id: "@_id"}}
-  });
-});
-
 forest.controller("LeavesIndex", function($scope, $routeSegment, $rootScope, Leaves) {
   Leaves.query(function(data) {
     $scope.leaves = data;
@@ -61,8 +55,7 @@ forest.controller("LeafSettings", function($scope, $rootScope, Leaves) {
     }
 
   Leaves.get({id: $scope.$parent.id, query: "settings"}, function(data) {
-    $scope.settings = data;
-    console.log($scope.settings);
+    $scope.settings = data
 
     for (var key in $scope.settings.template.custom){
         if ($scope.settings.template.custom[key].type == "list" && $scope.settings.custom[key] == undefined){
@@ -95,7 +88,7 @@ forest.controller("LeafSettings", function($scope, $rootScope, Leaves) {
   }
 })
 
-function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
+forest.controller("LeafAdd", function($scope, $rootScope, Leaves, Species) {
     $scope.checkbox_list_helper = function (settings_list, value) {
         var idx = settings_list.indexOf(value);
 
@@ -107,85 +100,53 @@ function LeafAdd($scope, $routeSegment, $http, $rootScope, loader) {
         }
     }
 
-    $scope.loadSpecies = function() {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "get_species"
-            }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                $scope.species = data["species"];
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    }
-    $scope.loadSpecies();
-
-    $scope.loadSettingsTemplate = function() {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "get_default_settings",
-                specie_id: $scope.leaf_type
-            }
-        }).
-        success(function(data, status, headers, config) {
-            $scope.settings = {
-                custom: {},
-                common: {}
-            };
-            if (data["result"] == "success"){
-                $scope.template = data["settings"];
-            }
-            for (var key in $scope.template.custom){
-                if ($scope.template.custom[key].type == "list"){
-                    $scope.settings.custom[key] = Array();
-                }
-                if ($scope.template.custom[key].type == "checkbox_list"){
-                    $scope.settings.custom[key] = Array();
-                }
-            }
-            for (var key in $scope.template.common){
-                if ($scope.template.common[key].type == "list"){
-                    $scope.settings.common[key] = Array();
-                }
-                if ($scope.template.common[key].type == "checkbox_list"){
-                    $scope.settings.common[key] = Array();
-                }
-            }
-        }).
-        error(function(data, status, headers, config) {
-        });
-    }
-
+    $scope.template = {};
+    $scope.settings = {};
+    $scope.settings.common = {};
     $scope.leaf_type = undefined;
     $scope.leaf_name = "";
     $scope.leaf_description = "";
 
-    $scope.saveLeaf = function() {
-        $http({
-            method: 'POST',
-            url: '/',
-            data: {
-                function: "create_leaf",
-                name: $scope.leaf_name,
-                leaf_type: $scope.leaf_type,
-                desc: $scope.leaf_description,
-                settings: $scope.settings
+
+    Species.query(function(data) {
+        $scope.species = data;
+    });
+
+    Leaves.get({query: "settings"}, function(data) {
+        $scope.template.common = data;
+
+        for (var key in $scope.template.common){
+            if ($scope.template.common[key].type == "list"){
+                $scope.settings.common[key] = Array();
             }
-        }).
-        success(function(data, status, headers, config) {
-            if (data["result"] == "success"){
-                $rootScope.$emit('leavesUpdateRequired', {});
-                // window.location = '/leaves/' + $scope.leaf_name +'/logs'
+            if ($scope.template.common[key].type == "checkbox_list"){
+                $scope.settings.common[key] = Array();
             }
-        }).
-        error(function(data, status, headers, config) {
-        });
+        }
+    });
+
+    $scope.loadSettingsTemplate = function() {
+        $scope.template.custom = $scope.leaf_type.settings;
+
+        $scope.settings.custom = {};
+        for (var key in $scope.template.custom){
+            if ($scope.template.custom[key].type == "list"){
+                $scope.settings.custom[key] = Array();
+            }
+            if ($scope.template.custom[key].type == "checkbox_list"){
+                $scope.settings.custom[key] = Array();
+            }
+        }
     }
-}
+
+    $scope.saveLeaf = function() {
+        var leaf = Leaves.save({
+            name: $scope.leaf_name,
+            leaf_type: $scope.leaf_type._id,
+            desc: $scope.leaf_description,
+            settings: $scope.settings
+        })
+
+        console.log(leaf);
+    }
+});

@@ -17,9 +17,39 @@ class LeavesHandler(web.RequestHandler):
     def get(self):
         db = get_default_database(self.application.settings, async=True)
         cursor = db.leaves.find({}, {'batteries': False, 'settings': False, 'branch': False})
-        self.finish(json.dumps(
-            [leaf for leaf in (yield cursor.to_list(length=1000))],
-            cls=CustomEncoder))
+
+        self.write("[")
+
+        beginning = True
+        while (yield cursor.fetch_next):
+            document = cursor.next_object()
+            if beginning:
+                beginning = False
+            else:
+                self.write(",")
+            self.write(json.dumps(document, cls=CustomEncoder))
+        self.finish("]")
+
+    @asynchronous
+    @gen.engine
+    def post(self):
+        data = json.loads(self.request.body)
+
+        db = get_default_database(self.application.settings, async=True)
+
+        result = yield db.leaves.insert({
+            "name": data["name"],
+            "desc": data.get("desc"),
+            "type": ObjectId(data["leaf_type"]),
+            "active": True,
+            "address": data["settings"]["common"]["address"],
+            "branch": [ObjectId(b) for b in data["settings"]["common"]["branch"]],
+            "settings": data["settings"]["custom"],
+            "modified": datetime.now()
+        })
+
+        leaf = yield db.leaves.find_one({"_id": ObjectId(result)})
+        self.finish(json.dumps(leaf, cls=CustomEncoder))
 
 
 class LeafHandler(web.RequestHandler):

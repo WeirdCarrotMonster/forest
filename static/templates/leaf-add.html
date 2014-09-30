@@ -1,21 +1,21 @@
-<div class="inside-content">
+<div class="inside-content" ng-controller="LeafAdd">
     <h2>Добавить лист</h2>
     <form class="add-leaf">
-    	<label>
-    		Имя:
-    		<input ng-model="leaf_name" type="text" class="input-settings" placeholder="example_name"/>
-    	</label>
-    	<label>
-    		Описание:
-    		<input ng-model="leaf_description" type="text" class="input-settings" placeholder="Example description"/>
-    	</label>
-    	<label>
-    		Тип:
-    		<select ng-model='leaf_type' class="select-settings" ng-change="loadSettingsTemplate()" ng-options='choice[1] as choice[0] for choice in species'>
-        </select>
-    	</label>
+        <label>
+            Имя:
+            <input ng-model="leaf_name" type="text" class="input-settings" placeholder="example_name"/>
+        </label>
+        <label>
+            Описание:
+            <input ng-model="leaf_description" type="text" class="input-settings" placeholder="Example description"/>
+        </label>
+        <label>
+            Тип:
+            <select ng-model='leaf_type' class="select-settings" ng-change="loadSettingsTemplate()" ng-options='choice as choice.name for choice in species'>
+            </select>
+        </label>
     </form>
-    <h2 ng-hide="leaf_type == undefined">Настройки</h2>
+    <h2>Настройки</h2>
     <div class="settings-group" ng-repeat="(key, value) in template.common">
         <h3>{{ template.common[key].verbose }}</h3>
         <div ng-switch on='template.common[key].type'>
