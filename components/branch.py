@@ -80,7 +80,7 @@ class Branch(object):
 
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
-        query = {}
+        query = {"batteries": {'$exists': True}}
         if self.last_update:
             query["modified"] = {"$gt": self.last_update}
 
