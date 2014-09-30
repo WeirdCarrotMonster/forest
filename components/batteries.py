@@ -6,23 +6,36 @@ import random
 import string
 
 import MySQLdb
+from tornado.gen import coroutine
 
 from components.common import log_message
-from components.database import get_default_database, get_settings_connection
+from components.database import get_default_database, get_settings_connection_async
 
 
 class Battery(object):
     def __init__(self):
         pass
 
-    @staticmethod
-    def prepare(settings, trunk):
+    def update(self):
         raise NotImplemented
 
 
 class MySQL(Battery):
-    def __init__(self):
+    def __init__(self, settings, trunk):
         Battery.__init__(self)
+        self.settings = settings
+        self.trunk = trunk
+
+        cursor = self.trunk.species.find({"requires": "mysql"})
+        cursor.each(callback=self.add_specie)
+
+        self.species = []
+
+    def add_specie(self, result, error):
+        if not result:
+            return
+
+        self.species.append(result["_id"])
 
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
@@ -65,18 +78,21 @@ class MySQL(Battery):
             username = MySQL.string_generator()
         return username
 
-    @staticmethod
-    def prepare_database(settings, name):
+    @coroutine
+    def prepare_leaf(self, leaf, error):
+        if not leaf:
+            return
+
         log_message(
-            "Preparing MySQL for {0}".format(name),
+            "Preparing MySQL for {0}".format(leaf["name"]),
             component="Roots"
         )
 
-        db_name = name
-        if MySQL.mysql_db_exists(settings, db_name):
+        db_name = leaf["name"]
+        if MySQL.mysql_db_exists(self.settings, db_name):
             db_name = MySQL.string_generator()
 
-        username = MySQL.generate_username(settings)
+        username = MySQL.generate_username(self.settings)
         password = MySQL.string_generator()
         result = {
             "name": db_name,
@@ -90,10 +106,10 @@ class MySQL(Battery):
         )
 
         db = MySQLdb.connect(
-            host=settings.get("host", "127.0.0.1"),
-            port=settings["port"],
-            user=settings["user"],
-            passwd=settings["pass"]
+            host=self.settings.get("host", "127.0.0.1"),
+            port=self.settings["port"],
+            user=self.settings["user"],
+            passwd=self.settings["pass"]
         )
         try:
             cur = db.cursor()
@@ -109,43 +125,69 @@ class MySQL(Battery):
             db.close()
         except:
             result = None
-        return result
 
-    @staticmethod
-    def prepare(settings, trunk):
-        species = [s["_id"] for s in trunk.species.find({"requires": "mysql"})]
+        yield self.trunk.leaves.update(
+            {"_id": leaf["_id"]},
+            {
+                "$set": {"batteries.mysql": result}
+            }
+        )
 
-        to_prepare = trunk.leaves.find({
-            "type": {"$in": species},
+    def update(self):
+        cursor = self.trunk.leaves.find({
+            "type": {"$in": self.species},
             "batteries.mysql": {'$exists': False}
         })
-        for leaf in to_prepare:
-            env = MySQL.prepare_database(settings, leaf["name"])
-            if env:
-                trunk.leaves.update(
-                    {"_id": leaf["_id"]},
-                    {
-                        "$set": {"batteries.mysql": env}
-                    }
-                )
+
+        cursor.each(callback=self.prepare_leaf)
 
 
 class Mongo(Battery):
-    def __init__(self):
+    def __init__(self, settings, trunk):
         Battery.__init__(self)
+        self.settings = settings
+        self.trunk = trunk
 
-    @staticmethod
-    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
+        self.last_update = None
 
-    @staticmethod
-    def prepare_database(settings, name):
+        cursor = self.trunk.species.find({"requires": "mongo"})
+        cursor.each(callback=self.add_specie)
+
+        self.species = []
+
+    def add_specie(self, result, error):
+        if not result:
+            return
+
+        self.species.append(result["_id"])
+
+    @coroutine
+    def update(self):
+        trunk = get_default_database(self.settings, async=True)
+        query = {
+            "type": {"$in": self.species},
+            "batteries.mongo": {'$exists': False}
+        }
+
+        cursor = trunk.leaves.find(query)
+        cursor.each(callback=self.prepare_leaf)
+
+    @coroutine
+    def prepare_leaf(self, leaf, error):
+        if not leaf:
+            return
+
         log_message(
-            "Preparing MongoDB for {0}".format(name),
+            "Preparing Mongo for {0}".format(leaf["name"]),
             component="Roots"
         )
-        con = get_settings_connection(settings)
-        while name in con.database_names():
+
+        name = leaf["name"]
+
+        con = get_settings_connection_async(self.settings)
+
+        db_names = yield con.database_names()
+        while name in db_names:
             name = Mongo.string_generator()
 
         db = con[name]
@@ -153,29 +195,21 @@ class Mongo(Battery):
         username = Mongo.string_generator()
         password = Mongo.string_generator()
 
-        db.add_user(username, password, roles=["readWrite"])
+        yield db.add_user(username, password, roles=["readWrite"])
 
-        return {
-            "name": name,
-            "user": username,
-            "pass": password
-        }
+        yield con.trunk.leaves.update(
+            {"_id": leaf["_id"]},
+            {"$set": {
+                "batteries.mongo": {
+                    "name": name,
+                    "user": username,
+                    "pass": password
+                }
+            }
+            }
+        )
+
 
     @staticmethod
-    def prepare(settings, trunk):
-        species = [s["_id"] for s in trunk.species.find({"requires": "mongo"})]
-
-        to_prepare = trunk.leaves.find({
-            "type": {"$in": species},
-            "batteries.mongo": {'$exists': False}
-        })
-
-        for leaf in to_prepare:
-            env = Mongo.prepare_database(settings, leaf["name"])
-            if env:
-                trunk.leaves.update(
-                    {"_id": leaf["_id"]},
-                    {"$set": {
-                        "batteries.mongo": env}
-                    }
-                )
+    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
