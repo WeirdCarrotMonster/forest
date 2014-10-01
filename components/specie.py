@@ -8,6 +8,8 @@ from __future__ import print_function, unicode_literals
 
 import os
 import subprocess
+import tornado
+from tornado.gen import coroutine
 
 from components.common import log_message
 from tornado.process import Subprocess
@@ -40,6 +42,7 @@ class Specie(object):
             os.makedirs(self.specie_path)
         self.initialize_sources()
 
+    @coroutine
     def initialize_sources(self):
         if not os.path.exists(self._path):
             log_message(
@@ -53,8 +56,8 @@ class Specie(object):
                     self.url,
                     self._path
                 ],
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE
+                stderr=tornado.process.Subprocess.STREAM,
+                stdout=tornado.process.Subprocess.STREAM
             )
         else:
             log_message(
@@ -70,11 +73,12 @@ class Specie(object):
                     "pull"
                 ],
                 env=my_env,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE
+                stderr=tornado.process.Subprocess.STREAM,
+                stdout=tornado.process.Subprocess.STREAM
             )
         process.set_exit_callback(self.initialize_environ)
 
+    @coroutine
     def initialize_environ(self, result):
         if not os.path.exists(self._environment):
             log_message(
@@ -89,13 +93,14 @@ class Specie(object):
                     self._environment
                 ],
                 env=my_env,
-                stderr=subprocess.PIPE,
-                stdout=subprocess.PIPE
+                stderr=tornado.process.Subprocess.STREAM,
+                stdout=tornado.process.Subprocess.STREAM
             )
             process.set_exit_callback(self.install_packages)
         else:
             self.install_packages(0)
 
+    @coroutine
     def install_packages(self, result):
         log_message(
             "Installing virtualenv requirements for {}".format(self.name),
@@ -111,8 +116,8 @@ class Specie(object):
                 os.path.join(self._path, "requirements.txt")
             ],
             env=my_env,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
+            stderr=tornado.process.Subprocess.STREAM,
+            stdout=tornado.process.Subprocess.STREAM
         )
         process.set_exit_callback(self.initialization_finished)
 

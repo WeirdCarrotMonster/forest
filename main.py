@@ -21,7 +21,7 @@ except ImportError:
     ROOTS_CAPABLE = False
 from components.branch import Branch
 from components.air import Air
-from components.common import log_message
+from components.common import log_message, TransparentListener
 from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
 
 if len(sys.argv) < 2:
@@ -55,7 +55,8 @@ LISTENERS = [
     (r"/api/leaves/([^/]*)/logs", LeafLogsHandler),
     (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
 
-    (r"/api/species", SpeciesHandler)
+    (r"/api/species", SpeciesHandler),
+    (r"/(.*)", TransparentListener)
 ]
 base_settings = SETTINGS["settings"]
 base_settings["REALPATH"] = FOREST_DIR
