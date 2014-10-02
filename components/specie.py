@@ -7,12 +7,15 @@
 from __future__ import print_function, unicode_literals
 
 import os
-import subprocess
+from datetime import datetime
+import dateutil.parser
 import tornado
 from tornado.gen import coroutine
 
-from components.common import log_message
+from components.common import log_message, CustomEncoder
 from tornado.process import Subprocess
+
+import simplejson as json
 
 
 class Specie(object):
@@ -20,7 +23,7 @@ class Specie(object):
     Класс, представляющий вид листа - совокупность исходного кода и виртуального
     окружения python
     """
-    def __init__(self, directory, specie_id, name, url, last_update, triggers, ready_callback):
+    def __init__(self, directory, specie_id, name, url, last_update, triggers, ready_callback, modified):
         self.directory = directory
         self.specie_id = specie_id
         self.specie_path = os.path.join(self.directory, str(self.specie_id))
@@ -32,6 +35,28 @@ class Specie(object):
         self._path = os.path.join(self.specie_path, "src")
         self.is_ready = False
         self.ready_callback = ready_callback
+        self.modified = modified
+
+    @property
+    def metadata(self):
+        try:
+            with open(os.path.join(self.specie_path, "metadata.json"), 'r') as f:
+                data = json.loads(f.read())
+
+                for key, value in data.items():
+                    try:
+                        data[key] = dateutil.parser.parse(value)
+                    except:
+                        pass
+            return data
+        except:
+            return {}
+
+    @metadata.setter
+    def metadata(self, value):
+        data = json.dumps(value, cls=CustomEncoder)
+        with open(os.path.join(self.specie_path, "metadata.json"), 'w') as f:
+            f.write(data)
 
     def initialize(self):
         if not os.path.exists(self.specie_path):
@@ -59,24 +84,39 @@ class Specie(object):
                 stderr=tornado.process.Subprocess.STREAM,
                 stdout=tornado.process.Subprocess.STREAM
             )
+            process.set_exit_callback(self.initialize_environ)
+            metadata = self.metadata
+            metadata["modified"] = self.modified
+            self.metadata = metadata
         else:
-            log_message(
-                "Updating repository for specie {}".format(self.name),
-                component="Specie"
-            )
-            my_env = os.environ.copy()
-            process = Subprocess(
-                [
-                    "git",
-                    "-C",
-                    self._path,
-                    "pull"
-                ],
-                env=my_env,
-                stderr=tornado.process.Subprocess.STREAM,
-                stdout=tornado.process.Subprocess.STREAM
-            )
-        process.set_exit_callback(self.initialize_environ)
+            last_updated = self.metadata.get("modified")
+            if last_updated and last_updated >= self.modified:
+                self.initialization_finished(1)
+                log_message(
+                    "Repository for specie {} is in actual state".format(self.name),
+                    component="Specie"
+                )
+            else:
+                log_message(
+                    "Updating repository for specie {}".format(self.name),
+                    component="Specie"
+                )
+                my_env = os.environ.copy()
+                process = Subprocess(
+                    [
+                        "git",
+                        "-C",
+                        self._path,
+                        "pull"
+                    ],
+                    env=my_env,
+                    stderr=tornado.process.Subprocess.STREAM,
+                    stdout=tornado.process.Subprocess.STREAM
+                )
+                metadata = self.metadata
+                metadata["modified"] = self.modified
+                self.metadata = metadata
+                process.set_exit_callback(self.initialize_environ)
 
     @coroutine
     def initialize_environ(self, result):

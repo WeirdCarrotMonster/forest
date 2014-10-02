@@ -121,7 +121,8 @@ class Branch(object):
                 url=spc.get("url"),
                 last_update=spc.get("last_update"),
                 triggers=spc.get("triggers", {}),
-                ready_callback=self.specie_initialization_finished
+                ready_callback=self.specie_initialization_finished,
+                modified=spc["modified"]
             )
             specie_new.initialize()
 
