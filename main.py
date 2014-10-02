@@ -12,6 +12,7 @@ import tornado.web
 import simplejson as json
 from components.api.settings import CommonLeafSettingsHandler
 from components.api.species import SpeciesHandler
+from components.pages.views import Login, Index
 
 from components.trunk import Trunk
 try:
@@ -49,6 +50,9 @@ LISTENERS = [
      tornado.web.StaticFileHandler,
      {'path': os.path.join(FOREST_DIR, 'static')}),
 
+    (r"/", Index),
+    (r"/login", Login),
+
     (r"/api/leaves", LeavesHandler),
     (r"/api/leaves/settings", CommonLeafSettingsHandler),
     (r"/api/leaves/([^/]*)", LeafHandler),
@@ -56,7 +60,7 @@ LISTENERS = [
     (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
 
     (r"/api/species", SpeciesHandler),
-    (r"/(.*)", TransparentListener)
+    # (r"/(.*)", TransparentListener)
 ]
 base_settings = SETTINGS["settings"]
 base_settings["REALPATH"] = FOREST_DIR
@@ -71,7 +75,6 @@ if "air" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["air"]
     air = Air(role_settings, APPLICATION)
     APPLICATION.air = air
-    APPLICATION.functions.update(air.functions)
 
 if "roots" in SETTINGS["roles"].keys():
     if not ROOTS_CAPABLE:

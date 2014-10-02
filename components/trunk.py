@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 import traceback
+import os
 
+import pymongo
 import simplejson as json
+from tornado import template
+from tornado.gen import coroutine, Return
 import tornado.httpclient
 import tornado.template
 import tornado.web
+from pbkdf2 import crypt
 
 from components.common import LogicError
-from components.database import authenticate_user, get_default_database
+from components.database import get_default_database, get_settings_connection
 
 
 class Trunk(tornado.web.Application):
@@ -22,14 +27,8 @@ class Trunk(tornado.web.Application):
         self.roots = None
         self.druid = None
 
-        self.safe_urls = {
-            "login": "html/login.html",
-        }
-        self.auth_urls = {
-            "": "html/dashboard.html"
-        }
+        self.loader = template.Loader(os.path.join(self.settings["REALPATH"], "html"))
 
-        self.functions = {}  # Заполняется функциями при подключении модулей
         self.initial_publish()
 
     def initial_publish(self):
@@ -70,92 +69,18 @@ class Trunk(tornado.web.Application):
 
         trunk.components.update({"name": self.settings["name"]}, about)
 
-    def process_page(self, page, user):
-        if page in self.safe_urls.keys():
-            return self.safe_urls[page]
-
-        if not user:
-            raise Exception(401)
-
-        return self.auth_urls[""]
-
-    def unknown_function_handler(self, **kwargs):
-        return {}
-
-    def process_message(self,
-                        message,
-                        handler,
-                        user=None,
-                        inner=False,
-                        callback=None):
-        function = message.get('function', None)
-
-        if function == "login_user":
-            callback(self.login_user(user=user, handler=handler, **message))
-            return
-
-        if not (user or inner):
-            raise LogicError("Not authenticated")
-
-        # Далее - функции только для залогиненых
-        if not function in self.functions:
-            raise LogicError("No function or unknown one called")
-
-        response = self.functions.get(function, self.unknown_function_handler)(**message)
-        response["type"] = "result"
-
-        if callback:
-            callback(response)
-        else:
-            return response
-
-    def send_message(self, receiver, contents):
+    @coroutine
+    def authenticate_user(self, username, password):
+        db = get_default_database(self.settings, async=True)
         try:
-            if receiver["name"] != self.settings["name"]:
-                http_client = tornado.httpclient.HTTPClient()
-                contents["secret"] = receiver["secret"]
-                post_data = json.dumps(contents)
-                body = post_data
-                response = json.loads(
-                    http_client.fetch(
-                        "http://{0}:{1}".format(
-                            receiver["host"], receiver["port"]),
-                        method='POST',
-                        body=body,
-                        allow_ipv6=True
-                    ).body)
-            else:
-                response = self.process_message(contents, None, inner=True)
-            return response
+            user = yield db.user.find_one({"username": username})
+            assert crypt(password, user.get("password"))
+            raise Return(user)
+        except Return as r:
+            raise r
         except Exception as e:
-            print(traceback.format_exc())
-            return {
-                "result": "failure",
-                "message": e.message
-            }
-
-    def login_user(self, username, password, handler, user=None, **kwargs):
-        if user:
-            return {
-                "type": "login",
-                "result": "success",
-                "message": "Already authenticated"
-            }
-
-        if authenticate_user(self.settings, username, password):
-            handler.set_secure_cookie("user", username)
-            return {
-                "type": "login",
-                "result": "success",
-                "message": "Successfully logged in",
-                "name": username
-            }
-        else:
-            return {
-                "type": "login",
-                "result": "error",
-                "message": "Wrong credentials"
-            }
+            print(e)
+            raise Return(None)
 
     def cleanup(self):
         if self.branch:

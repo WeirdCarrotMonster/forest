@@ -3,17 +3,21 @@
 from __future__ import unicode_literals, print_function
 from datetime import datetime
 
-from tornado import gen, web
+from tornado import gen
 from tornado.web import asynchronous
 import simplejson as json
-from components.common import CustomEncoder
-from components.database import get_default_database
 from bson import ObjectId
 
+from components.api.handler import Handler
+from components.common import CustomEncoder
+from components.database import get_default_database
+from components.decorators import login_required
 
-class LeavesHandler(web.RequestHandler):
+
+class LeavesHandler(Handler):
     @asynchronous
     @gen.engine
+    @login_required
     def get(self):
         db = get_default_database(self.application.settings, async=True)
         cursor = db.leaves.find({}, {'batteries': False, 'settings': False, 'branch': False})
@@ -32,6 +36,7 @@ class LeavesHandler(web.RequestHandler):
 
     @asynchronous
     @gen.engine
+    @login_required
     def post(self):
         data = json.loads(self.request.body)
 
@@ -52,9 +57,10 @@ class LeavesHandler(web.RequestHandler):
         self.finish(json.dumps(leaf, cls=CustomEncoder))
 
 
-class LeafHandler(web.RequestHandler):
+class LeafHandler(Handler):
     @asynchronous
     @gen.engine
+    @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
         cursor = db.leaves.find()
@@ -73,6 +79,7 @@ class LeafHandler(web.RequestHandler):
 
     @asynchronous
     @gen.engine
+    @login_required
     def patch(self, _id):
         data = json.loads(self.request.body)
         if "_id" in data.keys():
@@ -97,9 +104,10 @@ class LeafHandler(web.RequestHandler):
         self.finish(json.dumps(result, cls=CustomEncoder))
 
 
-class LeafLogsHandler(web.RequestHandler):
+class LeafLogsHandler(Handler):
     @asynchronous
     @gen.engine
+    @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
         cursor = db.logs.find({
@@ -123,9 +131,10 @@ class LeafLogsHandler(web.RequestHandler):
         self.finish("]")
 
 
-class LeafSettingsHandler(web.RequestHandler):
+class LeafSettingsHandler(Handler):
     @asynchronous
     @gen.engine
+    @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
 
@@ -169,6 +178,7 @@ class LeafSettingsHandler(web.RequestHandler):
 
     @asynchronous
     @gen.engine
+    @login_required
     def post(self, _id):
         data = json.loads(self.request.body)
         db = get_default_database(self.application.settings, async=True)

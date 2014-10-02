@@ -1,19 +1,20 @@
 # coding=utf-8
 
 from __future__ import unicode_literals, print_function
-from datetime import datetime
 
 from tornado import gen, web
 from tornado.web import asynchronous
 import simplejson as json
+
 from components.common import CustomEncoder
 from components.database import get_default_database
-from bson import ObjectId
+from components.decorators import login_required
 
 
 class SpeciesHandler(web.RequestHandler):
     @asynchronous
     @gen.engine
+    @login_required
     def get(self):
         db = get_default_database(self.application.settings, async=True)
         cursor = db.species.find()
