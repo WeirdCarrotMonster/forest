@@ -30,13 +30,35 @@ forest.controller("LeafIndex", function($scope, $routeSegment) {
     $scope.id = $routeSegment.$routeParams.id;
 });
 
+forest.filter('reverse', function() {
+  return function(items) {
+    return items.slice().reverse();
+  };
+});
+
 forest.controller("LeafLogs", function($scope, Leaves) {
   Leaves.query({id: $scope.$parent.id, query: "logs"}, function(data) {
     $scope.logs = data;
   });
+
   $scope.convertDate = function (date) {
     moment.lang("ru");
     return moment(date).format('LLLL');
+  };
+
+  $scope.updateLogs = function() {
+      var begin = $scope.logs[0]._id;
+      Leaves.query({id: $scope.$parent.id, query: "logs", from: begin}, function(data) {
+        var logs = data;
+        var logs_new = []
+        for (var i=logs.length - 1; i >= 0; i--){
+          logs_new.push(logs[i])
+        }
+        for (var i=0; i < $scope.logs.length; i++){
+          logs_new.push($scope.logs[i])
+        }
+        $scope.logs = logs_new;
+      });
   };
 });
 

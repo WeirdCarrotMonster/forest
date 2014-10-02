@@ -1,7 +1,7 @@
 <div ng-controller="LeafLogs">
-    <a href="" class="btn btn-green btn-100 btn-monospase" ng-click="updateLogs()">Батон гандон</a>
+    <a href="" class="btn btn-green btn-100 btn-monospase" ng-click="updateLogs()">Подгрузить еще</a>
     <ul class="logs">
-        <div ng-repeat="log in logs" class="log_record" ng-switch on="log.log_type"
+        <div ng-repeat="log in logs track by $index" class="log_record" ng-switch on="log.log_type"
             ng-class="{
                 bgred: log.status == 500,
                 log_request: log.log_type == 'leaf.event',

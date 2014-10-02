@@ -110,13 +110,20 @@ class LeafLogsHandler(Handler):
     @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
-        cursor = db.logs.find({
-            "log_source": ObjectId(_id)
-        }).sort("added", -1)
+
+        if "from" in self.request.arguments:
+            last_id = ObjectId(self.request.arguments["from"][0])
+            cursor = db.logs.find({
+                "log_source": ObjectId(_id),
+                "_id": {"$gt": last_id}
+            }).limit(100)
+        else:
+            cursor = db.logs.find({
+                "log_source": ObjectId(_id)
+            }).sort("_id", -1).limit(200)
         self.write("[")
 
         beginning = True
-        current = 0
         while (yield cursor.fetch_next):
             document = cursor.next_object()
             if beginning:
@@ -124,10 +131,6 @@ class LeafLogsHandler(Handler):
             else:
                 self.write(",")
             self.write(json.dumps(document, cls=CustomEncoder))
-            if current > 200:
-                break
-            else:
-                current += 1
         self.finish("]")
 
 
