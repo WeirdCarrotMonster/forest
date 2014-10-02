@@ -2,16 +2,17 @@
 
 from __future__ import unicode_literals, print_function
 
-from tornado import gen, web
+from tornado import gen
 from tornado.web import asynchronous
 import simplejson as json
+from components.api.handler import Handler
 
 from components.common import CustomEncoder
 from components.database import get_default_database
 from components.decorators import login_required
 
 
-class SpeciesHandler(web.RequestHandler):
+class SpeciesHandler(Handler):
     @asynchronous
     @gen.engine
     @login_required

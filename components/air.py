@@ -18,12 +18,6 @@ class Air():
         self.port = port
         self.logs_port = logs_port
 
-        self.functions = {
-            "air.update_state": self.update_state
-        }
-
-        self.update_state()
-
         cmd_fastrouter = [
             os.path.join(self.settings["emperor_dir"], "uwsgi"),
             "--fastrouter=127.0.0.1:%d" % self.port,
@@ -31,52 +25,42 @@ class Air():
                 self.settings["host"], str(self.settings["fastrouter"])),
             "--master",
             "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"]),
-            "--logger", "socket:127.0.0.1:%d" % self.logs_port
+            # "--logger", "socket:127.0.0.1:%d" % self.logs_port
         ]
 
-        self.fastrouter = subprocess.Popen(cmd_fastrouter)
+        self.fastrouter = subprocess.Popen(
+            cmd_fastrouter,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        self.last_update = None
 
-        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.log_socket.bind(("127.0.0.1", self.logs_port))
-        self.log_socket.settimeout(0.5)
+    def periodic_event(self):
+        trunk = get_default_database(self.trunk.settings, async=True)
+        query = {"batteries": {'$exists': True}}
+        if self.last_update:
+            query["modified"] = {"$gt": self.last_update}
 
-        self.logger_thread = Thread(target=self.__logger)
-        self.logger_thread.daemon = True
-        self.logger_thread.start()
+        cursor = trunk.leaves.find(query)
+        cursor.each(callback=self._found_leaf)
 
-    def __logger(self):
-        while True:
-            try:
-                data, addr = self.log_socket.recvfrom(2048)
-                data_parsed, important = logparse(data)
-            except:
-                pass
+    def _found_leaf(self, result, error):
+        if not result:
+            return
+
+        if not self.last_update or self.last_update < result.get("modified"):
+            self.last_update = result.get("modified")
+
+        default_key = os.path.join(self.settings["keydir"], "default.pem")
+        for add in result.get("address", []):
+            keyfile = os.path.join(
+                self.settings["keydir"], add + ".pem")
+            if not os.path.isfile(keyfile):
+                log_message(
+                    "Creating key for address: {0}".format(add),
+                    component="Air")
+                shutil.copyfile(default_key, keyfile)
 
     def cleanup(self):
         self.fastrouter.send_signal(signal.SIGINT)
         self.fastrouter.wait()
-
-    def update_state(self, **kwargs):
-        trunk = get_default_database(self.trunk.settings)
-
-        default_key = os.path.join(self.settings["keydir"], "default.pem")
-        for leaf in trunk.leaves.find():
-            for add in leaf["address"]:
-                keyfile = os.path.join(
-                    self.settings["keydir"], add + ".pem")
-                if not os.path.isfile(keyfile):
-                    log_message(
-                        "Creating key for address: {0}".format(add),
-                        component="Air")
-                    shutil.copyfile(default_key, keyfile)
-
-        return {
-            "result": "success"
-        }
-
-    def status_report(self, message):
-        return {
-            "result": "success",
-            "message": "Working well",
-            "role": "air"
-        }

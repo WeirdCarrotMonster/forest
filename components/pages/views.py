@@ -42,7 +42,7 @@ class Login(Handler):
 class Index(Handler):
     @asynchronous
     @gen.engine
-    def get(self):
+    def get(self, url):
         if not self.user:
             self.redirect("/login")
         else:
