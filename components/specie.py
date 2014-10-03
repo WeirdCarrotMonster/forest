@@ -7,15 +7,14 @@
 from __future__ import print_function, unicode_literals
 
 import os
-from datetime import datetime
+
 import dateutil.parser
 import tornado
 from tornado.gen import coroutine
+from tornado.process import Subprocess
+import simplejson as json
 
 from components.common import log_message, CustomEncoder
-from tornado.process import Subprocess
-
-import simplejson as json
 
 
 class Specie(object):
