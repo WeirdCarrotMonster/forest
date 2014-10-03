@@ -122,7 +122,7 @@ class Branch(object):
                 elif _id in self.leaves.keys():
                     self.del_leaf(_id)
         except:
-            print(result.get("branch"))
+            pass
 
     def _specie_changed(self, specie, error):
         if not specie:
