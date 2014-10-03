@@ -46,6 +46,9 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
+        self.fastrouters = []
+        self.batteries = defaultdict(list)
+
     @coroutine
     def log_message(self, message):
         for data in message:
@@ -138,9 +141,6 @@ class Branch(object):
                 self.start_leaf(leaf)
 
     def load_components(self):
-        self.fastrouters = []
-        self.batteries = defaultdict(list)
-
         trunk = get_default_database(self.trunk.settings)
         components = trunk.components
         for component in components.find({"roles.air": {"$exists": True}}):
