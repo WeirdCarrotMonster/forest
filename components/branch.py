@@ -8,6 +8,7 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
+from tornado.web import asynchronous
 from zmq.eventloop.zmqstream import ZMQStream
 
 import simplejson as json
@@ -50,6 +51,9 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
+    def _stack_context_handle_exception(self, *args, **kwargs):
+        print(args, kwargs)
+
     @coroutine
     def log_message(self, message):
         for data in message:
@@ -82,18 +86,20 @@ class Branch(object):
             trunk = get_default_database(self.trunk.settings, async=True)
             yield trunk.logs.insert(data_parsed)
 
+    @asynchronous
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}
-        if self.last_leaves_update:
+        if self.last_leaves_update is not None:
             query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = trunk.leaves.find(query)
         cursor.each(callback=self._found_leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
-        if self.last_species_update:
+        if self.last_species_update is not None:
             query["modified"] = {"$gt": self.last_species_update}
+
         cursor = trunk.species.find(query)
         cursor.each(callback=self._specie_changed)
 
@@ -135,7 +141,7 @@ class Branch(object):
         )
         self.species[specie["_id"]] = specie_new
 
-        if not self.last_species_update or specie["modified"] > self.last_leaves_update:
+        if not self.last_species_update or specie["modified"] > self.last_species_update:
             self.last_species_update = specie["modified"]
 
         specie_new.initialize()

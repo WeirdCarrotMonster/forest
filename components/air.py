@@ -5,6 +5,7 @@ import signal
 import socket
 import subprocess
 from threading import Thread
+from tornado.web import asynchronous
 
 from components.common import log_message
 from components.database import get_default_database
@@ -35,6 +36,10 @@ class Air():
         )
         self.last_update = None
 
+    def _stack_context_handle_exception(self, *args, **kwargs):
+        print(args, kwargs)
+
+    @asynchronous
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}

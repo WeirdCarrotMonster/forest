@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
+from tornado.web import asynchronous
 from components.database import get_settings_connection_async, get_default_database
 import components.batteries
 
 
 class Roots():
-
     def __init__(self, settings, trunk):
         self.settings = settings
         self.trunk = trunk
@@ -20,6 +20,10 @@ class Roots():
             if battery_name in self.settings:
                 self.batteries.append(battery(self.settings[battery.__name__.lower()], trunk))
 
+    def _stack_context_handle_exception(self, *args, **kwargs):
+        print(args, kwargs)
+
+    @asynchronous
     def periodic_event(self):
         for battery in self.batteries:
             battery.update()
