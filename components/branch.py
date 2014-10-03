@@ -111,15 +111,18 @@ class Branch(object):
             self.last_leaves_update = result.get("modified")
         _id = result.get("_id")
 
-        if self.trunk.settings["id"] not in result.get("branch"):
-            if _id in self.leaves.keys():
-                self.del_leaf(_id)
-        else:
-            if result.get("active", False):
-                leaf = self.create_leaf(result)
-                self.add_leaf(leaf)
-            elif _id in self.leaves.keys():
-                self.del_leaf(_id)
+        try:
+            if self.trunk.settings["id"] not in result.get("branch"):
+                if _id in self.leaves.keys():
+                    self.del_leaf(_id)
+            else:
+                if result.get("active", False):
+                    leaf = self.create_leaf(result)
+                    self.add_leaf(leaf)
+                elif _id in self.leaves.keys():
+                    self.del_leaf(_id)
+        except:
+            print(result.get("branch"))
 
     def _specie_changed(self, specie, error):
         if not specie:
