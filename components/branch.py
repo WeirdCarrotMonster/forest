@@ -32,22 +32,23 @@ class Branch(object):
         self.trunk = trunk
         self.leaves = {}
 
+        self.fastrouters = []
+        self.batteries = defaultdict(list)
+
         self.load_components()
 
         self.emperor = Emperor(self.settings["emperor_dir"])
 
         self.species = {}
 
-        self.last_update = None
+        self.last_leaves_update = None
+        self.last_species_update = None
 
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
         s.bind('tcp://127.0.0.1:5122')
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
-
-        self.fastrouters = []
-        self.batteries = defaultdict(list)
 
     @coroutine
     def log_message(self, message):
@@ -84,18 +85,24 @@ class Branch(object):
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}
-        if self.last_update:
-            query["modified"] = {"$gt": self.last_update}
+        if self.last_leaves_update:
+            query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = trunk.leaves.find(query)
         cursor.each(callback=self._found_leaf)
+
+        query = {"_id": {"$in": self.species.keys()}}
+        if self.last_species_update:
+            query["modified"] = {"$gt": self.last_species_update}
+        cursor = trunk.species.find(query)
+        cursor.each(callback=self._specie_changed)
 
     def _found_leaf(self, result, error):
         if not result:
             return
 
-        if not self.last_update or self.last_update < result.get("modified"):
-            self.last_update = result.get("modified")
+        if not self.last_leaves_update or self.last_leaves_update < result.get("modified"):
+            self.last_leaves_update = result.get("modified")
         _id = result.get("_id")
 
         if self.trunk.settings["id"] not in result.get("branch"):
@@ -108,6 +115,31 @@ class Branch(object):
             elif _id in self.leaves.keys():
                 self.del_leaf(_id)
 
+    def _specie_changed(self, specie, error):
+        if not specie:
+            return
+
+        log_message(
+            "Specie {} changed".format(specie["name"]),
+            component="Branch"
+        )
+
+        specie_new = Specie(
+            directory=self.settings["species"],
+            specie_id=specie["_id"],
+            name=specie["name"],
+            url=specie["url"],
+            triggers=specie.get("triggers", {}),
+            ready_callback=self.specie_initialization_finished,
+            modified=specie["modified"]
+        )
+        self.species[specie["_id"]] = specie_new
+
+        if not self.last_species_update or specie["modified"] > self.last_leaves_update:
+            self.last_species_update = specie["modified"]
+
+        specie_new.initialize()
+
     def get_specie(self, specie_id):
         if specie_id in self.species:
             return self.species[specie_id]
@@ -116,13 +148,15 @@ class Branch(object):
 
         spc = trunk.species.find_one({"_id": specie_id})
 
+        if not self.last_species_update or spc["modified"] > self.last_leaves_update:
+            self.last_species_update = spc["modified"]
+
         if spc:
             specie_new = Specie(
                 directory=self.settings["species"],
                 specie_id=specie_id,
-                name=spc.get("name"),
-                url=spc.get("url"),
-                last_update=spc.get("last_update"),
+                name=spc["name"],
+                url=spc["url"],
                 triggers=spc.get("triggers", {}),
                 ready_callback=self.specie_initialization_finished,
                 modified=spc["modified"]
@@ -137,7 +171,8 @@ class Branch(object):
     def specie_initialization_finished(self, specie):
         specie.is_ready = True
         for leaf in self.leaves.values():
-            if leaf.specie == specie:
+            if leaf.specie.id == specie.id:
+                leaf.specie = specie
                 self.start_leaf(leaf)
 
     def load_components(self):
