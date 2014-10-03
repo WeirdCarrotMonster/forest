@@ -45,7 +45,6 @@ ioloop.install()
 loop = IOLoop.instance()
 
 LISTENERS = [
-    # Слушаем статику на случай, если не выдаем её чем-нибудь другим
     (r'/static/(.*)',
      tornado.web.StaticFileHandler,
      {'path': os.path.join(FOREST_DIR, 'static')}),
@@ -93,10 +92,6 @@ if "branch" in SETTINGS["roles"].keys():
     APPLICATION.branch = branch
     clbk = tornado.ioloop.PeriodicCallback(branch.periodic_event, 5000)
     clbk.start()
-
-if True:  # Предполагаем, что каждый компонент может выступать в роли интерфейса
-    role_settings = {}  # Будут настройки?
-    role_settings.update(base_settings)
 
 
 APPLICATION.publish_self()
