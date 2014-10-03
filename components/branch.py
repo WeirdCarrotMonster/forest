@@ -90,14 +90,14 @@ class Branch(object):
     def periodic_event(self):
         trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}
-        if self.last_leaves_update is not None:
+        if self.last_leaves_update:
             query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = trunk.leaves.find(query)
         cursor.each(callback=self._found_leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
-        if self.last_species_update is not None:
+        if self.last_species_update:
             query["modified"] = {"$gt": self.last_species_update}
 
         cursor = trunk.species.find(query)
