@@ -37,7 +37,6 @@
     "settings":
     {
         "name": "main",
-        "secret": "gk9)o24z7!@n@w^k%4ceidaj0n7n1#-ts$mw)2qrf=)e&k&gl%",
         "host": "127.0.0.1",
         "port": 27017,
         "user": "admin",

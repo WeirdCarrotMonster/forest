@@ -40,7 +40,6 @@ class Trunk(tornado.web.Application):
                 "name": self.settings["name"],
                 "host": self.settings["trunk_host"],
                 "port": self.settings["trunk_port"],
-                "secret": self.settings["secret"],
                 "roles": {}
             }
             instance = trunk.components.insert(about)
@@ -54,7 +53,6 @@ class Trunk(tornado.web.Application):
             "name": self.settings["name"],
             "host": self.settings["trunk_host"],
             "port": self.settings["trunk_port"],
-            "secret": self.settings["secret"],
             "roles": {}
         }
         if self.branch:
