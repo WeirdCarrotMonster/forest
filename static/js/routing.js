@@ -65,34 +65,8 @@ forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider)
 
         .up()
 
-        .segment('branches', {
-            controller: Branches,
-            templateUrl: '/static/templates/branches.html'
-        })
-
-        .within()
-
-        .segment('branch', {
-            controller: Branch,
-            dependencies: ['branchid'],
-            templateUrl: '/static/templates/branch.html'
-        })
-
-        .within()
-
-        .segment('logs', {
-            controller: BranchLogs,
-            templateUrl: '/static/templates/branch-logs.html'
-        })
-
-        .up()
-
-        .up()
-
-        .within()
-
         .segment('species', {
-            controller: Species,
+            controller: this.SpeciesIndex,
             templateUrl: '/static/templates/species.html'
         })
 
