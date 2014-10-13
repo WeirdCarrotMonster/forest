@@ -15,6 +15,7 @@ from tornado.process import Subprocess
 import simplejson as json
 
 from components.common import log_message, CustomEncoder
+import shutil
 
 
 class Specie(object):
@@ -56,6 +57,7 @@ class Specie(object):
         with open(os.path.join(self.specie_path, "metadata.json"), 'w') as f:
             f.write(data)
 
+    @coroutine
     def initialize(self):
         if not os.path.exists(self.specie_path):
             log_message(
@@ -65,17 +67,22 @@ class Specie(object):
             os.makedirs(self.specie_path)
         self.initialize_sources()
 
-    @coroutine
     def initialize_sources(self):
-        if not os.path.exists(self._path):
+        last_updated = self.metadata.get("modified")
+        if not os.path.exists(self._path) or not last_updated or last_updated < self.modified:
+            if os.path.exists(self._path):
+                shutil.rmtree(self._path)
+
             log_message(
-                "Cloning repository for {}".format(self.name),
+                "Initializing sources for {}".format(self.name),
                 component="Specie"
             )
+
             process = Subprocess(
                 [
                     "git",
                     "clone",
+                    "--depth", "1",
                     self.url,
                     self._path
                 ],
@@ -87,34 +94,7 @@ class Specie(object):
             metadata["modified"] = self.modified
             self.metadata = metadata
         else:
-            last_updated = self.metadata.get("modified")
-            if last_updated and last_updated >= self.modified:
-                self.initialization_finished(1)
-                log_message(
-                    "Repository for specie {} is in actual state".format(self.name),
-                    component="Specie"
-                )
-            else:
-                log_message(
-                    "Updating repository for specie {}".format(self.name),
-                    component="Specie"
-                )
-                my_env = os.environ.copy()
-                process = Subprocess(
-                    [
-                        "git",
-                        "-C",
-                        self._path,
-                        "pull"
-                    ],
-                    env=my_env,
-                    stderr=tornado.process.Subprocess.STREAM,
-                    stdout=tornado.process.Subprocess.STREAM
-                )
-                metadata = self.metadata
-                metadata["modified"] = self.modified
-                self.metadata = metadata
-                process.set_exit_callback(self.initialize_environ)
+            self.initialization_finished()
 
     @coroutine
     def initialize_environ(self, result):
@@ -151,7 +131,8 @@ class Specie(object):
                 os.path.join(self._environment, "bin/pip"),
                 "install",
                 "-r",
-                os.path.join(self._path, "requirements.txt")
+                os.path.join(self._path, "requirements.txt"),
+                "--upgrade"
             ],
             env=my_env,
             stderr=tornado.process.Subprocess.STREAM,
@@ -159,7 +140,7 @@ class Specie(object):
         )
         process.set_exit_callback(self.initialization_finished)
 
-    def initialization_finished(self, result):
+    def initialization_finished(self, result=None):
         log_message(
             "Done initializing {}".format(self.name),
             component="Specie"
