@@ -79,10 +79,6 @@ class Leaf(object):
             "log_source": str(self.id)
         }
 
-        leaf_settings = {
-            "static_url": "/static/{0}/".format(self.specie.name)
-        }
-
         config = """
 [uwsgi]
 strict=1
@@ -95,7 +91,6 @@ master=1
 buffer-size=65535
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
-env=LEAF_SETTINGS={leaf_settings}
 logformat={logformat}
 virtualenv={virtualenv}
 static-map=/static={chdir}/static
@@ -108,7 +103,6 @@ log-encoder = prefix [Leaf {id}]
             socket=self.host,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
-            leaf_settings=json.dumps(leaf_settings),
             logformat=json.dumps(logs_format),
             logto="127.0.0.1:{}".format(self._log_port),
             workers=self.workers,
