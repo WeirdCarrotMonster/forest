@@ -5,23 +5,18 @@
             ng-class="{
                 bgred: log.status == 500,
                 log_request: log.log_type == 'leaf.event',
-                log_stdout: log.log_type == 'leaf.stdout_stderr',
-                log_before_start: log.log_type == 'leaf.before_start',
+                log_stdout: log.log_type == 'leaf.stdout_stderr'
                 }" >
             <span ng-switch-when="leaf.event" class="log_request">
-                <span>{{ convertDate(log.added) }}</span><br/>
-                <span>{{ log.uri }}</span>
+                <span>{{ log.added | timeformat }}</span><br/>
+                <span>{{log.method}} {{ log.uri }}</span>
             </span>
             <span ng-switch-when="leaf.stdout_stderr" class="log_stdout">
-                <span>{{ convertDate(log.added) }}</span><br/>
+                <span>{{ log.added | timeformat}}</span><br/>
                 <pre>{{ log.raw }}</pre>
             </span>
-            <span ng-switch-when="leaf.before_start" class="log_before_start">
-                <span>{{ convertDate(log.added) }}</span><br/>
-                <pre>{{ log.content }}</pre>
-            </span>
             <span ng-switch-default>
-                <span>{{ convertDate(log.added) }}</span><br/>
+                <span>{{ log.added | timeformat }}</span><br/>
                 {{ log }}
             </span>
         </div>

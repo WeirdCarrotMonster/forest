@@ -41,11 +41,6 @@ forest.controller("LeafLogs", function($scope, Leaves) {
     $scope.logs = data;
   });
 
-  $scope.convertDate = function (date) {
-    moment.lang("ru");
-    return moment(date).format('LLLL');
-  };
-
   $scope.updateLogs = function() {
       var begin = $scope.logs[0]._id;
       Leaves.query({id: $scope.$parent.id, query: "logs", from: begin}, function(data) {

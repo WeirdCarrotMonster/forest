@@ -1,4 +1,4 @@
-forest = angular.module('Forest', ['ngResource', 'ngRoute', 'ngAnimate', 'route-segment', 'view-segment']);
+forest = angular.module('Forest', ['ngResource', 'ngRoute', 'ngAnimate', 'route-segment', 'view-segment', 'Filters']);
 
 forest.config(function($routeSegmentProvider, $routeProvider, $locationProvider) {
     $routeSegmentProvider.options.autoLoadTemplates = true;

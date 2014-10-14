@@ -4,12 +4,16 @@
             <li ng-repeat="specie in species" class="leaf">
                 <div ng-controller="SpeciesIndexItem" ng-init="init(specie)">
                     <h3>
-                        <span><a class="link" href="">{{resource.name}}</a></span>
+                        <a href="" ng-click="update()" class="icon-status"
+                            ng-class="{'statusbusy':busy,'statuson':!busy}">
+                            <i class="fa" ng-class="{'fa-refresh fa-spin':busy,'fa-check':!busy}"></i>
+                        </a>
+                        <span class="link">{{resource.name}}</span>
                     </h3>
                     <p class="desc">
                         {{resource.url}}
                     </p>
-                    <a href="" ng-click="update()">{{busy}}{{resource.modified}}</a>
+                    <p>Обновлен {{ resource.modified | timeformat }}</p>
                 </div>
             </li>
         </ul>
