@@ -33,7 +33,8 @@ class Emperor(object):
                 "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
                 "--master",
                 "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
-                "--emperor-required-heartbeat", "40"
+                "--emperor-required-heartbeat", "40",
+                "--reaper"
             ],
             bufsize=1,
             close_fds=True
