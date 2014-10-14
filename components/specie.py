@@ -7,6 +7,7 @@
 from __future__ import print_function, unicode_literals
 
 import os
+import shutil
 
 import dateutil.parser
 import tornado
@@ -15,7 +16,6 @@ from tornado.process import Subprocess
 import simplejson as json
 
 from components.common import log_message, CustomEncoder
-import shutil
 
 
 class Specie(object):

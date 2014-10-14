@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 import os
-import subprocess
 
 import simplejson as json
-
-
-def enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
-        queue.put(line)
-    out.close()
 
 
 class Leaf(object):

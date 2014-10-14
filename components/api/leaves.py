@@ -4,7 +4,6 @@ from __future__ import unicode_literals, print_function
 from datetime import datetime
 
 from tornado import gen
-from tornado.web import asynchronous
 import simplejson as json
 from bson import ObjectId
 
@@ -15,8 +14,7 @@ from components.decorators import login_required
 
 
 class LeavesHandler(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def get(self):
         db = get_default_database(self.application.settings, async=True)
@@ -34,8 +32,7 @@ class LeavesHandler(Handler):
             self.write(json.dumps(document, cls=CustomEncoder))
         self.finish("]")
 
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def post(self):
         data = json.loads(self.request.body)
@@ -58,8 +55,7 @@ class LeavesHandler(Handler):
 
 
 class LeafHandler(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
@@ -77,8 +73,7 @@ class LeafHandler(Handler):
             self.write(json.dumps(document, cls=CustomEncoder))
         self.finish("]")
 
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def patch(self, _id):
         data = json.loads(self.request.body)
@@ -93,20 +88,17 @@ class LeafHandler(Handler):
 
         data["modified"] = datetime.now()
         db = get_default_database(self.application.settings, async=True)
-        yield db.leaves.update(
+        result = yield db.leaves.find_and_modify(
             {"_id": ObjectId(_id)},
-            {"$set": data}
-        )
-        result = yield db.leaves.find_one(
-            {"_id": ObjectId(_id)},
-            {'batteries': False, 'settings': False, 'branch': False}
+            {"$set": data},
+            fields={'batteries': False, 'settings': False, 'branch': False},
+            new=True
         )
         self.finish(json.dumps(result, cls=CustomEncoder))
 
 
 class LeafLogsHandler(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
@@ -135,8 +127,7 @@ class LeafLogsHandler(Handler):
 
 
 class LeafSettingsHandler(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def get(self, _id):
         db = get_default_database(self.application.settings, async=True)
@@ -179,8 +170,7 @@ class LeafSettingsHandler(Handler):
         }
         self.finish(json.dumps(result, cls=CustomEncoder))
 
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def post(self, _id):
         data = json.loads(self.request.body)

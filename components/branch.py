@@ -8,19 +8,20 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
+
 from tornado.web import asynchronous
 from zmq.eventloop.zmqstream import ZMQStream
-
 import simplejson as json
 from bson import ObjectId
+from tornado.gen import coroutine
+import zmq
 
 from components.common import log_message
 from components.emperor import Emperor
+
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.specie import Specie
-from tornado.gen import coroutine
-import zmq
 
 
 class Branch(object):

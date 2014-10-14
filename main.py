@@ -5,16 +5,18 @@ from __future__ import print_function, unicode_literals
 import sys
 import os
 import signal
+
 from tornado.ioloop import IOLoop
 from zmq.eventloop import ioloop
-
 import tornado.web
 import simplejson as json
-from components.api.settings import CommonLeafSettingsHandler
-from components.api.species import SpeciesHandler
-from components.pages.views import Login, Index
 
+from components.api.settings import CommonLeafSettingsHandler
+from components.api.species import SpeciesHandler, SpecieHandler
+from components.pages.views import Login, Index
 from components.trunk import Trunk
+
+
 try:
     from components.roots import Roots
     ROOTS_CAPABLE = True
@@ -58,6 +60,7 @@ LISTENERS = [
     (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
 
     (r"/api/species", SpeciesHandler),
+    (r"/api/species/([^/]*)", SpecieHandler),
     (r"/(.*)", Index)
 ]
 base_settings = SETTINGS["settings"]

@@ -6,5 +6,7 @@ forest.factory("Leaves", function($resource) {
 });
 
 forest.factory("Species", function($resource) {
-  return $resource("/api/species/:id/:query");
+  return $resource("/api/species/:id/:query", null, {
+    'update': {method: 'PATCH', params: {id: "@_id"}},
+  });
 });
