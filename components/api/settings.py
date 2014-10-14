@@ -3,18 +3,16 @@
 from __future__ import unicode_literals, print_function
 
 from tornado import gen
-from tornado.web import asynchronous
 import simplejson as json
-from components.api.handler import Handler
 
+from components.api.handler import Handler
 from components.common import CustomEncoder
 from components.database import get_default_database
 from components.decorators import login_required
 
 
 class CommonLeafSettingsHandler(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     @login_required
     def get(self):
         db = get_default_database(self.application.settings, async=True)
