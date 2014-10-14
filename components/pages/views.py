@@ -2,22 +2,21 @@
 
 from __future__ import unicode_literals
 from urlparse import parse_qs
+
 from tornado import gen
-from tornado.web import asynchronous
+
 from components.api.handler import Handler
 
 
 class Login(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     def get(self):
         if self.user:
             self.redirect("/")
         else:
             self.finish(self.application.loader.load("login.html").generate())
 
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     def post(self):
         data = parse_qs(self.request.body)
         try:
@@ -40,8 +39,7 @@ class Login(Handler):
 
 
 class Index(Handler):
-    @asynchronous
-    @gen.engine
+    @gen.coroutine
     def get(self, url):
         if not self.user:
             self.redirect("/login")
