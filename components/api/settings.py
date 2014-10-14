@@ -7,7 +7,6 @@ import simplejson as json
 
 from components.api.handler import Handler
 from components.common import CustomEncoder
-from components.database import get_default_database
 from components.decorators import login_required
 
 
@@ -15,7 +14,7 @@ class CommonLeafSettingsHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
 
         cursor = db.components.find({"roles.branch": {"$exists": True}})
         branches = yield cursor.to_list(length=100)

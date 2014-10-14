@@ -9,7 +9,6 @@ from bson import ObjectId
 
 from components.api.handler import Handler
 from components.common import CustomEncoder
-from components.database import get_default_database
 from components.decorators import login_required
 
 
@@ -17,7 +16,7 @@ class SpeciesHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         cursor = db.species.find()
 
         self.write("[")
@@ -38,7 +37,7 @@ class SpecieHandler(Handler):
     @login_required
     def patch(self, _id):
         data = {"modified": datetime.now()}
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         result = yield db.species.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},

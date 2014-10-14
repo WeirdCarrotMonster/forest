@@ -9,7 +9,6 @@ from bson import ObjectId
 
 from components.api.handler import Handler
 from components.common import CustomEncoder
-from components.database import get_default_database
 from components.decorators import login_required
 
 
@@ -17,7 +16,7 @@ class LeavesHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         cursor = db.leaves.find({}, {'batteries': False, 'settings': False, 'branch': False})
 
         self.write("[")
@@ -37,7 +36,7 @@ class LeavesHandler(Handler):
     def post(self):
         data = json.loads(self.request.body)
 
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
 
         result = yield db.leaves.insert({
             "name": data["name"],
@@ -58,7 +57,7 @@ class LeafHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self, _id):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         cursor = db.leaves.find()
 
         self.write("[")
@@ -87,7 +86,7 @@ class LeafHandler(Handler):
             data["branch"] = [ObjectId(x) for x in data["branch"]]
 
         data["modified"] = datetime.now()
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         result = yield db.leaves.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},
@@ -101,7 +100,7 @@ class LeafLogsHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self, _id):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
 
         if "from" in self.request.arguments:
             last_id = ObjectId(self.request.arguments["from"][0])
@@ -130,7 +129,7 @@ class LeafSettingsHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self, _id):
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
 
         leaf = yield db.leaves.find_one(
             {"_id": ObjectId(_id)},
@@ -174,7 +173,7 @@ class LeafSettingsHandler(Handler):
     @login_required
     def post(self, _id):
         data = json.loads(self.request.body)
-        db = get_default_database(self.application.settings, async=True)
+        db = self.application.async_db
         yield db.leaves.update(
             {"_id": ObjectId(_id)},
             {"$set": {
