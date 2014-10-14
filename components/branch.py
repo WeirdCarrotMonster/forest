@@ -141,7 +141,7 @@ class Branch(object):
         )
         self.species[specie["_id"]] = specie_new
 
-        if not self.last_species_update or specie["modified"] > self.last_species_update:
+        if not self.last_species_update or self.last_species_update < specie["modified"]:
             self.last_species_update = specie["modified"]
 
         specie_new.initialize()
@@ -150,20 +150,20 @@ class Branch(object):
         if specie_id in self.species:
             return self.species[specie_id]
 
-        spc = self.trunk.sync_db.species.find_one({"_id": specie_id})
+        specie = self.trunk.sync_db.species.find_one({"_id": specie_id})
 
-        if not self.last_species_update or spc["modified"] > self.last_leaves_update:
-            self.last_species_update = spc["modified"]
+        if not self.last_species_update or self.last_species_update < specie["modified"]:
+            self.last_species_update = specie["modified"]
 
-        if spc:
+        if specie:
             specie_new = Specie(
                 directory=self.settings["species"],
                 specie_id=specie_id,
-                name=spc["name"],
-                url=spc["url"],
-                triggers=spc.get("triggers", {}),
+                name=specie["name"],
+                url=specie["url"],
+                triggers=specie.get("triggers", {}),
                 ready_callback=self.specie_initialization_finished,
-                modified=spc["modified"]
+                modified=specie["modified"]
             )
             specie_new.initialize()
 
