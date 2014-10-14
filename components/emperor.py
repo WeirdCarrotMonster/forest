@@ -39,9 +39,6 @@ class Emperor(object):
             bufsize=1,
             close_fds=True
         )
-        self.log_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.log_socket.bind(("127.0.0.1", self.logs_port))
-        self.log_socket.settimeout(0.5)
 
         self.vassal_names = {}
         self.vassal_ports = {}
@@ -80,15 +77,6 @@ class Emperor(object):
 
         pid = int(leaf.get("pid"))
         os.kill(pid, signal.SIGHUP)
-
-    def get_logs(self):
-        try:
-            data = self.log_socket.recv(4096)
-            return data
-        except socket.timeout:
-            return None
-        except socket.error:
-            return None
 
     def _get_stats(self):
         sock = socket.socket()
