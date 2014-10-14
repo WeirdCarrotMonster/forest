@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from datetime import datetime
 
 import random
 import string
@@ -9,7 +10,7 @@ import MySQLdb
 from tornado.gen import coroutine
 
 from components.common import log_message
-from components.database import get_default_database, get_settings_connection_async
+from components.database import get_settings_connection_async
 
 
 class Battery(object):
@@ -25,17 +26,6 @@ class MySQL(Battery):
         Battery.__init__(self)
         self.settings = settings
         self.trunk = trunk
-
-        cursor = self.trunk.species.find({"requires": "mysql"})
-        cursor.each(callback=self.add_specie)
-
-        self.species = []
-
-    def add_specie(self, result, error):
-        if not result:
-            return
-
-        self.species.append(result["_id"])
 
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
@@ -79,7 +69,7 @@ class MySQL(Battery):
         return username
 
     @coroutine
-    def prepare_leaf(self, leaf, error):
+    def prepare_leaf(self, leaf):
         if not leaf:
             return
 
@@ -126,20 +116,12 @@ class MySQL(Battery):
         except:
             result = None
 
-        yield self.trunk.leaves.update(
+        yield self.trunk.async_db.leaves.update(
             {"_id": leaf["_id"]},
             {
                 "$set": {"batteries.mysql": result}
             }
         )
-
-    def update(self):
-        cursor = self.trunk.leaves.find({
-            "type": {"$in": self.species},
-            "batteries.mysql": {'$exists': False}
-        })
-
-        cursor.each(callback=self.prepare_leaf)
 
 
 class Mongo(Battery):
@@ -148,32 +130,8 @@ class Mongo(Battery):
         self.settings = settings
         self.trunk = trunk
 
-        self.last_update = None
-
-        cursor = self.trunk.species.find({"requires": "mongo"})
-        cursor.each(callback=self.add_specie)
-
-        self.species = []
-
-    def add_specie(self, result, error):
-        if not result:
-            return
-
-        self.species.append(result["_id"])
-
     @coroutine
-    def update(self):
-        trunk = get_default_database(self.settings, async=True)
-        query = {
-            "type": {"$in": self.species},
-            "batteries.mongo": {'$exists': False}
-        }
-
-        cursor = trunk.leaves.find(query)
-        cursor.each(callback=self.prepare_leaf)
-
-    @coroutine
-    def prepare_leaf(self, leaf, error):
+    def prepare_leaf(self, leaf):
         if not leaf:
             return
 
@@ -197,14 +155,15 @@ class Mongo(Battery):
 
         yield db.add_user(username, password, roles=["readWrite"])
 
-        yield con.trunk.leaves.update(
+        yield self.trunk.async_db.leaves.update(
             {"_id": leaf["_id"]},
             {"$set": {
                 "batteries.mongo": {
                     "name": name,
                     "user": username,
                     "pass": password
-                }
+                },
+                "modified": datetime.now()
             }
             }
         )

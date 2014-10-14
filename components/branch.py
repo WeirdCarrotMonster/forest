@@ -15,7 +15,6 @@ import simplejson as json
 from bson import ObjectId
 
 from components.common import log_message
-from components.database import get_default_database
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -83,24 +82,22 @@ class Branch(object):
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
-            trunk = get_default_database(self.trunk.settings, async=True)
-            yield trunk.logs.insert(data_parsed)
+            yield self.trunk.async_db.logs.insert(data_parsed)
 
     @asynchronous
     def periodic_event(self):
-        trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}
         if self.last_leaves_update:
             query["modified"] = {"$gt": self.last_leaves_update}
 
-        cursor = trunk.leaves.find(query)
+        cursor = self.trunk.async_db.leaves.find(query)
         cursor.each(callback=self._found_leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
         if self.last_species_update:
             query["modified"] = {"$gt": self.last_species_update}
 
-        cursor = trunk.species.find(query)
+        cursor = self.trunk.async_db.species.find(query)
         cursor.each(callback=self._specie_changed)
 
     def _found_leaf(self, result, error):
@@ -153,9 +150,7 @@ class Branch(object):
         if specie_id in self.species:
             return self.species[specie_id]
 
-        trunk = get_default_database(self.trunk.settings)
-
-        spc = trunk.species.find_one({"_id": specie_id})
+        spc = self.trunk.sync_db.species.find_one({"_id": specie_id})
 
         if not self.last_species_update or spc["modified"] > self.last_leaves_update:
             self.last_species_update = spc["modified"]
@@ -185,8 +180,7 @@ class Branch(object):
                 self.start_leaf(leaf)
 
     def load_components(self):
-        trunk = get_default_database(self.trunk.settings)
-        components = trunk.components
+        components = self.trunk.sync_db.components
         for component in components.find({"roles.air": {"$exists": True}}):
             host = component["host"]
             port = component["roles"]["air"]["fastrouter"]

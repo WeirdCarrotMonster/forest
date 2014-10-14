@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-import traceback
 import os
 
-import pymongo
-import simplejson as json
 from tornado import template
 from tornado.gen import coroutine, Return
 import tornado.httpclient
@@ -11,8 +8,7 @@ import tornado.template
 import tornado.web
 from pbkdf2 import crypt
 
-from components.common import LogicError
-from components.database import get_default_database, get_settings_connection
+from components.database import get_default_database
 
 
 class Trunk(tornado.web.Application):
@@ -20,6 +16,9 @@ class Trunk(tornado.web.Application):
         super(Trunk, self).__init__(**settings)
         self.settings = settings_dict
         self.settings["cookie_secret"] = "asdasd"
+
+        self.async_db = get_default_database(self.settings, async=True)
+        self.sync_db = get_default_database(self.settings)
 
         # Компоненты
         self.branch = None
@@ -32,8 +31,7 @@ class Trunk(tornado.web.Application):
         self.initial_publish()
 
     def initial_publish(self):
-        trunk = get_default_database(self.settings)
-        instance = trunk.components.find_one({"name": self.settings["name"]})
+        instance = self.sync_db.components.find_one({"name": self.settings["name"]})
 
         if not instance:
             about = {
@@ -42,12 +40,11 @@ class Trunk(tornado.web.Application):
                 "port": self.settings["trunk_port"],
                 "roles": {}
             }
-            instance = trunk.components.insert(about)
+            instance = self.sync_db.components.insert(about)
         self.settings["id"] = instance.get("_id")
 
     def publish_self(self):
-        trunk = get_default_database(self.settings)
-        instance = trunk.components.find_one({"name": self.settings["name"]})
+        instance = self.sync_db.components.find_one({"name": self.settings["name"]})
 
         about = {
             "name": self.settings["name"],
@@ -63,15 +60,14 @@ class Trunk(tornado.web.Application):
             about["roles"]["roots"] = self.roots.settings
 
         if not instance:
-            trunk.components.insert(about)
+            self.sync_db.components.insert(about)
 
-        trunk.components.update({"name": self.settings["name"]}, about)
+        self.sync_db.components.update({"name": self.settings["name"]}, about)
 
     @coroutine
     def authenticate_user(self, username, password):
-        db = get_default_database(self.settings, async=True)
         try:
-            user = yield db.user.find_one({"username": username})
+            user = yield self.async_db.user.find_one({"username": username})
             assert crypt(password, user.get("password"))
             raise Return(user)
         except Return as r:

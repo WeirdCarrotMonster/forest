@@ -2,14 +2,11 @@
 import os
 import shutil
 import signal
-import socket
 import subprocess
-from threading import Thread
-from tornado.web import asynchronous
+
+from tornado import gen
 
 from components.common import log_message
-from components.database import get_default_database
-from logparse import logparse
 
 
 class Air():
@@ -39,32 +36,28 @@ class Air():
     def _stack_context_handle_exception(self, *args, **kwargs):
         print(args, kwargs)
 
-    @asynchronous
+    @gen.coroutine
     def periodic_event(self):
-        trunk = get_default_database(self.trunk.settings, async=True)
         query = {"batteries": {'$exists': True}}
         if self.last_update:
             query["modified"] = {"$gt": self.last_update}
 
-        cursor = trunk.leaves.find(query)
-        cursor.each(callback=self._found_leaf)
-
-    def _found_leaf(self, result, error):
-        if not result:
-            return
-
-        if not self.last_update or self.last_update < result.get("modified"):
-            self.last_update = result.get("modified")
+        cursor = self.trunk.async_db.leaves.find(query)
 
         default_key = os.path.join(self.settings["keydir"], "default.pem")
-        for add in result.get("address", []):
-            keyfile = os.path.join(
-                self.settings["keydir"], add + ".pem")
-            if not os.path.isfile(keyfile):
-                log_message(
-                    "Creating key for address: {0}".format(add),
-                    component="Air")
-                shutil.copyfile(default_key, keyfile)
+
+        while (yield cursor.fetch_next):
+            leaf = cursor.next_object()
+
+            if not self.last_update or self.last_update < leaf.get("modified"):
+                self.last_update = leaf.get("modified")
+
+            for add in leaf.get("address", []):
+                key_file = os.path.join(self.settings["keydir"], add + ".pem")
+
+                if not os.path.isfile(key_file):
+                    log_message("Creating key for address: {0}".format(add), component="Air")
+                    shutil.copyfile(default_key, key_file)
 
     def cleanup(self):
         self.fastrouter.send_signal(signal.SIGINT)
