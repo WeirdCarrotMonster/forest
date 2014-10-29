@@ -22,6 +22,7 @@ class Air():
             "--fastrouter-subscription-server={0}:{1}".format(
                 self.settings["host"], str(self.settings["fastrouter"])),
             "--master",
+            "--processes=4",
             "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"]),
             # "--logger", "socket:127.0.0.1:%d" % self.logs_port
         ]
