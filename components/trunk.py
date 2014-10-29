@@ -68,7 +68,7 @@ class Trunk(tornado.web.Application):
     def authenticate_user(self, username, password):
         try:
             user = yield self.async_db.user.find_one({"username": username})
-            assert crypt(password, user.get("password"))
+            assert user.get("password") == crypt(password, user.get("password"))
             raise Return(user)
         except Return as r:
             raise r
