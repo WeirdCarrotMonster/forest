@@ -4,5 +4,6 @@ bson
 tornado
 psutil
 pymongo
+motor
 MySQL-python
 pyzmq
