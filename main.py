@@ -99,7 +99,7 @@ if "branch" in SETTINGS["roles"].keys():
 
 APPLICATION.publish_self()
 # Запускаем приложение
-log_message("Listening on: {0}:{1}".format(
+log_message("Listening on: http://{0}:{1}".format(
     trunk_settings["trunk_host"],
     trunk_settings["trunk_port"])
 )
