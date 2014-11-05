@@ -51,8 +51,9 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
-    def _stack_context_handle_exception(self, *args, **kwargs):
-        print(args, kwargs)
+    def _push_leaves_update(self, leaf):
+        if not self.last_leaves_update or self.last_leaves_update < leaf.get("modified"):
+            self.last_leaves_update = leaf.get("modified")
 
     @coroutine
     def log_message(self, message):
@@ -85,91 +86,68 @@ class Branch(object):
 
             yield self.trunk.async_db.logs.insert(data_parsed)
 
-    @asynchronous
+    @coroutine
     def periodic_event(self):
         query = {"batteries": {'$exists': True}}
         if self.last_leaves_update:
             query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = self.trunk.async_db.leaves.find(query)
-        cursor.each(callback=self._found_leaf)
+
+        while (yield cursor.fetch_next):
+            leaf = cursor.next_object()
+            self._push_leaves_update(leaf)
+            _id = leaf.get("_id")
+
+            try:
+                if self.trunk.settings["id"] not in leaf.get("branch"):
+                    if _id in self.leaves.keys():
+                        self.del_leaf(_id)
+                else:
+                    if leaf.get("active", False):
+                        leaf = self.create_leaf(leaf)
+                        self.add_leaf(leaf)
+                    elif _id in self.leaves.keys():
+                        self.del_leaf(_id)
+            except KeyError:
+                pass
 
         query = {"_id": {"$in": self.species.keys()}}
         if self.last_species_update:
             query["modified"] = {"$gt": self.last_species_update}
 
         cursor = self.trunk.async_db.species.find(query)
-        cursor.each(callback=self._specie_changed)
 
-    def _found_leaf(self, result, error):
-        if not result:
-            return
+        while (yield cursor.fetch_next):
+            species = cursor.next_object()
+            log_message(
+                "Species {} changed".format(species["name"]),
+                component="Branch"
+            )
 
-        if not self.last_leaves_update or self.last_leaves_update < result.get("modified"):
-            self.last_leaves_update = result.get("modified")
-        _id = result.get("_id")
+            species_new = self.create_specie(species)
+            self.species[species["_id"]] = species_new
 
-        try:
-            if self.trunk.settings["id"] not in result.get("branch"):
-                if _id in self.leaves.keys():
-                    self.del_leaf(_id)
-            else:
-                if result.get("active", False):
-                    leaf = self.create_leaf(result)
-                    self.add_leaf(leaf)
-                elif _id in self.leaves.keys():
-                    self.del_leaf(_id)
-        except:
-            pass
+            if not self.last_species_update or self.last_species_update < species["modified"]:
+                self.last_species_update = species["modified"]
 
-    def _specie_changed(self, specie, error):
-        if not specie:
-            return
+            species_new.initialize()
 
-        log_message(
-            "Specie {} changed".format(specie["name"]),
-            component="Branch"
-        )
+    def get_species(self, species_id):
+        if species_id in self.species:
+            return self.species[species_id]
 
-        specie_new = Specie(
-            directory=self.settings["species"],
-            specie_id=specie["_id"],
-            name=specie["name"],
-            url=specie["url"],
-            triggers=specie.get("triggers", {}),
-            ready_callback=self.specie_initialization_finished,
-            modified=specie["modified"]
-        )
-        self.species[specie["_id"]] = specie_new
-
-        if not self.last_species_update or self.last_species_update < specie["modified"]:
-            self.last_species_update = specie["modified"]
-
-        specie_new.initialize()
-
-    def get_specie(self, specie_id):
-        if specie_id in self.species:
-            return self.species[specie_id]
-
-        specie = self.trunk.sync_db.species.find_one({"_id": specie_id})
+        specie = self.trunk.sync_db.species.find_one({"_id": species_id})
 
         if not self.last_species_update or self.last_species_update < specie["modified"]:
             self.last_species_update = specie["modified"]
 
         if specie:
-            specie_new = Specie(
-                directory=self.settings["species"],
-                specie_id=specie_id,
-                name=specie["name"],
-                url=specie["url"],
-                triggers=specie.get("triggers", {}),
-                ready_callback=self.specie_initialization_finished,
-                modified=specie["modified"]
-            )
+            specie_new = self.create_specie(specie)
             specie_new.initialize()
 
-            self.species[specie_id] = specie_new
-            return self.species[specie_id]
+            self.species[species_id] = specie_new
+            return self.species[species_id]
 
         return None
 
@@ -203,6 +181,17 @@ class Branch(object):
                 )
             )
 
+    def create_specie(self, specie):
+        return Specie(
+            directory=self.settings["species"],
+            specie_id=specie["_id"],
+            name=specie["name"],
+            url=specie["url"],
+            triggers=specie.get("triggers", {}),
+            ready_callback=self.specie_initialization_finished,
+            modified=specie["modified"]
+        )
+
     def create_leaf(self, leaf):
         """
         Создает экземпляр листа  по данным из базы
@@ -230,7 +219,7 @@ class Branch(object):
             batteries=batteries,
             workers=leaf.get("workers", 4),
             threads=leaf.get("threads", False),
-            specie=self.get_specie(leaf.get("type"))
+            specie=self.get_species(leaf.get("type"))
         )
         return new_leaf
 
