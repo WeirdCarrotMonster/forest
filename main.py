@@ -76,7 +76,7 @@ if "air" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["air"]
     air = Air(role_settings, APPLICATION)
     APPLICATION.air = air
-    clbk = tornado.ioloop.PeriodicCallback(air.periodic_event, 5000)
+    clbk = tornado.ioloop.PeriodicCallback(air.periodic_event, 1000)
     clbk.start()
 
 if "roots" in SETTINGS["roles"].keys():
@@ -86,14 +86,14 @@ if "roots" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["roots"]
     roots = Roots(role_settings, APPLICATION)
     APPLICATION.roots = roots
-    clbk = tornado.ioloop.PeriodicCallback(roots.periodic_event, 5000)
+    clbk = tornado.ioloop.PeriodicCallback(roots.periodic_event, 1000)
     clbk.start()
 
 if "branch" in SETTINGS["roles"].keys():
     role_settings = SETTINGS["roles"]["branch"]
     branch = Branch(role_settings, APPLICATION)
     APPLICATION.branch = branch
-    clbk = tornado.ioloop.PeriodicCallback(branch.periodic_event, 5000)
+    clbk = tornado.ioloop.PeriodicCallback(branch.periodic_event, 1000)
     clbk.start()
 
 

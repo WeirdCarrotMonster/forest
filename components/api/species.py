@@ -28,6 +28,7 @@ class SpeciesHandler(Handler):
                 beginning = False
             else:
                 self.write(",")
+            document["modified"] = document["modified"].generation_time
             self.write(json.dumps(document, cls=CustomEncoder))
         self.finish("]")
 
@@ -36,11 +37,26 @@ class SpecieHandler(Handler):
     @gen.coroutine
     @login_required
     def patch(self, _id):
-        data = {"modified": datetime.now()}
+        data = {"modified": ObjectId()}
         db = self.application.async_db
-        result = yield db.species.find_and_modify(
+        species = yield db.species.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},
             new=True
         )
-        self.finish(json.dumps(result, cls=CustomEncoder))
+
+        cursor = db.leaves.find({"type": ObjectId(_id)})
+        on_update = species.get("triggers", {}).get("on_update", [])
+        if on_update:
+            while (yield cursor.fetch_next):
+                leaf = cursor.next_object()
+
+                yield db.task.insert({
+                    "leaf": leaf["_id"],
+                    "worker": None,
+                    "type": "on_update",
+                    "version": data["modified"],
+                    "cmd": on_update
+                })
+        species["modified"] = species["modified"].generation_time
+        self.finish(json.dumps(species, cls=CustomEncoder))

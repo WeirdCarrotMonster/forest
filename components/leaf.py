@@ -25,11 +25,11 @@ class Leaf(object):
                  batteries=None,
                  workers=4,
                  threads=False,
-                 specie=None
+                 species=None
                  ):
         self.name = name
         self.host = host
-        self.specie = specie
+        self.__species = species
         self.settings = settings or {}
         self.process = None
         self.fastrouters = fastrouters or []
@@ -61,9 +61,20 @@ class Leaf(object):
     def log_port(self):
         return self._log_port
 
+    @property
+    def species(self):
+        return self.__species
+
     @log_port.setter
     def log_port(self, value):
         self._log_port = value
+
+    @property
+    def environment(self):
+        return {
+            "BATTERIES": json.dumps(self.batteries),
+            "APPLICATION_SETTINGS": json.dumps(self.settings)
+        }
 
     def get_config(self):
         logs_format = {
@@ -98,8 +109,8 @@ plugin={plugin}
 req-logger = zeromq:tcp://{logto}
 log-encoder = prefix [Leaf {id}]
         """.format(
-            chdir=self.specie.path,
-            virtualenv=self.specie.environment,
+            chdir=self.__species.path,
+            virtualenv=self.__species.environment,
             socket=self.host,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
@@ -112,7 +123,7 @@ log-encoder = prefix [Leaf {id}]
         if self.threads:
             config += "enable-threads=1\n"
 
-        for before_start in self.specie.triggers.get("before_start", []):
+        for before_start in self.__species.triggers.get("before_start", []):
             config += "hook-pre-app=exec:{}\n".format(before_start)
 
         for router in self.fastrouters:

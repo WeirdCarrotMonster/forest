@@ -8,6 +8,7 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
+import traceback
 
 from zmq.eventloop.zmqstream import ZMQStream
 import simplejson as json
@@ -30,6 +31,7 @@ class Branch(object):
     def __init__(self, settings, trunk):
         self.settings = settings
         self.trunk = trunk
+
         self.leaves = {}
 
         self.fastrouters = []
@@ -150,11 +152,11 @@ class Branch(object):
 
         return None
 
-    def specie_initialization_finished(self, specie):
-        specie.is_ready = True
+    def specie_initialization_finished(self, species):
+        species.is_ready = True
         for leaf in self.leaves.values():
-            if leaf.specie.id == specie.id:
-                leaf.specie = specie
+            if leaf.species.id == species.id:
+                leaf.specie = species
                 self.start_leaf(leaf)
 
     def load_components(self):
@@ -218,12 +220,48 @@ class Branch(object):
             batteries=batteries,
             workers=leaf.get("workers", 4),
             threads=leaf.get("threads", False),
-            specie=self.get_species(leaf.get("type"))
+            species=self.get_species(leaf.get("type"))
         )
         return new_leaf
 
+    @coroutine
     def start_leaf(self, leaf):
+        # Берем все свободные задачи, связаные с инициализацией
+        while True:
+            task = yield self.trunk.async_db.task.find_and_modify(
+                {"worker": None, "type": {"$in": ["on_update", "on_create"]}, "leaf": leaf.id},
+                {"$set": {"worker": self.trunk.settings["id"], "status": "processing"}}
+            )
+
+            if not task:
+                break
+
+            try:
+                if task["version"] != leaf.species.metadata["modified"]:
+                    yield self.trunk.async_db.task.find_and_modify(
+                        {"_id": task["_id"]},
+                        {"$set": {"status": "discarded", "error": "Old environment version"}}
+                    )
+                else:
+                    result = []
+                    error = []
+                    for cmd in task["cmd"]:
+                        new_result, new_error = yield leaf.species.run_in_env(cmd, env=leaf.environment)
+                        result.append(new_result)
+                        error.append(new_error)
+
+                    yield self.trunk.async_db.task.find_and_modify(
+                        {"_id": task["_id"]},
+                        {"$set": {"status": "finished", "result": result, "error": error}}
+                    )
+            except:
+                yield self.trunk.async_db.task.find_and_modify(
+                    {"_id": task["_id"]},
+                    {"$set": {"status": "failed", "error": traceback.fomat_exc()}}
+                )
+
         self.emperor.start_leaf(leaf)
+
         log_message(
             "Starting leaf {}".format(leaf.id),
             component="Branch"
@@ -238,7 +276,7 @@ class Branch(object):
         """
         self.leaves[leaf.id] = leaf
 
-        if leaf.specie.is_ready:
+        if leaf.species.is_ready:
             self.start_leaf(leaf)
         else:
             log_message(

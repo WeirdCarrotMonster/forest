@@ -50,6 +50,12 @@ class LeavesHandler(Handler):
         })
 
         leaf = yield db.leaves.find_one({"_id": ObjectId(result)})
+
+        yield db.task.insert({
+            "leaf": leaf["_id"],
+            "type": "create_db",
+            "worker": None
+        })
         self.finish(json.dumps(leaf, cls=CustomEncoder))
 
 

@@ -8,10 +8,12 @@ from __future__ import print_function, unicode_literals
 
 import os
 import shutil
+import shlex
+from bson import ObjectId
 
 import dateutil.parser
 import tornado
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Task, Return
 from tornado.process import Subprocess
 import simplejson as json
 
@@ -44,8 +46,8 @@ class Specie(object):
 
                 for key, value in data.items():
                     try:
-                        data[key] = dateutil.parser.parse(value)
-                    except:
+                        data[key] = ObjectId(value)
+                    except ValueError:
                         pass
             return data
         except:
@@ -146,6 +148,40 @@ class Specie(object):
             component="Specie"
         )
         self.ready_callback(self)
+
+    @coroutine
+    def run_in_env(self, cmd, stdin_data=None, env=None):
+        """
+        Wrapper around subprocess call using Tornado's Subprocess class.
+        https://gist.github.com/FZambia/5756470
+        """
+        cmd = shlex.split(cmd)
+        process_env = os.environ.copy()
+        process_env["PATH"] = os.path.join(self._environment, "bin") + ":" + process_env.get("PATH", "")
+        process_env["VIRTUAL_ENV"] = self._environment
+
+        if env:
+            process_env.update(env)
+
+        sub_process = tornado.process.Subprocess(
+            cmd,
+            env=process_env,
+            cwd=self._path,
+            stdin=tornado.process.Subprocess.STREAM,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=tornado.process.Subprocess.STREAM
+        )
+
+        if stdin_data:
+            yield Task(sub_process.stdin.write, stdin_data)
+            sub_process.stdin.close()
+
+        result, error = yield [
+            Task(sub_process.stdout.read_until_close),
+            Task(sub_process.stderr.read_until_close)
+        ]
+
+        raise Return((result, error))
 
     @property
     def path(self):
