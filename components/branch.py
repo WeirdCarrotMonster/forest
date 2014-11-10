@@ -89,7 +89,10 @@ class Branch(object):
 
     @coroutine
     def periodic_event(self):
-        query = {"batteries": {'$exists': True}}
+        query = {
+            "batteries": {'$exists': True}  # Окружение подготовлено
+            "tasks": {$size: 0}             # Очередь задач пуста
+        }
         if self.last_leaves_update:
             query["modified"] = {"$gt": self.last_leaves_update}
 
