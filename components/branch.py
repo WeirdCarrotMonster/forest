@@ -21,7 +21,7 @@ from components.emperor import Emperor
 
 from components.leaf import Leaf
 from components.logparse import logparse
-from components.specie import Specie
+from components.species import Specie
 
 
 class Branch(object):
