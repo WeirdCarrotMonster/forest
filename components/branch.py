@@ -8,7 +8,7 @@ from __future__ import print_function, unicode_literals
 
 import datetime
 from collections import defaultdict
-import traceback
+import os
 
 from zmq.eventloop.zmqstream import ZMQStream
 import simplejson as json
@@ -19,7 +19,6 @@ import zmq
 
 from components.common import log_message
 from components.emperor import Emperor
-
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Specie
@@ -41,7 +40,7 @@ class Branch(object):
 
         self.load_components()
 
-        self.emperor = Emperor(self.settings["emperor_dir"], self.settings["host"])
+        self.emperor = Emperor(self.trunk.forest_root, self.settings["host"])
 
         self.species = {}
 
@@ -244,7 +243,7 @@ class Branch(object):
     def create_specie(self, specie):
         return Specie(
             ready_callback=self.specie_initialization_finished,
-            directory=self.settings["species"],
+            directory=os.path.join(self.trunk.forest_root, "species"),
             **specie
         )
 
@@ -268,7 +267,7 @@ class Branch(object):
         species = yield self.get_species(leaf.get("type"), now=need_species_now)
 
         raise Return(Leaf(
-            branch_settings=self.settings,
+            keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
             fastrouters=self.fastrouters,
             emperor=self.emperor,
             trunk=self.trunk,

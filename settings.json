@@ -20,16 +20,9 @@
             }
         },
         "branch": {
-            "host": "127.0.0.1",
-            "keyfile": "/home/wcm/coding/forest/keys/private.pem",
-            "emperor_dir": "/home/wcm/coding/forest/bin",
-            "thread_pool_limit": 5,
-            "species": "/home/wcm/coding/forest/species/"
+            "host": "127.0.0.1"
         },
         "air": {
-            "keydir": "/home/wcm/coding/forest/keys",
-            "emperor_dir": "/home/wcm/coding/forest/bin",
-            "statichandler": "/home/wcm/coding/forest/components/statichandler.py",
             "host": "127.0.0.1",
             "fastrouter": 3333
         }
@@ -41,6 +34,7 @@
         "port": 27017,
         "user": "admin",
         "pass": "password",
-        "database": "trunk"
+        "database": "trunk",
+        "forest_root": "/home/wcm/coding/forest"
     }
 }

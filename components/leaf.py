@@ -6,17 +6,10 @@ import simplejson as json
 
 
 class Leaf(object):
-    statuses = (
-        (0, "Stopped"),
-        (1, "Started"),
-        (2, "Waiting: trigger before_start"),
-        (3, "Waiting: environment")
-    )
-
     def __init__(self,
                  name=None,
                  _id=None,
-                 branch_settings=None,
+                 keyfile=None,
                  settings=None,
                  fastrouters=None,
                  address=None,
@@ -33,7 +26,7 @@ class Leaf(object):
                  tasks=None,
                  **kwargs
                  ):
-        self.__branch_settings = branch_settings or {}
+        self.__keyfile = keyfile
         self.fastrouters = fastrouters or []
         self.emperor_dir = None
         self.__species = species
@@ -79,7 +72,7 @@ class Leaf(object):
 
     @property
     def keyfile(self):
-        return self.__branch_settings.get("keyfile")
+        return self.__keyfile
 
     @property
     def log_port(self):

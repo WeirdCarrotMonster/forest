@@ -17,13 +17,13 @@ class Air():
         self.logs_port = logs_port
 
         cmd_fastrouter = [
-            os.path.join(self.settings["emperor_dir"], "uwsgi"),
+            os.path.join(self.trunk.forest_root, "bin/uwsgi"),
             "--fastrouter=127.0.0.1:%d" % self.port,
             "--fastrouter-subscription-server={0}:{1}".format(
                 self.settings["host"], str(self.settings["fastrouter"])),
             "--master",
             "--processes=4",
-            "--subscriptions-sign-check=SHA1:{0}".format(self.settings["keydir"]),
+            "--subscriptions-sign-check=SHA1:{0}".format(os.path.join(self.trunk.forest_root, "keys")),
             # "--logger", "socket:127.0.0.1:%d" % self.logs_port
         ]
 
@@ -42,7 +42,7 @@ class Air():
 
         cursor = self.trunk.async_db.leaves.find(query)
 
-        default_key = os.path.join(self.settings["keydir"], "default.pem")
+        default_key = os.path.join(self.trunk.forest_root, "keys/default.pem")
 
         while (yield cursor.fetch_next):
             leaf = cursor.next_object()
@@ -51,7 +51,7 @@ class Air():
                 self.last_update = leaf.get("modified")
 
             for add in leaf.get("address", []):
-                key_file = os.path.join(self.settings["keydir"], add + ".pem")
+                key_file = os.path.join(self.trunk.forest_root, "keys/{}.pem".format(add))
 
                 if not os.path.isfile(key_file):
                     log_message("Creating key for address: {0}".format(add), component="Air")

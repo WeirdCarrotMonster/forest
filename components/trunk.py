@@ -25,6 +25,7 @@ class Trunk(tornado.web.Application):
         self.air = None
         self.roots = None
         self.druid = None
+        self.forest_root = settings_dict["forest_root"]
 
         self.loader = template.Loader(os.path.join(self.settings["REALPATH"], "html"))
 

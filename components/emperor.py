@@ -15,12 +15,12 @@ import zmq
 
 
 class Emperor(object):
-    def __init__(self, binary_dir, leaves_host, port=5121, logs_port=5122, stats_port=5123):
+    def __init__(self, root_dir, leaves_host, port=5121, logs_port=5122, stats_port=5123):
         self.port = port
         self.leaves_host = leaves_host
         self.logs_port = logs_port
         self.stats_port = stats_port
-        self.binary_dir = binary_dir
+        self.binary_dir = os.path.join(root_dir, "bin")
 
         c = zmq.Context()
         self.emperor_socket = zmq.Socket(c, zmq.PUSH)
