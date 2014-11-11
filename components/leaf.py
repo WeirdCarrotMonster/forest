@@ -63,6 +63,10 @@ class Leaf(object):
         return self.active and not self.locked and self.trunk.id in self.branch and not self.tasks
 
     @property
+    def queued(self):
+        return self._id in self.trunk.branch.leaves
+
+    @property
     def id(self):
         return self._id
 

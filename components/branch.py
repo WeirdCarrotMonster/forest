@@ -105,7 +105,7 @@ class Branch(object):
 
             if leaf.running and not leaf.should_be_running:
                 self.del_leaf(leaf)
-            elif not leaf.running and leaf.should_be_running:
+            elif not leaf.running and not leaf.queued and leaf.should_be_running:
                 self.add_leaf(leaf)
             elif leaf.running and leaf != self.leaves[leaf.id]:
                 self.del_leaf(leaf)
