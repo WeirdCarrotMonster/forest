@@ -70,5 +70,10 @@ class Roots():
                             }
                         }
                     )
+                else:
+                    yield self.trunk.async_db.leaves.update(
+                        {"_id": leaf["_id"]},
+                        {"$set": {"locked": None}}
+                    )
             except:
                 pass
