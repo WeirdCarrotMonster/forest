@@ -16,39 +16,32 @@ class Leaf(object):
     def __init__(self,
                  name=None,
                  _id=None,
-                 host="127.0.0.1",
+                 branch_settings=None,
                  settings=None,
                  fastrouters=None,
-                 keyfile=None,
                  address=None,
-                 component=None,
                  batteries=None,
                  workers=4,
                  threads=False,
-                 species=None
+                 species=None,
+                 emperor=None,
+                 branches=None,
+                 **kwargs
                  ):
-        self.name = name
-        self.host = host
-        self.__species = species
-        self.settings = settings or {}
-        self.process = None
+        self.__branch_settings = branch_settings or {}
         self.fastrouters = fastrouters or []
-        self.keyfile = keyfile
-        self.address = address
-        self.component = component
+        self.emperor_dir = None
+        self.__species = species
+        self.__emperor = emperor
         self.batteries = batteries
+        self._log_port = None
+        self.branches = branches or []
+        self.settings = settings or {}
+        self.address = address
         self.workers = workers
         self.threads = threads
-        self._log_port = None
-        self.id = _id
-
-        self._thread = None
-        self._queue = None
-        self.logs = []
-        self.emperor_dir = None
-
-        self._last_req_measurement = datetime.datetime.now()
-        self._last_req_count = 0
+        self.__name = name
+        self._id = _id
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -56,6 +49,26 @@ class Leaf(object):
         r3 = self.workers == other.workers
         r4 = self.batteries == other.batteries
         return not all([r1, r2, r3, r4])
+
+    @property
+    def running(self):
+        return self._id in self.__emperor
+
+    @property
+    def should_be_running(self):
+        return True
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self.__name
+
+    @property
+    def keyfile(self):
+        return self.__branch_settings.get("keyfile")
 
     @property
     def log_port(self):
@@ -92,33 +105,22 @@ class Leaf(object):
 
         config = """
 [uwsgi]
-strict=1
 chdir={chdir}
-heartbeat=10
-module=wsgi:application
-socket={socket}:0
 processes={workers}
-master=1
-buffer-size=65535
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
 logformat={logformat}
 virtualenv={virtualenv}
 static-map=/static={chdir}/static
-plugin={plugin}
-req-logger = zeromq:tcp://{logto}
 log-encoder = prefix [Leaf {id}]
         """.format(
             chdir=self.__species.path,
             virtualenv=self.__species.environment,
-            socket=self.host,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
             logformat=json.dumps(logs_format),
-            logto="127.0.0.1:{}".format(self._log_port),
             workers=self.workers,
-            id=self.id,
-            plugin=os.path.join(self.emperor_dir, "logzmq")
+            id=self.id
         )
         if self.threads:
             config += "enable-threads=1\n"

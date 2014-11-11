@@ -28,6 +28,7 @@ class Branch(object):
     """
     Класс ветви, служащий для запуска приложений и логгирования их вывода
     """
+
     def __init__(self, settings, trunk):
         self.settings = settings
         self.trunk = trunk
@@ -39,7 +40,7 @@ class Branch(object):
 
         self.load_components()
 
-        self.emperor = Emperor(self.settings["emperor_dir"])
+        self.emperor = Emperor(self.settings["emperor_dir"], self.settings["host"])
 
         self.species = {}
 
@@ -90,8 +91,7 @@ class Branch(object):
     @coroutine
     def periodic_event(self):
         query = {
-            "batteries": {'$exists': True},  # Окружение подготовлено
-            "tasks": {"$size": 0}            # Очередь задач пуста
+            "batteries": {'$exists': True}
         }
         if self.last_leaves_update:
             query["modified"] = {"$gt": self.last_leaves_update}
@@ -211,21 +211,15 @@ class Branch(object):
                 batteries[key]["host"] = self.batteries[key][0][0]
                 batteries[key]["port"] = self.batteries[key][0][1]
 
-        new_leaf = Leaf(
-            name=leaf["name"],
-            _id=leaf.get("_id"),
-            host=self.settings["host"],
-            settings=leaf.get("settings", {}),
+        leaf["batteries"] = batteries
+
+        return Leaf(
+            branch_settings=self.settings,
             fastrouters=self.fastrouters,
-            keyfile=self.settings.get("keyfile", None),
-            address=leaf.get("address"),
-            component=self.trunk.settings["name"],
-            batteries=batteries,
-            workers=leaf.get("workers", 4),
-            threads=leaf.get("threads", False),
-            species=self.get_species(leaf.get("type"))
+            emperor=self.emperor,
+            species=self.get_species(leaf.get("type")),
+            **leaf
         )
-        return new_leaf
 
     @coroutine
     def start_leaf(self, leaf):

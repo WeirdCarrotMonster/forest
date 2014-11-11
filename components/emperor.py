@@ -15,8 +15,9 @@ import zmq
 
 
 class Emperor(object):
-    def __init__(self, binary_dir, port=5121, logs_port=5122, stats_port=5123):
+    def __init__(self, binary_dir, leaves_host, port=5121, logs_port=5122, stats_port=5123):
         self.port = port
+        self.leaves_host = leaves_host
         self.logs_port = logs_port
         self.stats_port = stats_port
         self.binary_dir = binary_dir
@@ -27,14 +28,26 @@ class Emperor(object):
         self.emperor = subprocess.Popen(
             [
                 os.path.join(self.binary_dir, "uwsgi"),
-                "--plugin", os.path.join(self.binary_dir, "emperor_zeromq"),
-                "--plugin", os.path.join(self.binary_dir, "logzmq"),
+                "--plugins-dir", self.binary_dir,
+                "--plugin", "emperor_zeromq",
+                "--plugin", "logzmq",
                 "--emperor", "zmq://tcp://127.0.0.1:%d" % self.port,
                 "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
                 "--master",
                 "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
                 "--emperor-required-heartbeat", "40",
-                "--reaper"
+                # "--emperor-use-clone", "fs,net,ipc,pid,uts",
+                "--reaper",
+
+                "--vassal-set", "socket=%s:0" % self.leaves_host,
+                "--vassal-set", "plugins-dir=%s" % self.binary_dir,
+                "--vassal-set", "plugin=logzmq",
+                "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.logs_port,
+                "--vassal-set", "buffer-size=65535",
+                "--vassal-set", "heartbeat=10",
+                "--vassal-set", "master=1",
+                "--vassal-set", "strict=1",
+                "--vassal-set", "module=wsgi:application"
             ],
             bufsize=1,
             close_fds=True

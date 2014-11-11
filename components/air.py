@@ -34,9 +34,6 @@ class Air():
         )
         self.last_update = None
 
-    def _stack_context_handle_exception(self, *args, **kwargs):
-        print(args, kwargs)
-
     @gen.coroutine
     def periodic_event(self):
         query = {"batteries": {'$exists': True}}
