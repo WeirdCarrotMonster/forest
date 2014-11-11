@@ -25,7 +25,10 @@ class Leaf(object):
                  threads=False,
                  species=None,
                  emperor=None,
-                 branches=None,
+                 branch=None,
+                 trunk=None,
+                 active=False,
+                 modified=None,
                  **kwargs
                  ):
         self.__branch_settings = branch_settings or {}
@@ -35,12 +38,15 @@ class Leaf(object):
         self.__emperor = emperor
         self.batteries = batteries
         self._log_port = None
-        self.branches = branches or []
         self.settings = settings or {}
+        self.modified = modified
         self.address = address
         self.workers = workers
         self.threads = threads
+        self.branch = branch or []
+        self.active = active
         self.__name = name
+        self.trunk = trunk
         self._id = _id
 
     def __ne__(self, other):
@@ -48,15 +54,16 @@ class Leaf(object):
         r2 = self.settings == other.settings
         r3 = self.workers == other.workers
         r4 = self.batteries == other.batteries
-        return not all([r1, r2, r3, r4])
+        r5 = self.modified == other.modified
+        return not all([r1, r2, r3, r4, r5])
 
     @property
     def running(self):
-        return self._id in self.__emperor
+        return self._id in self.__emperor.vassal_names
 
     @property
     def should_be_running(self):
-        return True
+        return self.active and self.trunk.id in self.branch
 
     @property
     def id(self):
@@ -116,7 +123,7 @@ virtualenv={virtualenv}
 static-map=/static={chdir}/static
 log-encoder = prefix [Leaf {id}]
         """.format(
-            chdir=self.__species.path,
+            chdir=self.__species.src_path,
             virtualenv=self.__species.environment,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),

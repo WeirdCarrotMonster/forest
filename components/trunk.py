@@ -43,6 +43,10 @@ class Trunk(tornado.web.Application):
             instance = self.sync_db.components.insert(about)
         self.settings["id"] = instance.get("_id")
 
+    @property
+    def id(self):
+        return self.settings["id"]
+
     def publish_self(self):
         instance = self.sync_db.components.find_one({"name": self.settings["name"]})
 

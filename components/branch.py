@@ -13,7 +13,8 @@ import traceback
 from zmq.eventloop.zmqstream import ZMQStream
 import simplejson as json
 from bson import ObjectId
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
+from tornado.ioloop import IOLoop
 import zmq
 
 from components.common import log_message
@@ -99,22 +100,17 @@ class Branch(object):
         cursor = self.trunk.async_db.leaves.find(query)
 
         while (yield cursor.fetch_next):
-            leaf = cursor.next_object()
-            self._push_leaves_update(leaf)
-            _id = leaf.get("_id")
+            leaf_data = cursor.next_object()
+            self._push_leaves_update(leaf_data)
+            leaf = yield self.create_leaf(leaf_data)
 
-            try:
-                if self.trunk.settings["id"] not in leaf.get("branch"):
-                    if _id in self.leaves.keys():
-                        self.del_leaf(_id)
-                else:
-                    if leaf.get("active", False):
-                        leaf = self.create_leaf(leaf)
-                        self.add_leaf(leaf)
-                    elif _id in self.leaves.keys():
-                        self.del_leaf(_id)
-            except KeyError:
-                pass
+            if leaf.running and not leaf.should_be_running:
+                self.del_leaf(leaf)
+            elif not leaf.running and leaf.should_be_running:
+                self.add_leaf(leaf)
+            elif leaf.running and leaf != self.leaves[leaf.id]:
+                self.del_leaf(leaf)
+                self.add_leaf(leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
         if self.last_species_update:
@@ -135,11 +131,10 @@ class Branch(object):
             if not self.last_species_update or self.last_species_update < species["modified"]:
                 self.last_species_update = species["modified"]
 
-            species_new.initialize()
-
+    @coroutine
     def get_species(self, species_id):
         if species_id in self.species:
-            return self.species[species_id]
+            raise Return(self.species[species_id])
 
         specie = self.trunk.sync_db.species.find_one({"_id": species_id})
 
@@ -148,12 +143,11 @@ class Branch(object):
 
         if specie:
             specie_new = self.create_specie(specie)
-            specie_new.initialize()
 
             self.species[species_id] = specie_new
-            return self.species[species_id]
+            raise Return(self.species[species_id])
 
-        return None
+        raise Return(None)
 
     def specie_initialization_finished(self, species):
         species.is_ready = True
@@ -186,16 +180,15 @@ class Branch(object):
             )
 
     def create_specie(self, specie):
-        return Specie(
-            directory=self.settings["species"],
-            specie_id=specie["_id"],
-            name=specie["name"],
-            url=specie["url"],
-            triggers=specie.get("triggers", {}),
+        specie = Specie(
             ready_callback=self.specie_initialization_finished,
-            modified=specie["modified"]
+            directory=self.settings["species"],
+            **specie
         )
+        IOLoop.current().spawn_callback(specie.initialize)
+        return specie
 
+    @coroutine
     def create_leaf(self, leaf):
         """
         Создает экземпляр листа  по данным из базы
@@ -212,51 +205,18 @@ class Branch(object):
                 batteries[key]["port"] = self.batteries[key][0][1]
 
         leaf["batteries"] = batteries
+        species = yield self.get_species(leaf.get("type"))
 
-        return Leaf(
+        raise Return(Leaf(
             branch_settings=self.settings,
             fastrouters=self.fastrouters,
             emperor=self.emperor,
-            species=self.get_species(leaf.get("type")),
+            trunk=self.trunk,
+            species=species,
             **leaf
-        )
+        ))
 
-    @coroutine
     def start_leaf(self, leaf):
-        # Берем все свободные задачи, связаные с инициализацией
-        while True:
-            task = yield self.trunk.async_db.task.find_and_modify(
-                {"worker": None, "type": {"$in": ["on_update", "on_create"]}, "leaf": leaf.id},
-                {"$set": {"worker": self.trunk.settings["id"], "status": "processing"}}
-            )
-
-            if not task:
-                break
-
-            try:
-                if task["version"] != leaf.species.metadata["modified"]:
-                    yield self.trunk.async_db.task.find_and_modify(
-                        {"_id": task["_id"]},
-                        {"$set": {"status": "discarded", "error": "Old environment version"}}
-                    )
-                else:
-                    result = []
-                    error = []
-                    for cmd in task["cmd"]:
-                        new_result, new_error = yield leaf.species.run_in_env(cmd, env=leaf.environment)
-                        result.append(new_result)
-                        error.append(new_error)
-
-                    yield self.trunk.async_db.task.find_and_modify(
-                        {"_id": task["_id"]},
-                        {"$set": {"status": "finished", "result": result, "error": error}}
-                    )
-            except:
-                yield self.trunk.async_db.task.find_and_modify(
-                    {"_id": task["_id"]},
-                    {"$set": {"status": "failed", "error": traceback.fomat_exc()}}
-                )
-
         self.emperor.start_leaf(leaf)
 
         log_message(
@@ -281,19 +241,19 @@ class Branch(object):
                 component="Branch"
             )
 
-    def del_leaf(self, _id):
+    def del_leaf(self, leaf):
         """
         Останавливает лист и удаляет его из списка активных
 
-        :type _id: ObjectId
-        :param _id: Идентификатор листа
+        :type leaf: Leaf
+        :param leaf: Идентификатор листа
         """
         log_message(
-            "Stopping leaf {}".format(str(_id)),
+            "Stopping leaf {}".format(str(leaf.id)),
             component="Branch"
         )
-        self.emperor.stop_leaf(self.leaves[_id])
-        del self.leaves[_id]
+        self.emperor.stop_leaf(self.leaves[leaf.id])
+        del self.leaves[leaf.id]
 
     def cleanup(self):
         """
