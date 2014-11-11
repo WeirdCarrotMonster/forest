@@ -154,13 +154,8 @@ class Branch(object):
             leaf_data = cursor.next_object()
 
             locked_leaf = yield self.trunk.async_db.leaves.update(
-                {
-                    "_id": leaf_data["_id"],
-                    "locked": None
-                },
-                {
-                    "$set": {"locked": self.trunk.id}
-                }
+                {"_id": leaf_data["_id"], "locked": None},
+                {"$set": {"locked": self.trunk.id}}
             )
 
             if not locked_leaf:
@@ -195,9 +190,7 @@ class Branch(object):
                 })
 
         yield self.trunk.async_db.leaves.update(
-            {
-                "_id": leaf_data["_id"]
-            },
+            {"_id": leaf_data["_id"]},
             {
                 "$set": {"locked": None},
                 "$unset": {"tasks": ""}
