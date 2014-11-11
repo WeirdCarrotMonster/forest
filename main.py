@@ -95,7 +95,7 @@ if "branch" in SETTINGS["roles"].keys():
     APPLICATION.branch = branch
     clbk = tornado.ioloop.PeriodicCallback(branch.periodic_event, 1000)
     clbk.start()
-    clbk = tornado.ioloop.PeriodicCallback(branch.task_pooler, 1000)
+    clbk = tornado.ioloop.PeriodicCallback(branch.task_monitor, 1000)
     clbk.start()
 
 

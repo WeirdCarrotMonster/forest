@@ -20,7 +20,7 @@ import simplejson as json
 from components.common import log_message, CustomEncoder
 
 
-class Specie(object):
+class Species(object):
     """
     Класс, представляющий вид листа - совокупность исходного кода и виртуального
     окружения python

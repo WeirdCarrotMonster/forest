@@ -21,7 +21,7 @@ from components.common import log_message
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
-from components.species import Specie
+from components.species import Species
 
 
 class Branch(object):
@@ -59,6 +59,12 @@ class Branch(object):
 
     @coroutine
     def log_message(self, message):
+        """
+        Логгирует входящее сообщение в базе, дополняя информацией о времени, компоненте и т.п.
+
+        :param message: Логгируемое сообщение
+        :type message: dict
+        """
         for data in message:
             data = data.strip()
 
@@ -90,11 +96,14 @@ class Branch(object):
 
     @coroutine
     def periodic_event(self):
+        """
+        Мониторит коллекцию листьев с целью поиска тех, которые нуждаются в запуске/перезапуске/остановке
+        """
         query = {
             "batteries": {'$exists': True}
         }
-        # if self.last_leaves_update:
-        #     query["modified"] = {"$gt": self.last_leaves_update}
+        if self.last_leaves_update:
+            query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = self.trunk.async_db.leaves.find(query)
 
@@ -131,7 +140,10 @@ class Branch(object):
                 self.last_species_update = species["modified"]
 
     @coroutine
-    def task_pooler(self):
+    def task_monitor(self):
+        """
+        Мониторит коллекцию листьев с целью поиска задач, ожидающих выполнения
+        """
         query = {
             "tasks": {"$exists": True},
             "locked": None
@@ -158,6 +170,12 @@ class Branch(object):
 
     @coroutine
     def do_tasks_async(self, leaf_data):
+        """
+        Асинхронно выполняет задачи, отмеченные к выполнению на листе
+
+        :param leaf_data: Словарь с данными листа, содержащий информацию о выполняемых задачах
+        :type leaf_data: dict
+        """
         log_message("Locked leaf {} for task execution".format(leaf_data["_id"]), component="Branch")
 
         leaf = yield self.create_leaf(leaf_data, need_species_now=True)
@@ -190,6 +208,15 @@ class Branch(object):
 
     @coroutine
     def get_species(self, species_id, now=False):
+        """
+        Получает экземпляр класса Species, инициализирующегося в фоне, либо ожидает
+        окончания его инициализации (поведение определяется параметром now)
+
+        :param species_id: ObjectId вида, получаемого через функцию
+        :param now: Флаг необходимости ожидания инициализации вида
+        :raise Return: Возвращение результата через tornado coroutines
+        :rtype : Species
+        """
         if species_id in self.species:
             raise Return(self.species[species_id])
 
@@ -211,6 +238,12 @@ class Branch(object):
         raise Return(None)
 
     def specie_initialization_finished(self, species):
+        """
+        Событие, выполняющееся при завершении инициализации вида листьев
+
+        :type species: Species
+        :param species: Вид листьев, закончивший инициализацию
+        """
         species.is_ready = True
         for leaf in self.leaves.values():
             if leaf.species.id == species.id:
@@ -218,6 +251,9 @@ class Branch(object):
                 self.start_leaf(leaf)
 
     def load_components(self):
+        """
+        Загружает компоненты системы
+        """
         components = self.trunk.sync_db.components
         for component in components.find({"roles.air": {"$exists": True}}):
             host = component["host"]
@@ -240,11 +276,18 @@ class Branch(object):
                 )
             )
 
-    def create_specie(self, specie):
-        return Specie(
+    def create_specie(self, species):
+        """
+        Создает вид листа по данным из словаря
+
+        :rtype : Species
+        :param species: словарь с данными конфигурации вида
+        :return: Созданный экземпляр вида листа
+        """
+        return Species(
             ready_callback=self.specie_initialization_finished,
             directory=os.path.join(self.trunk.forest_root, "species"),
-            **specie
+            **species
         )
 
     @coroutine
@@ -252,6 +295,8 @@ class Branch(object):
         """
         Создает экземпляр листа  по данным из базы
 
+        :type need_species_now: bool
+        :param need_species_now: Флаг ожидания готовности вида
         :type leaf: dict
         :param leaf: Словарь с конфигурацией листа
         :rtype: Leaf
@@ -276,12 +321,14 @@ class Branch(object):
         ))
 
     def start_leaf(self, leaf):
-        self.emperor.start_leaf(leaf)
+        """
+        Выполняет запуск листа через uwsgi
 
-        log_message(
-            "Starting leaf {}".format(leaf.id),
-            component="Branch"
-        )
+        :param leaf: Запускаемый лист
+        :type leaf: Leaf
+        """
+        self.emperor.start_leaf(leaf)
+        log_message("Starting leaf {}".format(leaf.id), component="Branch")
 
     def add_leaf(self, leaf):
         """
@@ -295,27 +342,21 @@ class Branch(object):
         if leaf.species.is_ready:
             self.start_leaf(leaf)
         else:
-            log_message(
-                "Queued leaf {}".format(leaf.id),
-                component="Branch"
-            )
+            log_message("Queued leaf {}".format(leaf.id), component="Branch")
 
     def del_leaf(self, leaf):
         """
-        Останавливает лист и удаляет его из списка активных
+        Останавливает лист и удаляет его из списка листтьев
 
         :type leaf: Leaf
         :param leaf: Идентификатор листа
         """
-        log_message(
-            "Stopping leaf {}".format(str(leaf.id)),
-            component="Branch"
-        )
+        log_message("Stopping leaf {}".format(str(leaf.id)), component="Branch")
         self.emperor.stop_leaf(self.leaves[leaf.id])
         del self.leaves[leaf.id]
 
     def cleanup(self):
         """
-        Метод выключения листьев при остановке.
+        Принудительно выключает emperor-сервер при остановке
         """
         self.emperor.stop_emperor()
