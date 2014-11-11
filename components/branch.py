@@ -94,8 +94,8 @@ class Branch(object):
         query = {
             "batteries": {'$exists': True}
         }
-        if self.last_leaves_update:
-            query["modified"] = {"$gt": self.last_leaves_update}
+        # if self.last_leaves_update:
+        #     query["modified"] = {"$gt": self.last_leaves_update}
 
         cursor = self.trunk.async_db.leaves.find(query)
 
@@ -132,7 +132,65 @@ class Branch(object):
                 self.last_species_update = species["modified"]
 
     @coroutine
-    def get_species(self, species_id):
+    def task_pooler(self):
+        query = {
+            "tasks": {"$exists": True},
+            "locked": None
+        }
+        cursor = self.trunk.async_db.leaves.find(query)
+
+        while (yield cursor.fetch_next):
+            leaf_data = cursor.next_object()
+
+            locked_leaf = yield self.trunk.async_db.leaves.update(
+                {
+                    "_id": leaf_data["_id"],
+                    "locked": None
+                },
+                {
+                    "$set": {"locked": self.trunk.id}
+                }
+            )
+
+            if not locked_leaf:
+                continue  # Не захватили
+
+            IOLoop.current().spawn_callback(self.do_tasks_async, leaf_data)
+
+    @coroutine
+    def do_tasks_async(self, leaf_data):
+        log_message("Locked leaf {} for task execution".format(leaf_data["_id"]), component="Branch")
+
+        leaf = yield self.create_leaf(leaf_data, need_species_now=True)
+
+        for task in leaf.tasks:
+            cmd = task.get("cmd", [])
+
+            for c in cmd:
+                result, error = yield leaf.species.run_in_env(c, path=leaf.species.src_path, env=leaf.environment)
+                yield self.trunk.async_db.logs.insert({
+                    "component_name": self.trunk.settings["name"],
+                    "component_type": "branch",
+                    "log_type": "leaf.task",
+                    "cmd": c,
+                    "result": result,
+                    "error": error
+                })
+
+        yield self.trunk.async_db.leaves.update(
+            {
+                "_id": leaf_data["_id"]
+            },
+            {
+                "$set": {"locked": None},
+                "$unset": {"tasks": ""}
+            }
+        )
+
+        log_message("Unlocking leaf {}".format(leaf_data["_id"]), component="Branch")
+
+    @coroutine
+    def get_species(self, species_id, now=False):
         if species_id in self.species:
             raise Return(self.species[species_id])
 
@@ -142,9 +200,13 @@ class Branch(object):
             self.last_species_update = specie["modified"]
 
         if specie:
-            specie_new = self.create_specie(specie)
+            species_new = self.create_specie(specie)
+            if not now:
+                IOLoop.current().spawn_callback(species_new.initialize)
+            else:
+                yield species_new.initialize()
 
-            self.species[species_id] = specie_new
+            self.species[species_id] = species_new
             raise Return(self.species[species_id])
 
         raise Return(None)
@@ -180,16 +242,14 @@ class Branch(object):
             )
 
     def create_specie(self, specie):
-        specie = Specie(
+        return Specie(
             ready_callback=self.specie_initialization_finished,
             directory=self.settings["species"],
             **specie
         )
-        IOLoop.current().spawn_callback(specie.initialize)
-        return specie
 
     @coroutine
-    def create_leaf(self, leaf):
+    def create_leaf(self, leaf, need_species_now=False):
         """
         Создает экземпляр листа  по данным из базы
 
@@ -205,7 +265,7 @@ class Branch(object):
                 batteries[key]["port"] = self.batteries[key][0][1]
 
         leaf["batteries"] = batteries
-        species = yield self.get_species(leaf.get("type"))
+        species = yield self.get_species(leaf.get("type"), now=need_species_now)
 
         raise Return(Leaf(
             branch_settings=self.settings,

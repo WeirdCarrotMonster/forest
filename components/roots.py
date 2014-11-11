@@ -18,21 +18,29 @@ class Roots():
 
     @gen.coroutine
     def periodic_event(self):
-        while True:
-            task = yield self.trunk.async_db.task.find_and_modify(
-                {"worker": None, "type": "create_db"},
-                {"$set": {"worker": self.trunk.settings["id"], "status": "processing"}}
-            )
+        cursor = self.trunk.async_db.leaves.find({
+            "batteries": {"$exists": False},
+            "locked": None
+        })
 
-            if not task:
-                break
-
+        while (yield cursor.fetch_next):
+            leaf = cursor.next_object()
             try:
-                leaf = yield self.trunk.async_db.leaves.find_one(task["leaf"])
                 species = yield self.trunk.async_db.species.find_one({"_id": leaf.get("type")})
 
-                if not leaf or not species:
-                    raise Exception()
+                locked_leaf = yield self.trunk.async_db.leaves.update(
+                    {
+                        "_id": leaf["_id"],
+                        "locked": None
+                    },
+                    {
+                        "$set": {"locked": self.trunk.id}
+                    }
+                )
+
+                if not leaf or not species or not locked_leaf:
+                    continue  # Обработка захвачена другим компонентом либо непонятная ебола
+                    # TODO: обрабатывать получше
 
                 requirements = species.get("requires", [])
 
@@ -44,25 +52,23 @@ class Roots():
                     mysql = MySQL(self.settings["mysql"], self.trunk)
                     mysql.prepare_leaf(leaf)
 
-                result = []
-                error = []
-
                 on_create = species.get("triggers", {}).get("on_create", [])
                 if on_create:
-                    yield self.trunk.async_db.task.insert({
-                        "leaf": leaf["_id"],
-                        "worker": None,
-                        "type": "on_create",
-                        "version": species["modified"],
-                        "cmd": on_create
-                    })
-
-                yield self.trunk.async_db.task.find_and_modify(
-                    {"_id": task["_id"]},
-                    {"$set": {"status": "finished", "result": result, "error": error}}
-                )
+                    yield self.trunk.async_db.leaves.update(
+                        {
+                            "_id": leaf["_id"]
+                        },
+                        {
+                            "$set": {
+                                "locked": None,
+                            },
+                            "$push": {
+                                "tasks": {
+                                    "type": "on_create",
+                                    "cmd": on_create
+                                }
+                            }
+                        }
+                    )
             except:
-                yield self.trunk.async_db.task.find_and_modify(
-                    {"_id": task["_id"]},
-                    {"$set": {"status": "failed", "error": traceback.fomat_exc()}}
-                )
+                pass

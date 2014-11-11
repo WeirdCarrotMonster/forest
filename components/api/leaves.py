@@ -92,8 +92,7 @@ class LeafHandler(Handler):
             data["branch"] = [ObjectId(x) for x in data["branch"]]
 
         data["modified"] = datetime.now()
-        db = self.application.async_db
-        result = yield db.leaves.find_and_modify(
+        result = yield self.application.async_db.leaves.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},
             fields={'batteries': False, 'settings': False, 'branch': False},

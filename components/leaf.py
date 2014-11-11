@@ -29,6 +29,8 @@ class Leaf(object):
                  trunk=None,
                  active=False,
                  modified=None,
+                 locked=None,
+                 tasks=None,
                  **kwargs
                  ):
         self.__branch_settings = branch_settings or {}
@@ -44,8 +46,10 @@ class Leaf(object):
         self.workers = workers
         self.threads = threads
         self.branch = branch or []
+        self.locked = locked
         self.active = active
         self.__name = name
+        self.tasks = tasks or []
         self.trunk = trunk
         self._id = _id
 
@@ -63,7 +67,7 @@ class Leaf(object):
 
     @property
     def should_be_running(self):
-        return self.active and self.trunk.id in self.branch
+        return self.active and not self.locked and self.trunk.id in self.branch and not self.tasks
 
     @property
     def id(self):
@@ -83,6 +87,12 @@ class Leaf(object):
 
     @property
     def species(self):
+        """
+        Возвращает объект типа листа,
+
+        :rtype : Species
+        :return:
+        """
         return self.__species
 
     @log_port.setter
