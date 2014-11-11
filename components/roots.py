@@ -55,19 +55,10 @@ class Roots():
                 on_create = species.get("triggers", {}).get("on_create", [])
                 if on_create:
                     yield self.trunk.async_db.leaves.update(
+                        {"_id": leaf["_id"]},
                         {
-                            "_id": leaf["_id"]
-                        },
-                        {
-                            "$set": {
-                                "locked": None,
-                            },
-                            "$push": {
-                                "tasks": {
-                                    "type": "on_create",
-                                    "cmd": on_create
-                                }
-                            }
+                            "$set": {"locked": None},
+                            "$push": {"tasks": {"type": "on_create", "cmd": on_create}}
                         }
                     )
                 else:
