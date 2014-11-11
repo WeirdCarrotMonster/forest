@@ -34,7 +34,7 @@ class Emperor(object):
                 "--master",
                 "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
                 "--emperor-required-heartbeat", "40",
-                # "--emperor-use-clone", "fs,net,ipc,pid,uts",
+                # "--emperor-use-clone", "fs,ipc,pid,uts",
                 "--reaper",
 
                 "--vassal-set", "socket=%s:0" % self.leaves_host,

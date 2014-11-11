@@ -121,6 +121,7 @@ env=APPLICATION_SETTINGS={app_settings}
 logformat={logformat}
 virtualenv={virtualenv}
 static-map=/static={chdir}/static
+offload-threads=4
 log-encoder = prefix [Leaf {id}]
         """.format(
             chdir=self.__species.src_path,
