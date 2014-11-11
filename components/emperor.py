@@ -29,8 +29,6 @@ class Emperor(object):
             [
                 os.path.join(self.binary_dir, "uwsgi"),
                 "--plugins-dir", self.binary_dir,
-                "--plugin", "emperor_zeromq",
-                "--plugin", "logzmq",
                 "--emperor", "zmq://tcp://127.0.0.1:%d" % self.port,
                 "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
                 "--master",
@@ -41,13 +39,11 @@ class Emperor(object):
 
                 "--vassal-set", "socket=%s:0" % self.leaves_host,
                 "--vassal-set", "plugins-dir=%s" % self.binary_dir,
-                "--vassal-set", "plugin=logzmq",
                 "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.logs_port,
                 "--vassal-set", "buffer-size=65535",
                 "--vassal-set", "heartbeat=10",
                 "--vassal-set", "master=1",
-                "--vassal-set", "strict=1",
-                "--vassal-set", "module=wsgi:application"
+                "--vassal-set", "strict=1"
             ],
             bufsize=1,
             close_fds=True

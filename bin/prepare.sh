@@ -2,10 +2,10 @@
 mkdir build && cd build
 wget http://projects.unbit.it/downloads/uwsgi-2.0.6.tar.gz && tar -xzf uwsgi-2.0.6.tar.gz
 cd uwsgi-2.0.6
-python2 uwsgiconfig.py --build
-printf "NAME='emperor_zeromq'\nCFLAGS = ['-lzmq']\nLDFLAGS = ['-lzmq']\nLIBS = []\nGCC_LIST = ['emperor_zeromq']\n" > plugins/emperor_zeromq/uwsgiplugin.py
-python2 uwsgiconfig.py --plugin plugins/emperor_zeromq
-python2 uwsgiconfig.py --plugin plugins/logzmq
-cp uwsgi emperor_zeromq_plugin.so logzmq_plugin.so ../../
+cp ../../forest.ini buildconf
+python2 uwsgiconfig.py --build forest
+python2 uwsgiconfig.py --plugin plugins/python forest python2
+python3 uwsgiconfig.py --plugin plugins/python forest python3
+cp uwsgi python2_plugin.so python3_plugin.so ../../
 cd ../..
 rm build -r

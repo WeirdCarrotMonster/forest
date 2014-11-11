@@ -106,6 +106,8 @@ class Leaf(object):
         config = """
 [uwsgi]
 chdir={chdir}
+plugin={python}
+module=wsgi:application
 processes={workers}
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
@@ -120,7 +122,8 @@ log-encoder = prefix [Leaf {id}]
             batteries=json.dumps(self.batteries),
             logformat=json.dumps(logs_format),
             workers=self.workers,
-            id=self.id
+            id=self.id,
+            python=self.__species.python_version
         )
         if self.threads:
             config += "enable-threads=1\n"

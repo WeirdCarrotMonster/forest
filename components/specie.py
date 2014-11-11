@@ -39,6 +39,10 @@ class Specie(object):
         self.modified = modified
 
     @property
+    def python_version(self):
+        return "python2"
+
+    @property
     def metadata(self):
         try:
             with open(os.path.join(self.specie_path, "metadata.json"), 'r') as f:
@@ -109,7 +113,7 @@ class Specie(object):
             process = Subprocess(
                 [
                     "virtualenv",
-                    "--python=python2.7",
+                    "--python=%s" % self.python_version,
                     self._environment
                 ],
                 env=my_env,
