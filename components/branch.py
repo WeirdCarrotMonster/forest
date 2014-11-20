@@ -135,6 +135,7 @@ class Branch(object):
 
             species_new = self.create_specie(species)
             self.species[species["_id"]] = species_new
+            yield species_new.initialize()
 
             if not self.last_species_update or self.last_species_update < species["modified"]:
                 self.last_species_update = species["modified"]
