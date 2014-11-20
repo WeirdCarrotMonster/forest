@@ -9,6 +9,13 @@ from tornado import gen
 from components.common import log_message
 
 
+try:
+    from subprocess import DEVNULL  # py3k
+except ImportError:
+    import os
+    DEVNULL = open(os.devnull, 'wb')
+
+
 class Air():
     def __init__(self, settings, trunk, port=3000, logs_port=2999):
         self.settings = settings
@@ -29,8 +36,8 @@ class Air():
 
         self.fastrouter = subprocess.Popen(
             cmd_fastrouter,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stdout=DEVNULL,
+            stderr=DEVNULL
         )
         self.last_update = None
 

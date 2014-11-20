@@ -31,12 +31,9 @@ class Emperor(object):
                 "--plugins-dir", self.binary_dir,
                 "--emperor", "zmq://tcp://127.0.0.1:%d" % self.port,
                 "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
-                "--master",
                 "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
                 "--emperor-required-heartbeat", "40",
                 # "--emperor-use-clone", "fs,ipc,pid,uts",
-                "--reaper",
-
                 "--vassal-set", "socket=%s:0" % self.leaves_host,
                 "--vassal-set", "plugins-dir=%s" % self.binary_dir,
                 "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.logs_port,
