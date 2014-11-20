@@ -18,6 +18,7 @@ from tornado.ioloop import IOLoop
 import zmq
 
 from components.common import log_message
+from components.decorators import ignore_autoreconnect
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -95,6 +96,7 @@ class Branch(object):
             yield self.trunk.async_db.logs.insert(data_parsed)
 
     @coroutine
+    @ignore_autoreconnect
     def periodic_event(self):
         """
         Мониторит коллекцию листьев с целью поиска тех, которые нуждаются в запуске/перезапуске/остановке
@@ -142,6 +144,7 @@ class Branch(object):
             yield species_new.initialize()
 
     @coroutine
+    @ignore_autoreconnect
     def task_monitor(self):
         """
         Мониторит коллекцию листьев с целью поиска задач, ожидающих выполнения
