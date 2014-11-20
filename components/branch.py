@@ -128,6 +128,10 @@ class Branch(object):
 
         while (yield cursor.fetch_next):
             species = cursor.next_object()
+
+            if not self.last_species_update or self.last_species_update < species["modified"]:
+                self.last_species_update = species["modified"]
+
             log_message(
                 "Species {} changed".format(species["name"]),
                 component="Branch"
@@ -136,9 +140,6 @@ class Branch(object):
             species_new = self.create_specie(species)
             self.species[species["_id"]] = species_new
             yield species_new.initialize()
-
-            if not self.last_species_update or self.last_species_update < species["modified"]:
-                self.last_species_update = species["modified"]
 
     @coroutine
     def task_monitor(self):
