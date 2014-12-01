@@ -23,7 +23,8 @@ def get_settings_connection_async(settings):
         settings.get("port", 27017),
         settings.get("user", "admin"),
         settings.get("pass", "password"),
-        settings.get("replica", None)
+        settings.get("replica", None),
+        settings.get("database", "trunk")
     )
 
 

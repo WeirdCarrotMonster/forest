@@ -141,9 +141,11 @@ class Mongo(Battery):
 
         name = leaf["name"]
 
+        self.settings["database"] = "admin"
         con = get_settings_connection_async(self.settings)
 
         db_names = yield con.database_names()
+
         while name in db_names:
             name = Mongo.string_generator()
 

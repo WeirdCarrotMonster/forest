@@ -118,8 +118,13 @@ class Branch(object):
                 self.del_leaf(leaf)
             elif not leaf.running and not leaf.queued and leaf.should_be_running:
                 self.add_leaf(leaf)
-            elif leaf.running and leaf != self.leaves[leaf.id]:
-                self.del_leaf(leaf)
+            elif leaf.running and leaf.id in self.leaves and leaf != self.leaves[leaf.id]:
+                if leaf.restarted(self.leaves[leaf.id]):
+                    self.restart_leaf(leaf)
+                else:
+                    self.del_leaf(leaf)
+                    self.add_leaf(leaf)
+            elif leaf.running and leaf.id not in self.leaves:
                 self.add_leaf(leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
@@ -350,8 +355,20 @@ class Branch(object):
         :param leaf: Идентификатор листа
         """
         log_message("Stopping leaf {}".format(str(leaf.id)), component="Branch")
-        self.emperor.stop_leaf(self.leaves[leaf.id])
-        del self.leaves[leaf.id]
+        self.emperor.stop_leaf(leaf)
+        if leaf.id in self.leaves:
+            del self.leaves[leaf.id]
+
+    def restart_leaf(self, leaf):
+        """
+        Выполняет перезапуск листа и обновляет сохраненную конфигурацию
+
+        :param leaf: Перезапускаемый лист
+        :param leaf: Leaf
+        """
+        log_message("Restarting leaf {}".format(str(leaf.id)), component="Branch")
+        self.emperor.soft_restart_leaf(leaf)
+        self.leaves[leaf.id] = leaf
 
     def cleanup(self):
         """

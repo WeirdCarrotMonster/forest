@@ -5,6 +5,7 @@ from __future__ import unicode_literals, print_function
 from tornado import gen
 import simplejson as json
 from bson import ObjectId
+import datetime
 
 from components.api.handler import Handler
 from components.common import CustomEncoder
@@ -45,7 +46,7 @@ class LeafListHandler(Handler):
             "address": data["settings"]["common"]["address"],
             "branch": [ObjectId(b) for b in data["settings"]["common"]["branch"]],
             "settings": data["settings"]["custom"],
-            "modified": ObjectId()
+            "modified": datetime.datetime.now()
         })
 
         leaf = yield db.leaves.find_one({"_id": ObjectId(result)})
@@ -90,7 +91,7 @@ class LeafHandler(Handler):
         if "branch" in data.keys():
             data["branch"] = [ObjectId(x) for x in data["branch"]]
 
-        data["modified"] = ObjectId()
+        data["modified"] = datetime.datetime.now()
         result = yield self.application.async_db.leaves.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},
@@ -184,7 +185,7 @@ class LeafSettingsHandler(Handler):
                 "settings": data.get("custom", ""),
                 "address": data.get("common", {}).get("address", []),
                 "branch": [ObjectId(a) for a in data.get("common", {}).get("branch", [])],
-                "modified": ObjectId()
+                "modified": datetime.datetime.now()
             }}
         )
 

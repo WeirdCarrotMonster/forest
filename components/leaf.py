@@ -54,9 +54,16 @@ class Leaf(object):
         r5 = self.modified == other.modified
         return not all([r1, r2, r3, r4, r5])
 
+    def restarted(self, other):
+        r1 = self.address == other.address
+        r2 = self.settings == other.settings
+        r3 = self.workers == other.workers
+        r4 = self.batteries == other.batteries
+        return all([r1, r2, r3, r4])
+
     @property
     def running(self):
-        return self._id in self.__emperor.vassal_names
+        return str(self._id) in self.__emperor.vassal_names
 
     @property
     def should_be_running(self):

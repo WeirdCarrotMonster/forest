@@ -115,9 +115,13 @@ def cleanup(signum=None, frame=None):
     if signum:
         log_message("Got signum: {0}".format(signum), end="\r")
 
-    log_message("Cleaning up...")
-    APPLICATION.cleanup()
-    log_message("Done!")
+    if signum != signal.SIGQUIT:
+        log_message("Cleaning up...")
+        APPLICATION.cleanup()
+        log_message("Done!")
+    else:
+        log_message("Shutting down forest, keeping uwsgi")
+
     sys.exit(0)
 
 for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
