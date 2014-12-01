@@ -3,7 +3,7 @@ simplejson
 bson
 tornado
 psutil
-pymongo
+pymongo==2.7.1
 motor
 MySQL-python
 pyzmq

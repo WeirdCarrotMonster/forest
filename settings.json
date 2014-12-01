@@ -32,7 +32,7 @@
         "name": "main",
         "host": "127.0.0.1",
         "port": 27017,
-        "user": "admin",
+        "user": "user",
         "pass": "password",
         "database": "trunk",
         "forest_root": "/home/wcm/coding/forest"
