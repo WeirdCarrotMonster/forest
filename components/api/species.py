@@ -1,7 +1,6 @@
 # coding=utf-8
 
 from __future__ import unicode_literals, print_function
-from datetime import datetime
 
 from tornado import gen
 import simplejson as json
@@ -12,7 +11,7 @@ from components.common import CustomEncoder
 from components.decorators import login_required
 
 
-class SpeciesHandler(Handler):
+class SpeciesListHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self):
@@ -33,7 +32,7 @@ class SpeciesHandler(Handler):
         self.finish("]")
 
 
-class SpecieHandler(Handler):
+class SpeciesHandler(Handler):
     @gen.coroutine
     @login_required
     def patch(self, _id):

@@ -12,7 +12,7 @@ import tornado.web
 import simplejson as json
 
 from components.api.settings import CommonLeafSettingsHandler
-from components.api.species import SpeciesHandler, SpecieHandler
+from components.api.species import SpeciesListHandler, SpeciesHandler
 from components.pages.views import Login, Index
 from components.trunk import Trunk
 
@@ -25,7 +25,7 @@ except ImportError:
 from components.branch import Branch
 from components.air import Air
 from components.common import log_message
-from components.api.leaves import LeavesHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
+from components.api.leaves import LeafListHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
 
 if len(sys.argv) < 2:
     log_message(
@@ -53,14 +53,14 @@ LISTENERS = [
 
     (r"/login", Login),
 
-    (r"/api/leaves", LeavesHandler),
+    (r"/api/leaves", LeafListHandler),
     (r"/api/leaves/settings", CommonLeafSettingsHandler),
     (r"/api/leaves/([^/]*)", LeafHandler),
     (r"/api/leaves/([^/]*)/logs", LeafLogsHandler),
     (r"/api/leaves/([^/]*)/settings", LeafSettingsHandler),
 
-    (r"/api/species", SpeciesHandler),
-    (r"/api/species/([^/]*)", SpecieHandler),
+    (r"/api/species", SpeciesListHandler),
+    (r"/api/species/([^/]*)", SpeciesHandler),
     (r"/(.*)", Index)
 ]
 base_settings = SETTINGS["settings"]

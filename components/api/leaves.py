@@ -1,7 +1,6 @@
 # coding=utf-8
 
 from __future__ import unicode_literals, print_function
-from datetime import datetime
 
 from tornado import gen
 import simplejson as json
@@ -12,7 +11,7 @@ from components.common import CustomEncoder
 from components.decorators import login_required
 
 
-class LeavesHandler(Handler):
+class LeafListHandler(Handler):
     @gen.coroutine
     @login_required
     def get(self):
@@ -46,7 +45,7 @@ class LeavesHandler(Handler):
             "address": data["settings"]["common"]["address"],
             "branch": [ObjectId(b) for b in data["settings"]["common"]["branch"]],
             "settings": data["settings"]["custom"],
-            "modified": datetime.now()
+            "modified": ObjectId()
         })
 
         leaf = yield db.leaves.find_one({"_id": ObjectId(result)})
@@ -91,7 +90,7 @@ class LeafHandler(Handler):
         if "branch" in data.keys():
             data["branch"] = [ObjectId(x) for x in data["branch"]]
 
-        data["modified"] = datetime.now()
+        data["modified"] = ObjectId()
         result = yield self.application.async_db.leaves.find_and_modify(
             {"_id": ObjectId(_id)},
             {"$set": data},
@@ -185,7 +184,7 @@ class LeafSettingsHandler(Handler):
                 "settings": data.get("custom", ""),
                 "address": data.get("common", {}).get("address", []),
                 "branch": [ObjectId(a) for a in data.get("common", {}).get("branch", [])],
-                "modified": datetime.now()
+                "modified": ObjectId()
             }}
         )
 
