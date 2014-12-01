@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from bson import ObjectId
 
 from tornado import template
 from tornado.gen import coroutine, Return
@@ -42,7 +43,7 @@ class Trunk(tornado.web.Application):
                 "roles": {}
             }
             instance = self.sync_db.components.insert(about)
-        self.settings["id"] = instance.get("_id")
+        self.settings["id"] = instance if type(instance) == ObjectId else instance.get("_id")
 
     @property
     def id(self):

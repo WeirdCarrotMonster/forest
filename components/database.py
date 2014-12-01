@@ -27,13 +27,13 @@ def get_settings_connection_async(settings):
     )
 
 
-def get_connection(host, port, user, password, replica):
+def get_connection(host, port, user, password, replica, database="trunk"):
     if not replica:
         con = pymongo.MongoClient(
-            "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()))
+            "mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()))
     else:
         con = pymongo.MongoReplicaSetClient(
-            "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()),
+            "mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()),
             replicaSet=replica,
             connectTimeoutMS=500,
             socketTimeoutMS=500
