@@ -4,12 +4,12 @@ import motor
 import pymongo
 
 
-def get_connection_async(host, port, user, password, replica):
+def get_connection_async(host, port, user, password, replica, database="trunk"):
     if not replica:
-        con = motor.MotorClient("mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()))
+        con = motor.MotorClient("mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()))
     else:
         con = motor.MotorReplicaSetClient(
-            "mongodb://{user}:{password}@{host}:{port}/admin".format(**locals()),
+            "mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()),
             replicaSet=replica,
             connectTimeoutMS=500,
             socketTimeoutMS=500
@@ -47,7 +47,8 @@ def get_settings_connection(settings):
         settings.get("port", 27017),
         settings.get("user", "admin"),
         settings.get("pass", "password"),
-        settings.get("replica", None)
+        settings.get("replica", None),
+        settings.get("database", "trunk")
     )
 
 
