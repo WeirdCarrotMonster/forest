@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Обертка вокруг uwsgi-emperor
+Обертка вокруг uwsgi-emperor.
+
+В качестве монитора вассалов используется стандартный glob://, а конфигурационные файлы хранятся в формате ini.
 """
 from __future__ import print_function, unicode_literals
 
 import os
-import socket
 import subprocess
 
-import simplejson as json
 from components.common import log_message
 
 
 class Emperor(object):
-    def __init__(self, root_dir, leaves_host, port=5121, logs_port=5122, stats_port=5123):
-        self.port = port
-        self.leaves_host = leaves_host
-        self.logs_port = logs_port
-        self.stats_port = stats_port
+    def __init__(self, root_dir, leaves_host, logs_port=5122):
+        self.__leaves_host = leaves_host
+        self.__logs_port = logs_port
 
         self.__binary_dir = os.path.join(root_dir, "bin")
         self.__uwsgi_binary = os.path.join(self.__binary_dir, "uwsgi")
@@ -35,6 +33,7 @@ class Emperor(object):
                 try:
                     emperor_pid = int(pid_file.read())
                     if not os.path.exists("/proc/{}".format(emperor_pid)):
+                        emperor_pid = 0
                         raise ValueError()
 
                     log_message("Found running emperor server", component="Branch")
@@ -47,14 +46,13 @@ class Emperor(object):
                     self.__uwsgi_binary,
                     "--plugins-dir", self.__binary_dir,
                     "--emperor", "%s" % self.__vassal_dir,
-                    "--emperor-stats-server", "127.0.0.1:%d" % self.stats_port,
                     "--pidfile", self.__pid_file,
                     "--daemonize", "/dev/null",
-                    "--logger", "zeromq:tcp://127.0.0.1:%d" % self.logs_port,
+                    "--logger", "zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
                     "--emperor-required-heartbeat", "40",
-                    "--vassal-set", "socket=%s:0" % self.leaves_host,
+                    "--vassal-set", "socket=%s:0" % self.__leaves_host,
                     "--vassal-set", "plugins-dir=%s" % self.__binary_dir,
-                    "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.logs_port,
+                    "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
                     "--vassal-set", "buffer-size=65535",
                     "--vassal-set", "heartbeat=10",
                     "--vassal-set", "master=1",
@@ -72,10 +70,24 @@ class Emperor(object):
 
     @property
     def vassal_names(self):
+        """
+        Получает список имен вассалов, запущенных в данный момент на emperor-сервере.
+        Список генерируется получанием имен конфигурационных файлов, размещенных в директории, которую мониторит
+        emperor. От имени файла отбрасывается расширение, оставшаяся часть (в случае, если файл был создан через
+        Forest), является строковым представлением ObjectId.
+
+        :return: Список имен запущенных вассалов
+        :rtype: list
+        """
         raw_names = os.listdir(self.__vassal_dir)
         return [name[:-4] for name in raw_names]
 
     def stop_emperor(self):
+        """
+        Выполняет остановку emperor-сервера, убивая процесс с pid, указанным в `self.__pid_file`, а так же очищает
+        директорию вассалов для.
+
+        """
         log_message("Stopping uwsgi emperor", component="Branch")
         subprocess.call([self.__uwsgi_binary, "--stop", self.__pid_file])
         os.remove(self.__pid_file)
@@ -86,6 +98,8 @@ class Emperor(object):
     def start_leaf(self, leaf):
         """
         Запускает лист через uwsgi-emperor в качестве вассала
+
+        При запуске листа его конфигурационный файл размещается в директории, сохраненной в `self.__vassal_dir`.
 
         :param leaf: Запускаемый лист
         :type leaf: Leaf
@@ -117,7 +131,9 @@ class Emperor(object):
 
     def soft_restart_leaf(self, leaf):
         """
-        Выполняет плавный перезапуск листа
+        Выполняет плавный перезапуск листа.
+
+        TODO: оттестировать
 
         :param leaf: Перезапускаемый лист
         :type leaf: Leaf
@@ -126,21 +142,3 @@ class Emperor(object):
 
         if os.path.exists(cfg_path):
             os.utime(cfg_path, None)
-
-    def _get_stats(self):
-        sock = socket.socket()
-        sock.connect(('localhost', self.stats_port))
-        data = ""
-        while True:
-            tmp = sock.recv(256)
-            if tmp:
-                data += tmp
-            else:
-                break
-        return json.loads(data)
-
-    def _get_leaves(self):
-        vassals = self._get_stats().get("vassals", [])
-        return {
-            v.get("id")[:24]: v for v in vassals
-        }

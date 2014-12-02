@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
-import signal
 import subprocess
 
 from tornado import gen
@@ -9,21 +8,15 @@ from tornado import gen
 from components.common import log_message
 
 
-try:
-    from subprocess import DEVNULL  # py3k
-except ImportError:
-    import os
-    DEVNULL = open(os.devnull, 'wb')
-
-
 class Air():
-    def __init__(self, settings, trunk, port=3000, logs_port=2999):
-        self.settings = settings
+    def __init__(self, settings, trunk, port=3000):
         self.trunk = trunk
-        self.port = port
-        self.logs_port = logs_port
+        self.__host = settings.get("host", "127.0.0.1")
+        self.__fastrouter = settings.get("fastrouter", 3333)
+        self.__port = port
         self.__uwsgi_binary = os.path.join(self.trunk.forest_root, "bin/uwsgi")
         self.__pid_file = os.path.join(self.trunk.forest_root, "fastrouter.pid")
+        self.__key_dir = os.path.join(self.trunk.forest_root, "keys")
 
         fastrouter_pid = 0
 
@@ -42,14 +35,12 @@ class Air():
             fastrouter = subprocess.Popen(
                 [
                     self.__uwsgi_binary,
-                    "--fastrouter=127.0.0.1:%d" % self.port,
+                    "--fastrouter=127.0.0.1:%d" % self.__port,
                     "--pidfile=%s" % self.__pid_file,
                     "--daemonize=/dev/null",
-                    "--fastrouter-subscription-server={0}:{1}".format(
-                        self.settings["host"], str(self.settings["fastrouter"])),
-                    "--master",
-                    "--processes=4",
-                    "--subscriptions-sign-check=SHA1:{0}".format(os.path.join(self.trunk.forest_root, "keys"))
+                    "--fastrouter-subscription-server={0}:{1}".format(self.__host, self.__fastrouter),
+                    "--master", "--processes=4",
+                    "--subscriptions-sign-check=SHA1:%s" % self.__key_dir
                 ],
                 bufsize=1,
                 close_fds=True
@@ -61,6 +52,13 @@ class Air():
 
         self.last_update = None
 
+    @property
+    def settings(self):
+        return {
+            "host": self.__host,
+            "fastrouter": self.__fastrouter
+        }
+
     @gen.coroutine
     def periodic_event(self):
         query = {"batteries": {'$exists': True}}
@@ -69,7 +67,7 @@ class Air():
 
         cursor = self.trunk.async_db.leaves.find(query)
 
-        default_key = os.path.join(self.trunk.forest_root, "keys/default.pem")
+        default_key = os.path.join(self.__key_dir, "default.pem")
 
         while (yield cursor.fetch_next):
             leaf = cursor.next_object()
