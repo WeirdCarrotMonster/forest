@@ -22,23 +22,43 @@ class Air():
         self.trunk = trunk
         self.port = port
         self.logs_port = logs_port
+        self.__uwsgi_binary = os.path.join(self.trunk.forest_root, "bin/uwsgi")
+        self.__pid_file = os.path.join(self.trunk.forest_root, "fastrouter.pid")
 
-        cmd_fastrouter = [
-            os.path.join(self.trunk.forest_root, "bin/uwsgi"),
-            "--fastrouter=127.0.0.1:%d" % self.port,
-            "--fastrouter-subscription-server={0}:{1}".format(
-                self.settings["host"], str(self.settings["fastrouter"])),
-            "--master",
-            "--processes=4",
-            "--subscriptions-sign-check=SHA1:{0}".format(os.path.join(self.trunk.forest_root, "keys")),
-            # "--logger", "socket:127.0.0.1:%d" % self.logs_port
-        ]
+        fastrouter_pid = 0
 
-        self.fastrouter = subprocess.Popen(
-            cmd_fastrouter,
-            stdout=DEVNULL,
-            stderr=DEVNULL
-        )
+        if os.path.exists(self.__pid_file):
+            with open(self.__pid_file) as pid_file:
+                try:
+                    fastrouter_pid = int(pid_file.read())
+                    if not os.path.exists("/proc/{}".format(fastrouter_pid)):
+                        raise ValueError()
+
+                    log_message("Found running fastrouter", component="Air")
+                except ValueError:
+                    os.remove(self.__pid_file)
+
+        if not fastrouter_pid:
+            fastrouter = subprocess.Popen(
+                [
+                    self.__uwsgi_binary,
+                    "--fastrouter=127.0.0.1:%d" % self.port,
+                    "--pidfile=%s" % self.__pid_file,
+                    "--daemonize=/dev/null",
+                    "--fastrouter-subscription-server={0}:{1}".format(
+                        self.settings["host"], str(self.settings["fastrouter"])),
+                    "--master",
+                    "--processes=4",
+                    "--subscriptions-sign-check=SHA1:{0}".format(os.path.join(self.trunk.forest_root, "keys"))
+                ],
+                bufsize=1,
+                close_fds=True
+            )
+            code = fastrouter.wait()
+
+            assert code == 0, "Error starting fastrouter"
+            log_message("Started fastrouter", component="Air")
+
         self.last_update = None
 
     @gen.coroutine
@@ -65,5 +85,6 @@ class Air():
                     shutil.copyfile(default_key, key_file)
 
     def cleanup(self):
-        self.fastrouter.send_signal(signal.SIGINT)
-        self.fastrouter.wait()
+        log_message("Stopping uwsgi fastrouter", component="Air")
+        subprocess.call([self.__uwsgi_binary, "--stop", self.__pid_file])
+        os.remove(self.__pid_file)

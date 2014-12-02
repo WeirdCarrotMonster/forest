@@ -48,3 +48,5 @@ nosetests.xml
 
 keys
 species
+vassals
+*.pid
