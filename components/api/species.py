@@ -44,17 +44,16 @@ class SpeciesHandler(Handler):
             new=True
         )
 
-        cursor = db.leaves.find({"type": ObjectId(_id)})
         on_update = species.get("triggers", {}).get("on_update", [])
-        if on_update:
-            while (yield cursor.fetch_next):
-                leaf = cursor.next_object()
 
-                yield db.task.insert({
-                    "leaf": leaf["_id"],
-                    "worker": None,
-                    "type": "on_update",
-                    "version": data["modified"],
-                    "cmd": on_update
-                })
+        if on_update:
+            yield db.leaves.update(
+                {"type": ObjectId(_id)},
+                {
+                    "$set": {
+                        "tasks": on_update
+                    }
+                },
+                multi=True
+            )
         self.finish(json.dumps(species, cls=CustomEncoder))

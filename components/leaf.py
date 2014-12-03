@@ -68,7 +68,11 @@ class Leaf(object):
 
     @property
     def should_be_running(self):
-        return self.active and not self.locked and self.trunk.id in self.branch and not self.tasks
+        r1 = self.active
+        r2 = not self.locked
+        r3 = self.trunk.id in self.branch
+        r4 = not self.tasks
+        return all([r1, r2, r3, r4])
 
     @property
     def queued(self):

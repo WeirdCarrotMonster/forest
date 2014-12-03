@@ -179,7 +179,13 @@ class Branch(object):
             leaf_data = cursor.next_object()
 
             locked_leaf = yield self.trunk.async_db.leaves.update(
-                {"_id": leaf_data["_id"], "locked": None},
+                {
+                    "_id": leaf_data["_id"],
+                    "locked": None,
+                    "tasks": {
+                        "$ne": None
+                    }
+                },
                 {"$set": {"locked": self.trunk.id}}
             )
 
@@ -201,18 +207,15 @@ class Branch(object):
         leaf = yield self.create_leaf(leaf_data, need_species_now=True)
 
         for task in leaf.tasks:
-            cmd = task.get("cmd", [])
-
-            for c in cmd:
-                result, error = yield leaf.species.run_in_env(c, path=leaf.species.src_path, env=leaf.environment)
-                yield self.trunk.async_db.logs.insert({
-                    "component_name": self.trunk.settings["name"],
-                    "component_type": "branch",
-                    "log_type": "leaf.task",
-                    "cmd": c,
-                    "result": result,
-                    "error": error
-                })
+            result, error = yield leaf.species.run_in_env(task, path=leaf.species.src_path, env=leaf.environment)
+            yield self.trunk.async_db.logs.insert({
+                "component_name": self.trunk.settings["name"],
+                "component_type": "branch",
+                "log_type": "leaf.task",
+                "cmd": task,
+                "result": result,
+                "error": error
+            })
 
         yield self.trunk.async_db.leaves.update(
             {"_id": leaf_data["_id"]},
