@@ -23,4 +23,4 @@ class CustomEncoder(JSONEncoder):
 
 
 def log_message(message, component="Forest", end="\n"):
-    print("[{0}][{1}] {2}".format(datetime.now(), component, message), end=end)
+    print("[{0}][{1:8}] {2}".format(datetime.now(), component, message), end=end)
