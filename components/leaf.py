@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import os
+from os.path import join
 
 import simplejson as json
 
@@ -136,7 +137,7 @@ logformat={logformat}
 virtualenv={virtualenv}
 static-map=/static={chdir}/static
 offload-threads=4
-log-encoder = prefix [Leaf {id}]
+log-encoder=prefix [Leaf {id}]
         """.format(
             chdir=self.__species.src_path,
             virtualenv=self.__species.environment,

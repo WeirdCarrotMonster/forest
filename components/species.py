@@ -7,13 +7,14 @@
 from __future__ import print_function, unicode_literals
 
 import os
+from os.path import join
 import shutil
 import shlex
 from bson import ObjectId
+from datetime import datetime
 
 import tornado
 from tornado.gen import coroutine, Task, Return
-from tornado.process import Subprocess
 import simplejson as json
 
 from components.common import log_message, CustomEncoder
@@ -21,8 +22,8 @@ from components.common import log_message, CustomEncoder
 
 class Species(object):
     """
-    Класс, представляющий вид листа - совокупность исходного кода и виртуального
-    окружения python
+    Класс, представляющий вид листа - совокупность исходного кода
+    и виртуального окружения python
     """
     def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, **kwargs):
         self.directory = directory
@@ -37,7 +38,18 @@ class Species(object):
         self.ready_callback = ready_callback
         self.modified = modified
 
-        self.is_ready = self.modified == self.metadata.get("modified")
+    @property
+    def is_ready(self):
+        return self.modified.isoformat() == self.metadata.get("modified")
+
+    @is_ready.setter
+    def is_ready(self, value):
+        metadata = self.metadata
+        if value:
+            metadata["modified"] = self.modified
+        else:
+            metadata["modified"] = ""
+        self.metadata = metadata
 
     @property
     def python_version(self):
@@ -46,13 +58,13 @@ class Species(object):
     @property
     def metadata(self):
         try:
-            with open(os.path.join(self.specie_path, "metadata.json"), 'r') as f:
+            with open(join(self.specie_path, "metadata.json"), 'r') as f:
                 data = json.loads(f.read())
 
                 for key, value in data.items():
                     try:
                         data[key] = ObjectId(value)
-                    except ValueError:
+                    except:
                         pass
             return data
         except:
@@ -61,19 +73,25 @@ class Species(object):
     @metadata.setter
     def metadata(self, value):
         data = json.dumps(value, cls=CustomEncoder)
-        with open(os.path.join(self.specie_path, "metadata.json"), 'w') as f:
+        with open(join(self.specie_path, "metadata.json"), 'w') as f:
             f.write(data)
 
     @coroutine
     def initialize(self):
         if not os.path.exists(self.specie_path):
-            log_message("Creating directory for {}".format(self.name), component="Specie")
+            log_message(
+                "Creating directory for {}".format(self.name),
+                component="Specie"
+            )
             os.makedirs(self.specie_path)
 
-        if self.modified != self.metadata.get("modified"):
+        if not self.is_ready:
             if os.path.exists(self._path):
                 shutil.rmtree(self._path)
-            log_message("Initializing sources for {}".format(self.name), component="Specie")
+            log_message(
+                "Initializing sources for {}".format(self.name),
+                component="Specie"
+            )
             result, error = yield self.run_in_env(
                 [
                     "git",
@@ -87,7 +105,10 @@ class Species(object):
 
             if os.path.exists(self._environment):
                 shutil.rmtree(self._environment)
-            log_message("Creating virtualenv for specie {}".format(self.name), component="Specie")
+            log_message(
+                "Creating virtualenv for specie {}".format(self.name),
+                component="Specie"
+            )
             result, error = yield self.run_in_env(
                 [
                     "virtualenv",
@@ -97,7 +118,10 @@ class Species(object):
                 apply_env=False
             )
 
-            log_message("Installing virtualenv requirements for {}".format(self.name), component="Specie")
+            log_message(
+                "Installing virtualenv requirements for {}".format(self.name),
+                component="Specie"
+            )
 
             result, error = yield self.run_in_env(
                 [
@@ -108,11 +132,12 @@ class Species(object):
                     "--upgrade"
                 ]
             )
-            metadata = self.metadata
-            metadata["modified"] = self.modified
-            self.metadata = metadata
+
             self.is_ready = True
-            log_message("Done initializing {}".format(self.name), component="Specie")
+            log_message(
+                "Done initializing {}".format(self.name),
+                component="Specie"
+            )
             self.ready_callback(self)
 
     @coroutine
@@ -124,7 +149,7 @@ class Species(object):
         cmd = shlex.split(cmd) if type(cmd) != list else cmd
         process_env = os.environ.copy()
         if apply_env:
-            process_env["PATH"] = os.path.join(self._environment, "bin") + ":" + process_env.get("PATH", "")
+            process_env["PATH"] = join(self._environment, "bin") + ":" + process_env.get("PATH", "")
             process_env["VIRTUAL_ENV"] = self._environment
 
         if env:

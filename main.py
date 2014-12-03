@@ -25,7 +25,8 @@ except ImportError:
 from components.branch import Branch
 from components.air import Air
 from components.common import log_message
-from components.api.leaves import LeafListHandler, LeafLogsHandler, LeafHandler, LeafSettingsHandler
+from components.api.leaves import LeafListHandler, LeafLogsHandler, \
+    LeafHandler, LeafSettingsHandler
 
 if len(sys.argv) < 2:
     log_message(

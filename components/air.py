@@ -35,12 +35,15 @@ class Air():
             fastrouter = subprocess.Popen(
                 [
                     self.__uwsgi_binary,
-                    "--fastrouter=127.0.0.1:%d" % self.__port,
-                    "--pidfile=%s" % self.__pid_file,
+                    "--fastrouter=127.0.0.1:{}".format(self.__port),
+                    "--pidfile={}".format(self.__pid_file),
                     "--daemonize=/dev/null",
-                    "--fastrouter-subscription-server={0}:{1}".format(self.__host, self.__fastrouter),
+                    "--fastrouter-subscription-server={}:{}".format(
+                        self.__host,
+                        self.__fastrouter
+                    ),
                     "--master", "--processes=4",
-                    "--subscriptions-sign-check=SHA1:%s" % self.__key_dir
+                    "--subscriptions-sign-check=SHA1:{}".format(self.__key_dir)
                 ],
                 bufsize=1,
                 close_fds=True

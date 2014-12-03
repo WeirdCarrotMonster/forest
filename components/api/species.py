@@ -5,6 +5,7 @@ from __future__ import unicode_literals, print_function
 from tornado import gen
 import simplejson as json
 from bson import ObjectId
+import datetime
 
 from components.api.handler import Handler
 from components.common import CustomEncoder
@@ -27,7 +28,6 @@ class SpeciesListHandler(Handler):
                 beginning = False
             else:
                 self.write(",")
-            document["modified"] = document["modified"].generation_time
             self.write(json.dumps(document, cls=CustomEncoder))
         self.finish("]")
 
@@ -36,7 +36,7 @@ class SpeciesHandler(Handler):
     @gen.coroutine
     @login_required
     def patch(self, _id):
-        data = {"modified": ObjectId()}
+        data = {"modified": datetime.datetime.now()}
         db = self.application.async_db
         species = yield db.species.find_and_modify(
             {"_id": ObjectId(_id)},
@@ -57,5 +57,4 @@ class SpeciesHandler(Handler):
                     "version": data["modified"],
                     "cmd": on_update
                 })
-        species["modified"] = species["modified"].generation_time
         self.finish(json.dumps(species, cls=CustomEncoder))

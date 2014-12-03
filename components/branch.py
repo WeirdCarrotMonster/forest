@@ -55,13 +55,22 @@ class Branch(object):
         self.stream.on_recv(self.log_message)
 
     def _push_leaves_update(self, leaf):
-        if not self.last_leaves_update or self.last_leaves_update < leaf.get("modified"):
-            self.last_leaves_update = leaf.get("modified")
+        self.last_leaves_update = max([
+            self.last_leaves_update or leaf.get("modified"),
+            leaf.get("modified")
+        ])
+
+    def _push_species_update(self, species):
+        self.last_species_update = max([
+            self.last_species_update or species.get("modified"),
+            species.get("modified")
+        ])
 
     @coroutine
     def log_message(self, message):
         """
-        Логгирует входящее сообщение в базе, дополняя информацией о времени, компоненте и т.п.
+        Логгирует входящее сообщение в базе, дополняя информацией о времени,
+        компоненте и т.п.
 
         :param message: Логгируемое сообщение
         :type message: dict
@@ -99,7 +108,8 @@ class Branch(object):
     @ignore_autoreconnect
     def periodic_event(self):
         """
-        Мониторит коллекцию листьев с целью поиска тех, которые нуждаются в запуске/перезапуске/остановке
+        Мониторит коллекцию листьев с целью поиска тех, которые нуждаются в
+        запуске/перезапуске/остановке
         """
         query = {
             "batteries": {'$exists': True}
@@ -114,18 +124,25 @@ class Branch(object):
             self._push_leaves_update(leaf_data)
             leaf = yield self.create_leaf(leaf_data)
 
-            if leaf.running and not leaf.should_be_running:
-                self.del_leaf(leaf)
-            elif not leaf.running and not leaf.queued and leaf.should_be_running:
-                self.add_leaf(leaf)
-            elif leaf.running and leaf.id in self.leaves and leaf != self.leaves[leaf.id]:
-                if leaf.restarted(self.leaves[leaf.id]):
-                    self.restart_leaf(leaf)
-                else:
+            if leaf.running:
+                #  Лист запущен в данный момент...
+                if not leaf.should_be_running:
+                    #  ... но не должен быть запущен:
                     self.del_leaf(leaf)
+                elif leaf != self.leaves[leaf.id]:
+                    #  .. но его состояние изменилось...
+                    if leaf.restarted(self.leaves[leaf.id]):
+                        #  ... и не требует изменения конфигурации:
+                        self.restart_leaf(leaf)
+                    else:
+                        #  ... и требует изменения конфигурации:
+                        self.del_leaf(leaf)
+                        self.add_leaf(leaf)
+            else:
+                #  Лист не запущен в данный момент...
+                if leaf.should_be_running and not leaf.queued:
+                    #  ...но должен быть запущен и не ждет запуска:
                     self.add_leaf(leaf)
-            elif leaf.running and leaf.id not in self.leaves:
-                self.add_leaf(leaf)
 
         query = {"_id": {"$in": self.species.keys()}}
         if self.last_species_update:
@@ -135,9 +152,7 @@ class Branch(object):
 
         while (yield cursor.fetch_next):
             species = cursor.next_object()
-
-            if not self.last_species_update or self.last_species_update < species["modified"]:
-                self.last_species_update = species["modified"]
+            self._push_species_update(species)
 
             log_message(
                 "Species {} changed".format(species["name"]),

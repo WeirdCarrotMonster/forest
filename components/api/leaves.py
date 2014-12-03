@@ -17,7 +17,14 @@ class LeafListHandler(Handler):
     @login_required
     def get(self):
         db = self.application.async_db
-        cursor = db.leaves.find({}, {'batteries': False, 'settings': False, 'branch': False})
+        cursor = db.leaves.find(
+            {},
+            {
+                'batteries': False,
+                'settings': False,
+                'branch': False
+            }
+        )
 
         self.write("[")
 
@@ -44,7 +51,9 @@ class LeafListHandler(Handler):
             "type": ObjectId(data["leaf_type"]),
             "active": True,
             "address": data["settings"]["common"]["address"],
-            "branch": [ObjectId(b) for b in data["settings"]["common"]["branch"]],
+            "branch": [
+                ObjectId(b) for b in data["settings"]["common"]["branch"]
+            ],
             "settings": data["settings"]["custom"],
             "modified": datetime.datetime.now()
         })
@@ -184,7 +193,9 @@ class LeafSettingsHandler(Handler):
             {"$set": {
                 "settings": data.get("custom", ""),
                 "address": data.get("common", {}).get("address", []),
-                "branch": [ObjectId(a) for a in data.get("common", {}).get("branch", [])],
+                "branch": [
+                    ObjectId(a) for a in data.get("common", {}).get("branch", [])
+                ],
                 "modified": datetime.datetime.now()
             }}
         )

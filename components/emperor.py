@@ -8,6 +8,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import subprocess
+from os.path import join
 
 from components.common import log_message
 
@@ -16,6 +17,7 @@ class Emperor(object):
     def __init__(self, root_dir, leaves_host, logs_port=5122):
         self.__leaves_host = leaves_host
         self.__logs_port = logs_port
+        self.__forest_root = root_dir
 
         self.__binary_dir = os.path.join(root_dir, "bin")
         self.__uwsgi_binary = os.path.join(self.__binary_dir, "uwsgi")
