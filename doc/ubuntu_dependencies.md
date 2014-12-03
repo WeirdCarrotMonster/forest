@@ -3,7 +3,7 @@
 The following depencencies is required to build uwsgi with plugins and to install Forest python dependencies: 
 
 ```
-apt-get install libzmq3-dev libssl-dev libcrypto++-dev build-essential python-dev libpcre3-dev libmysqlclient-dev python-pip
+apt-get install libzmq3-dev libssl-dev libcrypto++-dev build-essential python-dev python3-dev libpcre3-dev libmysqlclient-dev python-pip
 ```
 
 **Note:**
