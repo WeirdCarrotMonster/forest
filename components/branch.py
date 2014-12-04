@@ -60,7 +60,7 @@ class Branch(object):
             leaf.get("modified")
         ])
 
-    def _push_species_update(self, species):
+    def __push_species_update(self, species):
         self.last_species_update = max([
             self.last_species_update or species.get("modified"),
             species.get("modified")
@@ -155,16 +155,17 @@ class Branch(object):
 
         while (yield cursor.fetch_next):
             species = cursor.next_object()
-            self._push_species_update(species)
-
             log_message(
                 "Species {} changed".format(species["name"]),
                 component="Branch"
             )
 
+            self.__push_species_update(species)
             species_new = self.create_specie(species)
-            self.species[species["_id"]] = species_new
-            yield species_new.initialize()
+            self.species[species_new.id] = species_new
+
+            self.__species_initialization_started(species_new)
+            IOLoop.current().spawn_callback(species_new.initialize)
 
     @coroutine
     def get_species(self, species_id):
@@ -178,10 +179,10 @@ class Branch(object):
         if species_id in self.species:
             raise Return(self.species[species_id])
 
-        species = self.trunk.sync_db.species.find_one({"_id": species_id})
+        species = yield self.trunk.async_db.species.find_one({"_id": species_id})
 
         if species:
-            self._push_species_update(species)
+            self.__push_species_update(species)
             species_new = self.create_specie(species)
             self.species[species_id] = species_new
 
