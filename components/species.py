@@ -92,7 +92,7 @@ class Species(object):
                 "Initializing sources for {}".format(self.name),
                 component="Specie"
             )
-            result, error = yield self.run_in_env(
+            yield self.run_in_env(
                 [
                     "git",
                     "clone",
@@ -109,7 +109,8 @@ class Species(object):
                 "Creating virtualenv for specie {}".format(self.name),
                 component="Specie"
             )
-            result, error = yield self.run_in_env(
+
+            yield self.run_in_env(
                 [
                     "virtualenv",
                     "--python=%s" % self.python_version,
@@ -123,7 +124,7 @@ class Species(object):
                 component="Specie"
             )
 
-            result, error = yield self.run_in_env(
+            yield self.run_in_env(
                 [
                     os.path.join(self._environment, "bin/pip"),
                     "install",

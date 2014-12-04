@@ -129,6 +129,9 @@ class Branch(object):
                 if not leaf.should_be_running:
                     #  ... но не должен быть запущен:
                     self.del_leaf(leaf)
+                elif leaf.id not in self.leaves:
+                    #  ... но не отмечен - восстанавливаем после перезапуска
+                    self.add_leaf(leaf)
                 elif leaf != self.leaves[leaf.id]:
                     #  .. но его состояние изменилось...
                     if leaf.restarted(self.leaves[leaf.id]):
@@ -175,21 +178,24 @@ class Branch(object):
         if species_id in self.species:
             raise Return(self.species[species_id])
 
-        specie = self.trunk.sync_db.species.find_one({"_id": species_id})
+        species = self.trunk.sync_db.species.find_one({"_id": species_id})
 
-        if not self.last_species_update or self.last_species_update < specie["modified"]:
-            self.last_species_update = specie["modified"]
+        if species:
+            self._push_species_update(species)
+            species_new = self.create_specie(species)
+            self.species[species_id] = species_new
 
-        if specie:
-            species_new = self.create_specie(specie)
+            self.__species_initialization_started(species_new)
             IOLoop.current().spawn_callback(species_new.initialize)
 
-            self.species[species_id] = species_new
             raise Return(self.species[species_id])
 
         raise Return(None)
 
-    def specie_initialization_finished(self, species):
+    def __species_initialization_started(self, species):
+        pass
+
+    def __species_initialization_finished(self, species):
         """
         Событие, выполняющееся при завершении инициализации вида листьев
 
@@ -237,7 +243,7 @@ class Branch(object):
         :return: Созданный экземпляр вида листа
         """
         return Species(
-            ready_callback=self.specie_initialization_finished,
+            ready_callback=self.__species_initialization_finished,
             directory=os.path.join(self.trunk.forest_root, "species"),
             **species
         )
