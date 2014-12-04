@@ -156,6 +156,4 @@ log-encoder=prefix [Leaf {id}]
                     router,
                     address, self.keyfile)
 
-        print(config)
-
         return config
