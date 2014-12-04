@@ -42,6 +42,7 @@ class Leaf(object):
         self.__name = name
         self.trunk = trunk
         self._id = _id
+        self.paused = False
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -96,6 +97,10 @@ class Leaf(object):
         """
         return self.__species
 
+    @species.setter
+    def species(self, value):
+        self.__species = value
+
     @log_port.setter
     def log_port(self, value):
         self._log_port = value
@@ -108,6 +113,17 @@ class Leaf(object):
         }
 
     def get_config(self):
+        if not self.paused:
+            return self.__get_config()
+        else:
+            return self.__get_config_paused()
+
+    def __get_config_paused(self):
+        return """
+[uwsgi]
+"""
+
+    def __get_config(self):
         logs_format = {
             "uri": "%(uri)",
             "method": "%(method)",

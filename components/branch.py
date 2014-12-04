@@ -194,7 +194,11 @@ class Branch(object):
         raise Return(None)
 
     def __species_initialization_started(self, species):
-        pass
+        for leaf in self.leaves.values():
+            if leaf.species.id == species.id:
+                leaf.species = species
+                leaf.paused = True
+                self.emperor.start_leaf(leaf)
 
     def __species_initialization_finished(self, species):
         """
@@ -206,7 +210,8 @@ class Branch(object):
         species.is_ready = True
         for leaf in self.leaves.values():
             if leaf.species.id == species.id:
-                leaf.specie = species
+                leaf.species = species
+                leaf.paused = False
                 self.start_leaf(leaf)
 
     def load_components(self):
