@@ -43,17 +43,4 @@ class SpeciesHandler(Handler):
             {"$set": data},
             new=True
         )
-
-        on_update = species.get("triggers", {}).get("on_update", [])
-
-        if on_update:
-            yield db.leaves.update(
-                {"type": ObjectId(_id)},
-                {
-                    "$set": {
-                        "tasks": on_update
-                    }
-                },
-                multi=True
-            )
         self.finish(json.dumps(species, cls=CustomEncoder))

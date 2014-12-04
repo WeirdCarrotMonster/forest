@@ -164,77 +164,11 @@ class Branch(object):
             yield species_new.initialize()
 
     @coroutine
-    @ignore_autoreconnect
-    def task_monitor(self):
+    def get_species(self, species_id):
         """
-        Мониторит коллекцию листьев с целью поиска задач, ожидающих выполнения
-        """
-        query = {
-            "tasks": {"$exists": True},
-            "locked": None
-        }
-        cursor = self.trunk.async_db.leaves.find(query)
-
-        while (yield cursor.fetch_next):
-            leaf_data = cursor.next_object()
-
-            locked_leaf = yield self.trunk.async_db.leaves.update(
-                {
-                    "_id": leaf_data["_id"],
-                    "locked": None,
-                    "tasks": {
-                        "$ne": None
-                    }
-                },
-                {"$set": {"locked": self.trunk.id}}
-            )
-
-            if not locked_leaf:
-                continue  # Не захватили
-
-            IOLoop.current().spawn_callback(self.do_tasks_async, leaf_data)
-
-    @coroutine
-    def do_tasks_async(self, leaf_data):
-        """
-        Асинхронно выполняет задачи, отмеченные к выполнению на листе
-
-        :param leaf_data: Словарь с данными листа, содержащий информацию о выполняемых задачах
-        :type leaf_data: dict
-        """
-        log_message("Locked leaf {} for task execution".format(leaf_data["_id"]), component="Branch")
-
-        leaf = yield self.create_leaf(leaf_data, need_species_now=True)
-
-        for task in leaf.tasks:
-            result, error = yield leaf.species.run_in_env(task, path=leaf.species.src_path, env=leaf.environment)
-            yield self.trunk.async_db.logs.insert({
-                "component_name": self.trunk.settings["name"],
-                "component_type": "branch",
-                "log_type": "leaf.task",
-                "cmd": task,
-                "result": result,
-                "error": error
-            })
-
-        yield self.trunk.async_db.leaves.update(
-            {"_id": leaf_data["_id"]},
-            {
-                "$set": {"locked": None},
-                "$unset": {"tasks": ""}
-            }
-        )
-
-        log_message("Unlocking leaf {}".format(leaf_data["_id"]), component="Branch")
-
-    @coroutine
-    def get_species(self, species_id, now=False):
-        """
-        Получает экземпляр класса Species, инициализирующегося в фоне, либо ожидает
-        окончания его инициализации (поведение определяется параметром now)
+        Получает экземпляр класса Species
 
         :param species_id: ObjectId вида, получаемого через функцию
-        :param now: Флаг необходимости ожидания инициализации вида
         :raise Return: Возвращение результата через tornado coroutines
         :rtype : Species
         """
@@ -248,10 +182,7 @@ class Branch(object):
 
         if specie:
             species_new = self.create_specie(specie)
-            if not now:
-                IOLoop.current().spawn_callback(species_new.initialize)
-            else:
-                yield species_new.initialize()
+            IOLoop.current().spawn_callback(species_new.initialize)
 
             self.species[species_id] = species_new
             raise Return(self.species[species_id])
@@ -330,7 +261,7 @@ class Branch(object):
                 batteries[key]["port"] = self.batteries[key][0][1]
 
         leaf["batteries"] = batteries
-        species = yield self.get_species(leaf.get("type"), now=need_species_now)
+        species = yield self.get_species(leaf.get("type"))
 
         raise Return(Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),

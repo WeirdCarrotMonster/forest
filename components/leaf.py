@@ -23,8 +23,6 @@ class Leaf(object):
                  trunk=None,
                  active=False,
                  modified=None,
-                 locked=None,
-                 tasks=None,
                  **kwargs
                  ):
         self.__keyfile = keyfile
@@ -40,10 +38,8 @@ class Leaf(object):
         self.workers = workers
         self.threads = threads
         self.branch = branch or []
-        self.locked = locked
         self.active = active
         self.__name = name
-        self.tasks = tasks or []
         self.trunk = trunk
         self._id = _id
 
@@ -68,11 +64,7 @@ class Leaf(object):
 
     @property
     def should_be_running(self):
-        r1 = self.active
-        r2 = not self.locked
-        r3 = self.trunk.id in self.branch
-        r4 = not self.tasks
-        return all([r1, r2, r3, r4])
+        return self.active and self.trunk.id in self.branch
 
     @property
     def queued(self):
@@ -142,7 +134,7 @@ virtualenv={virtualenv}
 static-map=/static={chdir}/static
 offload-threads=4
 log-encoder=prefix [Leaf {id}]
-        """.format(
+""".format(
             chdir=self.__species.src_path,
             virtualenv=self.__species.environment,
             app_settings=json.dumps(self.settings),
@@ -163,5 +155,7 @@ log-encoder=prefix [Leaf {id}]
                 config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
                     address, self.keyfile)
+
+        print(config)
 
         return config
