@@ -149,7 +149,7 @@ logformat={logformat}
 static-map=/static={chdir}/static
 offload-threads=4
 log-encoder=prefix [Leaf {id}]
-
+need-app=
 if-env=PATH
 env=PATH={virtualenv}/bin:%(_)
 endif=
