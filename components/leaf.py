@@ -145,6 +145,7 @@ processes={workers}
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
 env=VIRTUAL_ENV={virtualenv}
+virtualenv={virtualenv}
 logformat={logformat}
 static-map=/static={chdir}/static
 offload-threads=4
