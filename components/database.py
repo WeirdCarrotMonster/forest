@@ -11,8 +11,8 @@ def get_connection_async(host, port, user, password, replica, database="trunk"):
         con = motor.MotorReplicaSetClient(
             "mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()),
             replicaSet=replica,
-            connectTimeoutMS=500,
-            socketTimeoutMS=500
+            connectTimeoutMS=1500,
+            socketTimeoutMS=1500
         )
     return con
 
@@ -36,8 +36,8 @@ def get_connection(host, port, user, password, replica, database="trunk"):
         con = pymongo.MongoReplicaSetClient(
             "mongodb://{user}:{password}@{host}:{port}/{database}".format(**locals()),
             replicaSet=replica,
-            connectTimeoutMS=500,
-            socketTimeoutMS=500
+            connectTimeoutMS=1500,
+            socketTimeoutMS=1500
         )
     return con
 
