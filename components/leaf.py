@@ -137,19 +137,22 @@ class Leaf(object):
             "log_source": str(self.id)
         }
 
-        config = """
-[uwsgi]
+        config = """[uwsgi]
 chdir={chdir}
 plugin={python}
 module=wsgi:application
 processes={workers}
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
+env=VIRTUAL_ENV={virtualenv}
 logformat={logformat}
-virtualenv={virtualenv}
 static-map=/static={chdir}/static
 offload-threads=4
 log-encoder=prefix [Leaf {id}]
+
+if-env=PATH
+env=PATH={virtualenv}/bin:%(_)
+endif=
 """.format(
             chdir=self.__species.src_path,
             virtualenv=self.__species.environment,
