@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
-import traceback
 
 from tornado import gen
-from tornado.gen import Return
 
 from components.batteries import Mongo, MySQL
 

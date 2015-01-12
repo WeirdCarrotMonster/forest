@@ -22,5 +22,5 @@ class CustomEncoder(JSONEncoder):
             return JSONEncoder.default(self, obj)
 
 
-def log_message(message, component="Forest", end="\n"):
-    print("[{0}][{1:8}] {2}".format(datetime.now(), component, message), end=end)
+def log_message(message, component="Forest", end="\n", begin=""):
+    print("{3}[{0}][{1:8}] {2}".format(datetime.now(), component, message, begin), end=end)
