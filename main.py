@@ -36,6 +36,10 @@ if "air" in settings.keys():
     from components.air import air_handlers
     listeners += air_handlers
 
+if "roots" in settings.keys():
+    from components.roots import roots_handlers
+    listeners += roots_handlers
+
 application = Trunk(settings["base"], handlers=listeners)
 
 if "air" in settings.keys():
@@ -44,6 +48,13 @@ if "air" in settings.keys():
         application,
         settings["air"]["host"],
         settings["air"]["port"]
+    )
+
+if "roots" in settings.keys():
+    from components.roots import Roots
+    application.roots = Roots(
+        application,
+        settings["roots"]
     )
 
 application.listen(

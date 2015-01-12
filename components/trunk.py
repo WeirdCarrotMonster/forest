@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-from bson import ObjectId
-
-from tornado.gen import coroutine, Return
 import tornado.httpclient
 import tornado.template
 import tornado.web
-from pbkdf2 import crypt
 
 from components.database import get_default_database
 
@@ -33,18 +29,6 @@ class Trunk(tornado.web.Application):
     @property
     def forest_root(self):
         return self.root
-
-    @coroutine
-    def authenticate_user(self, username, password):
-        try:
-            user = yield self.async_db.user.find_one({"username": username})
-            assert user.get("password") == crypt(password, user.get("password"))
-            raise Return(user)
-        except Return as r:
-            raise r
-        except Exception as e:
-            print(e)
-            raise Return(None)
 
     def cleanup(self):
         if self.branch:
