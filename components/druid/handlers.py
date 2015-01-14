@@ -23,6 +23,19 @@ class LeafHandler(Handler):
         data = json.loads(self.request.body)
         assert "name" and "type" and "address" in data
 
+        leaf = yield self.application.async_db.leaves.update(
+            {"name": data["name"]},
+            {"$set": {"name": data["name"]}},
+            upsert=True,
+            new=True
+        )
+        if leaf["updatedExisting"]:
+            self.note("Leaf with name {} already exists, pick another name")
+            self.finish()
+            raise gen.Return()
+
+        leaf_id = leaf["upserted"]
+
         self.note("Looking up specie settings")
         try:
             query = {
@@ -41,6 +54,18 @@ class LeafHandler(Handler):
             raise gen.Return()
         else:
             self.note("Using species {}[{}]".format(species["name"], species["_id"]))
+
+        yield self.application.async_db.leaves.update(
+            {"_id": leaf_id},
+            {"$set": {
+                "desc": "",
+                "type": species["_id"],
+                "active": True,
+                "address": [data["address"]],
+                "branch": None,
+                "settings": {}
+            }}
+        )
 
         with Message(self, "Asking air to enable host..."):
             for air in self.application.druid.air:
@@ -61,6 +86,13 @@ class LeafHandler(Handler):
                 })
                 db_settings = credentials["data"]
 
+                yield self.application.async_db.leaves.update(
+                    {"_id": leaf_id},
+                    {"$set": {
+                        "batteries": db_settings
+                    }}
+                )
+
                 response = "\n"
                 for key, value in db_settings.items():
                     response += "Settings for {}\n".format(key)
@@ -78,7 +110,4 @@ class LeafHandler(Handler):
         self.write("{}")
         self.flush()
         yield gen.Task(IOLoop.instance().add_timeout, time.time() + 5)
-        # Запрашиваем создание базы
-        # Запрашиваем подготовку листа
-        # Запрашиваем запуск листа
         self.finish(json.dumps({}, cls=CustomEncoder))
