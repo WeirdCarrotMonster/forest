@@ -4,28 +4,22 @@
 from __future__ import unicode_literals, print_function
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
+from tornado.gen import coroutine
 import sys
 import simplejson as json
 
 
-def handle_request(data):
-    print(data)
-
-
-def done(data):
-    sys.exit(0)
-
-
+@coroutine
 def send_request(resource, reqtype, data):
     http_client = AsyncHTTPClient()
-    http_client.fetch(
+    yield http_client.fetch(
         "http://127.0.0.1:1234/api/{}".format(resource),
         body=json.dumps(data),
         method=reqtype,
-        streaming_callback=handle_request,
-        callback=done,
+        streaming_callback=print,
         headers={"Interactive": "True"}
     )
+    sys.exit(0)
 
 
 def parsecmd():
