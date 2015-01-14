@@ -18,7 +18,6 @@ from tornado.ioloop import IOLoop
 import zmq
 
 from components.common import log_message
-from components.decorators import ignore_autoreconnect
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -36,7 +35,7 @@ class Branch(object):
 
         self.leaves = {}
 
-        self.fastrouters = []
+        self.fastrouters = settings.get("fastrouters", [])
         self.batteries = defaultdict(list)
 
         self.emperor = Emperor(self.trunk.forest_root, self.__host__)
@@ -149,6 +148,7 @@ class Branch(object):
             **species
         )
 
+    @coroutine
     def create_leaf(self, leaf):
         """
         Создает экземпляр листа  по данным из базы
@@ -160,7 +160,8 @@ class Branch(object):
         :rtype: Leaf
         :return: Созданный по данным базы экземпляр листа
         """
-        species = self.get_species(leaf.get("type"))
+        leaf = yield self.trunk.async_db.leaves.find_one({"_id": leaf})
+        species = yield self.get_species(leaf.get("type"))
 
         raise Return(Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),

@@ -107,6 +107,10 @@ class LeafHandler(Handler):
             branch = random.choice(self.application.druid.branch)
             self.note("Randomly chosen branch server at {}".format(branch["host"]))
 
+            yield send_post_request(roots, "branch/leaves", {
+                "_id": leaf_id
+            })
+
         self.write("{}")
         self.flush()
         yield gen.Task(IOLoop.instance().add_timeout, time.time() + 5)

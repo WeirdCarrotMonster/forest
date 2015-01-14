@@ -81,7 +81,9 @@ class MySQL(Battery):
         result = {
             "name": db_name,
             "user": username,
-            "pass": password
+            "pass": password,
+            "host": self.settings.get("host", "127.0.0.1"),
+            "port": self.settings["port"],
         }
 
         log_message(
@@ -144,7 +146,9 @@ class Mongo(Battery):
         raise Return({
             "name": name,
             "user": username,
-            "pass": password
+            "pass": password,
+            "host": self.settings.get("host", "127.0.0.1"),
+            "port": self.settings["port"]
         })
 
     @staticmethod
