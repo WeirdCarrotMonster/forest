@@ -20,5 +20,5 @@ class HostHandler(Handler):
         data = json.loads(self.request.body)
         assert "host" in data
 
-        self.application.allow_host(data["host"])
+        self.application.air.allow_host(data["host"])
         self.finish(json.dumps({}, cls=CustomEncoder))

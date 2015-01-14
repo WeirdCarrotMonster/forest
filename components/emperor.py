@@ -52,6 +52,7 @@ class Emperor(object):
                     "--daemonize", "/dev/null",
                     "--logger", "zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
                     "--emperor-required-heartbeat", "40",
+                    "--emperor-throttle", "10000",  # TODO: Настраивать? Не уверен, нужно ли
                     "--vassal-set", "socket=%s:0" % self.__leaves_host,
                     "--vassal-set", "plugins-dir=%s" % self.__binary_dir,
                     "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.__logs_port,

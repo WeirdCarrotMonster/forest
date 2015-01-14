@@ -51,7 +51,7 @@ class Air():
             assert code == 0, "Error starting fastrouter"
             log_message("Started fastrouter", component="Air")
 
-        self.last_update = None
+        log_message("Started air", component="Air")
 
     @property
     def settings(self):

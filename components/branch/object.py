@@ -30,8 +30,8 @@ class Branch(object):
     Класс ветви, служащий для запуска приложений и логгирования их вывода
     """
 
-    def __init__(self, settings, trunk):
-        self.settings = settings
+    def __init__(self, trunk, settings):
+        self.__host__ = settings.get("host", "127.0.0.1")
         self.trunk = trunk
 
         self.leaves = {}
@@ -39,32 +39,15 @@ class Branch(object):
         self.fastrouters = []
         self.batteries = defaultdict(list)
 
-        self.load_components()
-
-        self.emperor = Emperor(self.trunk.forest_root, self.settings["host"])
+        self.emperor = Emperor(self.trunk.forest_root, self.__host__)
 
         self.species = {}
-
-        self.last_leaves_update = None
-        self.last_species_update = None
-
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
         s.bind('tcp://127.0.0.1:5122')
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
-
-    def _push_leaves_update(self, leaf):
-        self.last_leaves_update = max([
-            self.last_leaves_update or leaf.get("modified"),
-            leaf.get("modified")
-        ])
-
-    def __push_species_update(self, species):
-        self.last_species_update = max([
-            self.last_species_update or species.get("modified"),
-            species.get("modified")
-        ])
+        log_message("Started branch", component="Branch")
 
     @coroutine
     def log_message(self, message):
@@ -73,8 +56,10 @@ class Branch(object):
         компоненте и т.п.
 
         :param message: Логгируемое сообщение
-        :type message: dict
+        :type message: list
         """
+        return
+
         for data in message:
             data = data.strip()
 
@@ -105,70 +90,7 @@ class Branch(object):
             yield self.trunk.async_db.logs.insert(data_parsed)
 
     @coroutine
-    @ignore_autoreconnect
-    def periodic_event(self):
-        """
-        Мониторит коллекцию листьев с целью поиска тех, которые нуждаются в
-        запуске/перезапуске/остановке
-        """
-        query = {
-            "batteries": {'$exists': True}
-        }
-        if self.last_leaves_update:
-            query["modified"] = {"$gt": self.last_leaves_update}
-
-        cursor = self.trunk.async_db.leaves.find(query)
-
-        while (yield cursor.fetch_next):
-            leaf_data = cursor.next_object()
-            self._push_leaves_update(leaf_data)
-            leaf = yield self.create_leaf(leaf_data)
-
-            if leaf.running:
-                #  Лист запущен в данный момент...
-                if not leaf.should_be_running:
-                    #  ... но не должен быть запущен:
-                    self.del_leaf(leaf)
-                elif leaf.id not in self.leaves:
-                    #  ... но не отмечен - восстанавливаем после перезапуска
-                    self.add_leaf(leaf)
-                elif leaf != self.leaves[leaf.id]:
-                    #  .. но его состояние изменилось...
-                    if leaf.restarted(self.leaves[leaf.id]):
-                        #  ... и не требует изменения конфигурации:
-                        self.restart_leaf(leaf)
-                    else:
-                        #  ... и требует изменения конфигурации:
-                        self.del_leaf(leaf)
-                        self.add_leaf(leaf)
-            else:
-                #  Лист не запущен в данный момент...
-                if leaf.should_be_running and not leaf.queued:
-                    #  ...но должен быть запущен и не ждет запуска:
-                    self.add_leaf(leaf)
-
-        query = {"_id": {"$in": self.species.keys()}}
-        if self.last_species_update:
-            query["modified"] = {"$gt": self.last_species_update}
-
-        cursor = self.trunk.async_db.species.find(query)
-
-        while (yield cursor.fetch_next):
-            species = cursor.next_object()
-            log_message(
-                "Species {} changed".format(species["name"]),
-                component="Branch"
-            )
-
-            self.__push_species_update(species)
-            species_new = self.create_specie(species)
-            self.species[species_new.id] = species_new
-
-            self.__species_initialization_started(species_new)
-            IOLoop.current().spawn_callback(species_new.initialize)
-
-    @coroutine
-    def get_species(self, species_id):
+    def get_species(self, species_config):
         """
         Получает экземпляр класса Species
 
@@ -176,20 +98,19 @@ class Branch(object):
         :raise Return: Возвращение результата через tornado coroutines
         :rtype : Species
         """
-        if species_id in self.species:
-            raise Return(self.species[species_id])
+        if species_config in self.species:
+            raise Return(self.species[species_config])
 
-        species = yield self.trunk.async_db.species.find_one({"_id": species_id})
+        species = yield self.trunk.async_db.species.find_one({"_id": species_config})
 
         if species:
-            self.__push_species_update(species)
             species_new = self.create_specie(species)
-            self.species[species_id] = species_new
+            self.species[species_config] = species_new
 
             self.__species_initialization_started(species_new)
             IOLoop.current().spawn_callback(species_new.initialize)
 
-            raise Return(self.species[species_id])
+            raise Return(self.species[species_config])
 
         raise Return(None)
 
@@ -214,32 +135,6 @@ class Branch(object):
                 leaf.paused = False
                 self.start_leaf(leaf)
 
-    def load_components(self):
-        """
-        Загружает компоненты системы
-        """
-        components = self.trunk.sync_db.components
-        for component in components.find({"roles.air": {"$exists": True}}):
-            host = component["host"]
-            port = component["roles"]["air"]["fastrouter"]
-            self.fastrouters.append("{0}:{1}".format(host, port))
-
-        for component in components.find({"roles.roots.mysql": {"$exists": True}}):
-            self.batteries["mysql"].append(
-                (
-                    component["roles"]["roots"]["mysql"]["host"],
-                    component["roles"]["roots"]["mysql"]["port"]
-                )
-            )
-
-        for component in components.find({"roles.roots.mongo": {"$exists": True}}):
-            self.batteries["mongo"].append(
-                (
-                    component["roles"]["roots"]["mongo"]["host"],
-                    component["roles"]["roots"]["mongo"]["port"]
-                )
-            )
-
     def create_specie(self, species):
         """
         Создает вид листа по данным из словаря
@@ -254,8 +149,7 @@ class Branch(object):
             **species
         )
 
-    @coroutine
-    def create_leaf(self, leaf, need_species_now=False):
+    def create_leaf(self, leaf):
         """
         Создает экземпляр листа  по данным из базы
 
@@ -266,14 +160,7 @@ class Branch(object):
         :rtype: Leaf
         :return: Созданный по данным базы экземпляр листа
         """
-        batteries = leaf.get("batteries", {})
-        for key, value in batteries.items():
-            if key in self.batteries:
-                batteries[key]["host"] = self.batteries[key][0][0]
-                batteries[key]["port"] = self.batteries[key][0][1]
-
-        leaf["batteries"] = batteries
-        species = yield self.get_species(leaf.get("type"))
+        species = self.get_species(leaf.get("type"))
 
         raise Return(Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),

@@ -40,6 +40,14 @@ if "roots" in settings.keys():
     from components.roots import roots_handlers
     listeners += roots_handlers
 
+if "branch" in settings.keys():
+    from components.branch import branch_handlers
+    listeners += branch_handlers
+
+if "druid" in settings.keys():
+    from components.druid import druid_handlers
+    listeners += druid_handlers
+
 application = Trunk(settings["base"], handlers=listeners)
 
 if "air" in settings.keys():
@@ -55,6 +63,20 @@ if "roots" in settings.keys():
     application.roots = Roots(
         application,
         settings["roots"]
+    )
+
+if "branch" in settings.keys():
+    from components.branch import Branch
+    application.branch = Branch(
+        application,
+        settings["branch"]
+    )
+
+if "druid" in settings.keys():
+    from components.druid import Druid
+    application.druid = Druid(
+        application,
+        settings["druid"]
     )
 
 application.listen(
