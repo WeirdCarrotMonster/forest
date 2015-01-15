@@ -4,7 +4,8 @@ from __future__ import unicode_literals
 import random
 import string
 
-import MySQLdb
+import pymysql
+pymysql.install_as_MySQLdb()
 from tornado.gen import coroutine, Return
 
 from components.common import log_message
