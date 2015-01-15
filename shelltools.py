@@ -10,12 +10,12 @@ import simplejson as json
 
 
 @coroutine
-def send_request(resource, reqtype, data):
+def send_request(resource, method, data):
     http_client = AsyncHTTPClient()
     yield http_client.fetch(
-        "http://127.0.0.1:1234/api/{}".format(resource),
+        "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
         body=json.dumps(data),
-        method=reqtype,
+        method=method,
         streaming_callback=print,
         headers={"Interactive": "True"}
     )
@@ -35,18 +35,37 @@ def parsecmd():
         print("Unknown command")
         sys.exit(0)
 
-    if len(params) < len(command[2]):
-        print("Wrong arguments count: expected {}".format(", ".join(command[2])))
+    if len(params) < len(command["args"]):
+        print("Wrong arguments count: expected {}".format(", ".join(command["args"])))
         sys.exit(0)
 
-    required_params = params[:len(command[2])]
+    required_params = params[:len(command["args"])]
     data = {}
-    for k, v in zip(command[2], required_params):
+    for k, v in zip(command["args"], required_params):
         data[k] = v
-    send_request(command[0], command[1], data)
+
+    data.update(command.get("update", {}))
+
+    send_request(command["resource"], command["method"], data)
 
 commands = {
-    "create_leaf": ("druid/leaf", "POST", ["name", "type", "address"])
+    "create_leaf": {
+        "resource": "druid/leaf",
+        "method": "POST",
+        "args": ["name", "type", "address"]
+    },
+    "stop_leaf": {
+        "resource": "druid/leaf/{name}",
+        "method": "PATCH",
+        "args": ["name"],
+        "update": {"active": False}
+    },
+    "start_leaf": {
+        "resource": "druid/leaf/{name}",
+        "method": "PATCH",
+        "args": ["name"],
+        "update": {"active": True}
+    }
 }
 
 
