@@ -79,3 +79,33 @@ def send_post_request(host, resource, data):
             "data": response.body
         }
     raise Return(parsed)
+
+
+@coroutine
+def send_request(host, resource, method, data=None):
+    http_client = AsyncHTTPClient()
+
+    if data:
+        response = yield http_client.fetch(
+            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+            body=dumps(data, cls=CustomEncoder),
+            method=method
+        )
+    else:
+        response = yield http_client.fetch(
+            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+            method=method
+        )
+
+    try:
+        parsed = {
+            "data": loads(response.body),
+            "code": response.code
+        }
+    except:
+        print(response.body)
+        parsed = {
+            "code": response.code,
+            "data": response.body
+        }
+    raise Return(parsed)

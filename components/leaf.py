@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import datetime
-import os
-from os.path import join
 
 import simplejson as json
+from bson import ObjectId
 
 
 class Leaf(object):
@@ -20,7 +18,6 @@ class Leaf(object):
                  species=None,
                  emperor=None,
                  branch=None,
-                 trunk=None,
                  active=False,
                  modified=None,
                  **kwargs
@@ -28,8 +25,7 @@ class Leaf(object):
         self.__keyfile = keyfile
         self.fastrouters = fastrouters or []
         self.emperor_dir = None
-        self.__species = species
-        self.__emperor = emperor
+        self.__species__ = species
         self.batteries = batteries
         self._log_port = None
         self.settings = settings or {}
@@ -40,9 +36,11 @@ class Leaf(object):
         self.branch = branch or []
         self.active = active
         self.__name = name
-        self.trunk = trunk
-        self._id = _id
+        self._id = ObjectId(_id)
         self.paused = False
+
+        self.__status__ = "stopped"
+        self.__emperor__ = emperor
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -59,17 +57,20 @@ class Leaf(object):
         r4 = self.batteries == other.batteries
         return all([r1, r2, r3, r4])
 
-    @property
-    def running(self):
-        return str(self._id) in self.__emperor.vassal_names
+    def start(self):
+        if self.__species__.is_ready:
+            self.__emperor__.start_leaf(self)
+            self.__status__ = "started"
+            return True
+        return False
+
+    def stop(self):
+        self.__emperor__.stop_leaf(self)
+        self.__status__ = "stopped"
 
     @property
-    def should_be_running(self):
-        return self.active and self.trunk.id in self.branch
-
-    @property
-    def queued(self):
-        return self._id in self.trunk.branch.leaves
+    def status(self):
+        return self.__status__
 
     @property
     def id(self):
@@ -95,11 +96,11 @@ class Leaf(object):
         :rtype : Species
         :return:
         """
-        return self.__species
+        return self.__species__
 
     @species.setter
     def species(self, value):
-        self.__species = value
+        self.__species__ = value
 
     @log_port.setter
     def log_port(self, value):
@@ -155,19 +156,19 @@ if-env=PATH
 env=PATH={virtualenv}/bin:%(_)
 endif=
 """.format(
-            chdir=self.__species.src_path,
-            virtualenv=self.__species.environment,
+            chdir=self.__species__.src_path,
+            virtualenv=self.__species__.environment,
             app_settings=json.dumps(self.settings),
             batteries=json.dumps(self.batteries),
             logformat=json.dumps(logs_format),
             workers=self.workers,
             id=self.id,
-            python=self.__species.python_version
+            python=self.__species__.python_version
         )
         if self.threads:
             config += "enable-threads=1\n"
 
-        for before_start in self.__species.triggers.get("before_start", []):
+        for before_start in self.__species__.triggers.get("before_start", []):
             config += "hook-pre-app=exec:{}\n".format(before_start)
 
         for router in self.fastrouters:

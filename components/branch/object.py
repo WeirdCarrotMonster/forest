@@ -34,13 +34,13 @@ class Branch(object):
         self.trunk = trunk
 
         self.leaves = {}
+        self.species = {}
 
         self.fastrouters = settings.get("fastrouters", [])
         self.batteries = defaultdict(list)
 
         self.emperor = Emperor(self.trunk.forest_root, self.__host__)
 
-        self.species = {}
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
         s.bind('tcp://127.0.0.1:5122')
@@ -57,7 +57,7 @@ class Branch(object):
         :param message: Логгируемое сообщение
         :type message: list
         """
-        return
+        raise Return()
 
         for data in message:
             data = data.strip()
@@ -100,7 +100,7 @@ class Branch(object):
         if species_config in self.species:
             raise Return(self.species[species_config])
 
-        species = yield self.trunk.async_db.species.find_one({"_id": species_config})
+        species = yield self.trunk.async_db.species.find_one({"_id": ObjectId(species_config)})
 
         if species:
             species_new = self.create_specie(species)
@@ -117,8 +117,7 @@ class Branch(object):
         for leaf in self.leaves.values():
             if leaf.species.id == species.id:
                 leaf.species = species
-                leaf.paused = True
-                self.emperor.start_leaf(leaf)
+                leaf.stop()
 
     def __species_initialization_finished(self, species):
         """
@@ -131,8 +130,7 @@ class Branch(object):
         for leaf in self.leaves.values():
             if leaf.species.id == species.id:
                 leaf.species = species
-                leaf.paused = False
-                self.start_leaf(leaf)
+                leaf.start()
 
     def create_specie(self, species):
         """
@@ -160,64 +158,29 @@ class Branch(object):
         :rtype: Leaf
         :return: Созданный по данным базы экземпляр листа
         """
-        leaf = yield self.trunk.async_db.leaves.find_one({"_id": leaf})
         species = yield self.get_species(leaf.get("type"))
-
-        raise Return(Leaf(
+        l = Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
-            fastrouters=self.fastrouters,
             emperor=self.emperor,
-            trunk=self.trunk,
             species=species,
             **leaf
-        ))
-
-    def start_leaf(self, leaf):
-        """
-        Выполняет запуск листа через uwsgi
-
-        :param leaf: Запускаемый лист
-        :type leaf: Leaf
-        """
-        self.emperor.start_leaf(leaf)
-        log_message("Starting leaf {}".format(leaf.id), component="Branch")
+        )
+        raise Return(l)
 
     def add_leaf(self, leaf):
-        """
-        Запускает лист и добавляет его в список запущенных
-
-        :type leaf: Leaf
-        :param leaf: Словарь настроек листа
-        """
-        self.leaves[leaf.id] = leaf
-
-        if leaf.species.is_ready:
-            self.start_leaf(leaf)
-        else:
-            log_message("Queued leaf {}".format(leaf.id), component="Branch")
-
-    def del_leaf(self, leaf):
-        """
-        Останавливает лист и удаляет его из списка листтьев
-
-        :type leaf: Leaf
-        :param leaf: Идентификатор листа
-        """
-        log_message("Stopping leaf {}".format(str(leaf.id)), component="Branch")
-        self.emperor.stop_leaf(leaf)
         if leaf.id in self.leaves:
+            self.leaves[leaf.id].stop()
             del self.leaves[leaf.id]
 
-    def restart_leaf(self, leaf):
-        """
-        Выполняет перезапуск листа и обновляет сохраненную конфигурацию
-
-        :param leaf: Перезапускаемый лист
-        :param leaf: Leaf
-        """
-        log_message("Restarting leaf {}".format(str(leaf.id)), component="Branch")
-        self.emperor.soft_restart_leaf(leaf)
         self.leaves[leaf.id] = leaf
+        log_message("Starting leaf {}".format(leaf.id), component="Branch")
+        return leaf.start()
+
+    def del_leaf(self, leaf):
+        log_message("Stopping leaf {}".format(str(leaf.id)), component="Branch")
+        leaf.stop()
+        if leaf.id in self.leaves:
+            del self.leaves[leaf.id]
 
     def cleanup(self):
         """

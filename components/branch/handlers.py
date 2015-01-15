@@ -21,11 +21,11 @@ class LeavesHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         data = json.loads(self.request.body)
-        assert "_id" in data
-        leaf = ObjectId(data["_id"])
-        leaf_obj = yield self.application.branch.create_leaf(leaf)
-        self.application.branch.start_leaf(leaf_obj)
-        self.finish({"result": "success"})
+
+        leaf = yield self.application.branch.create_leaf(data)
+        started = self.application.branch.add_leaf(leaf)
+
+        self.finish({"result": "started" if started else "queued"})
 
 
 class LeafHandler(tornado.web.RequestHandler):
@@ -33,7 +33,7 @@ class LeafHandler(tornado.web.RequestHandler):
     Выполняет управление каждым отдельно взятым листом
     """
     @tornado.gen.coroutine
-    def get(self):
+    def get(self, _id):
         """
         Получает информацию о листе с указанным id
         """
@@ -47,8 +47,11 @@ class LeafHandler(tornado.web.RequestHandler):
         pass
 
     @tornado.gen.coroutine
-    def delete(self):
-        """
-        Удаляет лист
-        """
-        pass
+    def delete(self, leaf_id):
+        leaf_id = ObjectId(leaf_id)
+
+        if leaf_id in self.application.branch.leaves:
+            leaf = self.application.branch.leaves[leaf_id]
+            self.application.branch.del_leaf(leaf)
+
+        self.finish()
