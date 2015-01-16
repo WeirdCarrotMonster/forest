@@ -17,11 +17,12 @@ from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import zmq
 
-from components.common import log_message
+from components.common import log_message, send_request
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
+from toro import Lock
 
 
 class Branch(object):
@@ -36,7 +37,7 @@ class Branch(object):
         self.leaves = {}
         self.species = {}
 
-        self.fastrouters = settings.get("fastrouters", [])
+        self.druid = settings.get("druid")
         self.batteries = defaultdict(list)
 
         self.emperor = Emperor(self.trunk.forest_root, self.__host__)
@@ -47,6 +48,8 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
         log_message("Started branch", component="Branch")
+
+        self.species_lock = Lock()
 
     @coroutine
     def log_message(self, message):
@@ -97,29 +100,44 @@ class Branch(object):
         :raise Return: Возвращение результата через tornado coroutines
         :rtype : Species
         """
-        if species_config in self.species:
-            raise Return(self.species[species_config])
+        with (yield self.species_lock.acquire()):
+            if species_config in self.species:
+                raise Return(self.species[species_config])
 
-        species = yield self.trunk.async_db.species.find_one({"_id": ObjectId(species_config)})
+            species, code = yield send_request(self.druid, "druid/species/{}".format(str(species_config)), "GET")
 
-        if species:
-            species_new = self.create_specie(species)
-            self.species[species_config] = species_new
+            if species:
+                species_new = self.create_specie(species)
+                self.species[species_config] = species_new
 
-            self.__species_initialization_started(species_new)
-            IOLoop.current().spawn_callback(species_new.initialize)
+                self.__species_initialization_started__(species_new)
+                IOLoop.current().spawn_callback(species_new.initialize)
 
-            raise Return(self.species[species_config])
+                raise Return(self.species[species_config])
 
-        raise Return(None)
+            raise Return(None)
 
-    def __species_initialization_started(self, species):
+    def create_specie(self, species):
+        """
+        Создает вид листа по данным из словаря
+
+        :rtype : Species
+        :param species: словарь с данными конфигурации вида
+        :return: Созданный экземпляр вида листа
+        """
+        return Species(
+            ready_callback=self.__species_initialization_finished__,
+            directory=os.path.join(self.trunk.forest_root, "species"),
+            **species
+        )
+
+    def __species_initialization_started__(self, species):
         for leaf in self.leaves.values():
             if leaf.species.id == species.id:
                 leaf.species = species
                 leaf.stop()
 
-    def __species_initialization_finished(self, species):
+    def __species_initialization_finished__(self, species):
         """
         Событие, выполняющееся при завершении инициализации вида листьев
 
@@ -131,20 +149,6 @@ class Branch(object):
             if leaf.species.id == species.id:
                 leaf.species = species
                 leaf.start()
-
-    def create_specie(self, species):
-        """
-        Создает вид листа по данным из словаря
-
-        :rtype : Species
-        :param species: словарь с данными конфигурации вида
-        :return: Созданный экземпляр вида листа
-        """
-        return Species(
-            ready_callback=self.__species_initialization_finished,
-            directory=os.path.join(self.trunk.forest_root, "species"),
-            **species
-        )
 
     @coroutine
     def create_leaf(self, leaf):
@@ -173,11 +177,9 @@ class Branch(object):
             del self.leaves[leaf.id]
 
         self.leaves[leaf.id] = leaf
-        log_message("Starting leaf {}".format(leaf.id), component="Branch")
         return leaf.start()
 
     def del_leaf(self, leaf):
-        log_message("Stopping leaf {}".format(str(leaf.id)), component="Branch")
         leaf.stop()
         if leaf.id in self.leaves:
             del self.leaves[leaf.id]

@@ -22,6 +22,7 @@ def send_request(resource, method, data):
     sys.exit(0)
 
 
+@coroutine
 def parsecmd():
     if len(sys.argv) < 2:
         print("Wrong number of arguments specified")
@@ -46,7 +47,7 @@ def parsecmd():
 
     data.update(command.get("update", {}))
 
-    send_request(command["resource"], command["method"], data)
+    yield send_request(command["resource"], command["method"], data)
 
 commands = {
     "create_leaf": {
@@ -65,12 +66,17 @@ commands = {
         "method": "PATCH",
         "args": ["name"],
         "update": {"active": True}
+    },
+    "check_branch": {
+        "resource": "druid/branch/{name}",
+        "method": "PUT",
+        "args": ["name"],
+        "update": {"active": True}
     }
 }
 
 
 loop = IOLoop.instance()
-
 parsecmd()
 
 loop.start()

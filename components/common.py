@@ -4,10 +4,10 @@ from __future__ import print_function, unicode_literals
 
 from datetime import datetime
 
-import bson
-from simplejson import JSONEncoder, dumps, loads
+from simplejson import dumps, loads
 from tornado.httpclient import AsyncHTTPClient
 from tornado.gen import coroutine, Return
+from bson import json_util
 
 
 class LogicError(Exception):
@@ -29,16 +29,6 @@ class Message(object):
         if self.httpclient.interactive and traceback:
             self.httpclient.write(str(traceback))
             self.httpclient.flush
-
-
-class CustomEncoder(JSONEncoder):
-    def default(self, obj):
-        if type(obj) == datetime:
-            return obj.isoformat()
-        elif type(obj) == bson.objectid.ObjectId:
-            return str(obj)
-        else:
-            return JSONEncoder.default(self, obj)
 
 
 def log_message(message, component="Forest", end="\n", begin=""):
@@ -63,13 +53,13 @@ def send_post_request(host, resource, data):
 
     response = yield http_client.fetch(
         "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-        body=dumps(data, cls=CustomEncoder),
+        body=dumps(data, default=json_util.default),
         method="POST"
     )
 
     try:
         parsed = {
-            "data": loads(response.body),
+            "data": loads(response.body, object_hook=json_util.object_hook),
             "code": response.code
         }
     except:
@@ -88,7 +78,7 @@ def send_request(host, resource, method, data=None):
     if data:
         response = yield http_client.fetch(
             "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-            body=dumps(data, cls=CustomEncoder),
+            body=dumps(data, default=json_util.default),
             method=method
         )
     else:
@@ -98,14 +88,7 @@ def send_request(host, resource, method, data=None):
         )
 
     try:
-        parsed = {
-            "data": loads(response.body),
-            "code": response.code
-        }
+        data = loads(response.body, object_hook=json_util.object_hook)
     except:
-        print(response.body)
-        parsed = {
-            "code": response.code,
-            "data": response.body
-        }
-    raise Return(parsed)
+        data = response.body
+    raise Return((data, response.code))

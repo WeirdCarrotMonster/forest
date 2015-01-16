@@ -2,6 +2,7 @@
 
 import simplejson as json
 from bson import ObjectId
+from components.common import log_message
 
 
 class Leaf(object):
@@ -61,10 +62,13 @@ class Leaf(object):
         if self.__species__.is_ready:
             self.__emperor__.start_leaf(self)
             self.__status__ = "started"
+            log_message("Starting leaf {}".format(self.id), component="Leaf")
             return True
+        log_message("Queued leaf {}".format(self.id), component="Leaf")
         return False
 
     def stop(self):
+        log_message("Stopping leaf {}".format(self.id), component="Leaf")
         self.__emperor__.stop_leaf(self)
         self.__status__ = "stopped"
 

@@ -23,12 +23,12 @@
     },
     "branch": {
         "host": "127.0.0.1",
-        "fastrouters": [
-            {
-                "host": "127.0.0.1",
-                "port": 3333
-            }
-        ]
+        "druid": {
+            "host": "127.0.0.1",
+            "port": 1234,
+            "name": "main",
+            "secret": "71a9eccb2cedb3dbd850d907d803388f"
+        }
     },
     "air": {
         "host": "127.0.0.1",

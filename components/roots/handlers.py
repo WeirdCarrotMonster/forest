@@ -6,7 +6,7 @@ from tornado import gen
 import simplejson as json
 
 from components.api.handler import Handler
-from components.common import CustomEncoder
+from bson import json_util
 
 
 class DatabaseHandler(Handler):
@@ -21,4 +21,4 @@ class DatabaseHandler(Handler):
         assert "name" and "db_type" in data
 
         credentials = yield self.application.roots.create_db(data["name"], data["db_type"])
-        self.finish(json.dumps(credentials, cls=CustomEncoder))
+        self.finish(json.dumps(credentials, default=json_util.default))

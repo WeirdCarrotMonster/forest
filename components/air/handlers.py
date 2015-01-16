@@ -6,7 +6,7 @@ from tornado import gen
 import simplejson as json
 
 from components.api.handler import Handler
-from components.common import CustomEncoder
+from bson import json_util
 
 
 class HostHandler(Handler):
@@ -21,4 +21,4 @@ class HostHandler(Handler):
         assert "host" in data
 
         self.application.air.allow_host(data["host"])
-        self.finish(json.dumps({}, cls=CustomEncoder))
+        self.finish(json.dumps({}, default=json_util.default))

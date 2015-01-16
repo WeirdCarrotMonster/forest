@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import tornado.web
 import tornado.gen
 import simplejson as json
-from bson import ObjectId
+from bson import ObjectId, json_util
 
 
 class LeavesHandler(tornado.web.RequestHandler):
@@ -20,7 +20,7 @@ class LeavesHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def post(self):
-        data = json.loads(self.request.body)
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
         leaf = yield self.application.branch.create_leaf(data)
         started = self.application.branch.add_leaf(leaf)
