@@ -90,7 +90,7 @@ class Branch(object):
             for logger in self.__loggers__:
                 yield send_post_request(
                     logger,
-                    "druid/logs",
+                    logger["resource"],
                     data_parsed
                 )
 
