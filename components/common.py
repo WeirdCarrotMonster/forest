@@ -63,7 +63,6 @@ def send_post_request(host, resource, data):
             "code": response.code
         }
     except:
-        print(response.body)
         parsed = {
             "code": response.code,
             "data": response.body

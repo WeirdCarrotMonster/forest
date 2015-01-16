@@ -17,7 +17,7 @@ from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import zmq
 
-from components.common import log_message, send_request
+from components.common import log_message, send_request, send_post_request
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -38,6 +38,7 @@ class Branch(object):
         self.species = {}
 
         self.druid = settings.get("druid")
+        self.__loggers__ = settings.get("loggers")
         self.batteries = defaultdict(list)
 
         self.emperor = Emperor(self.trunk.forest_root, self.__host__)
@@ -60,19 +61,17 @@ class Branch(object):
         :param message: Логгируемое сообщение
         :type message: list
         """
-        raise Return()
-
         for data in message:
             data = data.strip()
-
             add_info = {
-                "component_name": self.trunk.settings["name"],
+                "component_name": self.trunk.name,
                 "component_type": "branch",
                 "log_type": "leaf.event"
             }
 
             if not data:
                 return
+
             try:
                 data_parsed = json.loads(data)
                 data_parsed.update(add_info)
@@ -83,13 +82,17 @@ class Branch(object):
             except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
 
-            data_parsed["component_name"] = self.trunk.settings["id"]
             data_parsed["component_type"] = "branch"
             data_parsed["added"] = datetime.datetime.now()
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
-            yield self.trunk.async_db.logs.insert(data_parsed)
+            for logger in self.__loggers__:
+                yield send_post_request(
+                    logger,
+                    "druid/logs",
+                    data_parsed
+                )
 
     @coroutine
     def get_species(self, species_config):

@@ -7,18 +7,40 @@ from tornado.ioloop import IOLoop
 from tornado.gen import coroutine
 import sys
 import simplejson as json
+from bson import json_util
+
+
+def parse_response(data):
+    try:
+        data = json.loads(data, object_hook=json_util.object_hook)
+        if data["log_type"] == "leaf.event":
+            print("[{added}] {method} - {uri}".format(**data))
+        elif data["log_type"] == "leaf.stdout_stderr":
+            print("[{added}] {raw}".format(**data))
+    except:
+        print(data)
 
 
 @coroutine
 def send_request(resource, method, data):
     http_client = AsyncHTTPClient()
-    yield http_client.fetch(
-        "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
-        body=json.dumps(data),
-        method=method,
-        streaming_callback=print,
-        headers={"Interactive": "True"}
-    )
+    if method in ("GET", "DELETE"):
+        yield http_client.fetch(
+            "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
+            method=method,
+            streaming_callback=parse_response,
+            headers={"Interactive": "True"},
+            request_timeout=0
+        )
+    else:
+        yield http_client.fetch(
+            "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
+            body=json.dumps(data),
+            method=method,
+            streaming_callback=print,
+            headers={"Interactive": "True"},
+            request_timeout=0
+        )
     sys.exit(0)
 
 
@@ -72,7 +94,12 @@ commands = {
         "method": "PUT",
         "args": ["name"],
         "update": {"active": True}
-    }
+    },
+    "watch_logs": {
+        "resource": "druid/logs/{name}",
+        "method": "GET",
+        "args": ["name"]
+    },
 }
 
 

@@ -23,6 +23,14 @@
     },
     "branch": {
         "host": "127.0.0.1",
+        "loggers": [
+            {
+                "host": "127.0.0.1",
+                "port": 1234,
+                "name": "main",
+                "secret": "71a9eccb2cedb3dbd850d907d803388f"
+            }
+        ],
         "druid": {
             "host": "127.0.0.1",
             "port": 1234,

@@ -194,3 +194,26 @@ class BranchHandler(Handler):
             yield send_post_request(branch, "branch/leaves", leaf)
 
         self.finish(json.dumps({"result": "success"}))
+
+
+class LogWatcher(Handler):
+    @gen.coroutine
+    def get(self, leaf_name):
+        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
+        if not leaf_data:
+            self.set_status(404)
+            self.finish()
+            raise gen.Return()
+
+        q = self.application.druid.get_listener(leaf_data["_id"])
+        while not self.closed:
+            data = yield q.get()
+            self.note(json.dumps(data, default=json_util.default))
+
+
+class LogHandler(Handler):
+    @gen.coroutine
+    def post(self):
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        yield self.application.druid.propagate_event(data)
+        self.finish()
