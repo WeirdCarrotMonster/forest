@@ -6,6 +6,7 @@ from components.common import log_message
 
 
 class Leaf(object):
+
     def __init__(self,
                  name=None,
                  _id=None,

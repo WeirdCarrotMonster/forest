@@ -7,6 +7,7 @@ from components.common import log_message
 
 
 class Air():
+
     def __init__(self, trunk, host, fastrouter, port=3000):
         self.trunk = trunk
         self.__host = host

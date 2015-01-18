@@ -10,6 +10,7 @@ from bson import json_util
 
 
 class HostHandler(Handler):
+
     @gen.coroutine
     def post(self):
         """

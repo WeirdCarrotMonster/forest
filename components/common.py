@@ -15,6 +15,7 @@ class LogicError(Exception):
 
 
 class Message(object):
+
     def __init__(self, httpclient, message):
         self.httpclient = httpclient
         self.message = message

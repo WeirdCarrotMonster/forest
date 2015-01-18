@@ -20,10 +20,12 @@ from components.common import log_message
 
 
 class Species(object):
+
     """
     Класс, представляющий вид листа - совокупность исходного кода
     и виртуального окружения python
     """
+
     def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, **kwargs):
         self.directory = directory
         self.specie_id = _id

@@ -10,6 +10,7 @@ from bson import json_util
 
 
 class DatabaseHandler(Handler):
+
     @gen.coroutine
     def post(self):
         """

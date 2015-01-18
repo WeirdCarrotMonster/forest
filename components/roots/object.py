@@ -7,6 +7,7 @@ from tornado.gen import Return, coroutine
 
 
 class Roots():
+
     def __init__(self, trunk, settings):
         self.settings = settings
         self.trunk = trunk

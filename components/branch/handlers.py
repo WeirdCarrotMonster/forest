@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 
 from __future__ import unicode_literals
 import tornado.web
@@ -8,6 +8,7 @@ from bson import ObjectId, json_util
 
 
 class LeavesHandler(tornado.web.RequestHandler):
+
     """
     Выполняет управление каждым отдельно взятым листом
     """
@@ -29,6 +30,7 @@ class LeavesHandler(tornado.web.RequestHandler):
 
 
 class LeafHandler(tornado.web.RequestHandler):
+
     """
     Выполняет управление каждым отдельно взятым листом
     """

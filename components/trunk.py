@@ -7,6 +7,7 @@ from components.database import get_default_database
 
 
 class Trunk(tornado.web.Application):
+
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings["cookie_secret"] = "asdasd"

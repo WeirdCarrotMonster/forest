@@ -13,6 +13,7 @@ from components.database import get_settings_connection_async
 
 
 class Battery(object):
+
     def __init__(self):
         pass
 
@@ -21,6 +22,7 @@ class Battery(object):
 
 
 class MySQL(Battery):
+
     def __init__(self, settings, trunk):
         Battery.__init__(self)
         self.settings = settings
@@ -117,6 +119,7 @@ class MySQL(Battery):
 
 
 class Mongo(Battery):
+
     def __init__(self, settings, trunk):
         Battery.__init__(self)
         self.settings = settings

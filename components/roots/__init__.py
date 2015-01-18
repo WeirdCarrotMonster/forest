@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 
 from components.roots.object import Roots
 from components.roots.handlers import DatabaseHandler

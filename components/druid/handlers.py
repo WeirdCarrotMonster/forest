@@ -13,6 +13,7 @@ import random
 
 
 class LeavesHandler(Handler):
+
     @gen.coroutine
     def post(self):
         """
@@ -120,6 +121,7 @@ class LeavesHandler(Handler):
 
 
 class LeafHandler(Handler):
+
     @gen.coroutine
     def patch(self, leaf_name):
         # Обрабатываем только ключи active, address
@@ -161,6 +163,7 @@ class LeafHandler(Handler):
 
 
 class SpeciesHandler(Handler):
+
     @gen.coroutine
     def get(self, species_id):
         _id = ObjectId(species_id)
@@ -173,6 +176,7 @@ class SpeciesHandler(Handler):
 
 
 class BranchHandler(Handler):
+
     @gen.coroutine
     def put(self, branch_name):
         try:
@@ -197,6 +201,7 @@ class BranchHandler(Handler):
 
 
 class LogWatcher(Handler):
+
     @gen.coroutine
     def get(self, leaf_name):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
@@ -212,6 +217,7 @@ class LogWatcher(Handler):
 
 
 class LogHandler(Handler):
+
     @gen.coroutine
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)

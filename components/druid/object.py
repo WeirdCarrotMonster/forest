@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 
 from toro import Queue
 from collections import defaultdict
@@ -6,6 +6,7 @@ from tornado import gen
 
 
 class Druid(object):
+
     def __init__(self, trunk, settings):
         self.trunk = trunk
         self.__air__ = settings.get("air", [])
