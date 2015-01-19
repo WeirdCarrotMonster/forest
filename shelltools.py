@@ -44,9 +44,10 @@ class ShellTool(cmd.Cmd):
         cmd.Cmd.__init__(self, *args, **kwargs)
         self.set_prompt()
         self.leaves = []
+        self.branches = []
 
         @asyncloop
-        def async_request(loop):
+        def async_request_leaves(loop):
             print("Preloading leaves...", end="")
             leaves = yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/leaf",
@@ -55,6 +56,18 @@ class ShellTool(cmd.Cmd):
 
             self.leaves = json.loads(leaves)
             print("done, {} elements".format(len(self.leaves)))
+            loop.stop()
+
+        @asyncloop
+        def async_request_branches(loop):
+            print("Preloading branches...", end="")
+            branches = yield async_client_wrapper(
+                "http://127.0.0.1:1234/api/druid/branch",
+                method="GET"
+            )
+
+            self.branches = json.loads(branches)
+            print("done, {} elements".format(len(self.branches)))
             loop.stop()
 
     def set_prompt(self, leaf=None):
@@ -135,6 +148,54 @@ class ShellTool(cmd.Cmd):
             )
             loop.stop()
 
+    def do_info(self, leaf_name=None):
+        leaf_name = leaf_name or self.leaf_name
+
+        if not leaf_name:
+            print("Setting leaf name is required")
+            return
+
+        def print_dict(data, ident=0):
+            for key, value in data.items():
+                if type(value) == dict:
+                    print("{}{}:".format(" " * ident, key))
+                    print_dict(value, ident+2)
+                else:
+                    print("{}{}: {}".format(" " * ident, key, value))
+
+        @asyncloop
+        def async_request(loop):
+            leaf_data = yield async_client_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                method="GET"
+            )
+            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
+            loop.stop()
+
+    def do_status(self, leaf_name=None):
+        leaf_name = leaf_name or self.leaf_name
+
+        if not leaf_name:
+            print("Setting leaf name is required")
+            return
+
+        def print_dict(data, ident=0):
+            for key, value in data.items():
+                if type(value) == dict:
+                    print("{}{}:".format(" " * ident, key))
+                    print_dict(value, ident+2)
+                else:
+                    print("{}{}: {}".format(" " * ident, key, value))
+
+        @asyncloop
+        def async_request(loop):
+            leaf_data = yield async_client_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf/{}/status".format(leaf_name),
+                method="GET"
+            )
+            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
+            loop.stop()
+
     def do_check_branch(self, branch):
         if not branch:
             print("Specify branch")
@@ -151,6 +212,15 @@ class ShellTool(cmd.Cmd):
                 body=""
             )
             loop.stop()
+
+    def complete_check_branch(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.branches[:]
+        else:
+            completions = [
+                f for f in self.branches if f.startswith(text)
+            ]
+        return completions
 
     def do_EOF(self, line):
         print()

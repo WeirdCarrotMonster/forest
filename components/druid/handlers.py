@@ -36,10 +36,14 @@ class LeavesHandler(Handler):
         """
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
         assert "name" and "type" and "address" in data
+        leaf_name = data["name"]
+        leaf_type = data["type"]
+        leaf_address = data["address"]
+        leaf_settings = data.get("settings", {})
 
         leaf = yield self.application.async_db.leaves.update(
-            {"name": data["name"]},
-            {"$set": {"name": data["name"]}},
+            {"name": leaf_name},
+            {"$set": {"name": leaf_name}},
             upsert=True,
             new=True
         )
@@ -52,9 +56,9 @@ class LeavesHandler(Handler):
 
         self.note("Looking up specie settings")
         try:
-            query = {"_id": ObjectId(data["type"])}
+            query = {"_id": ObjectId(leaf_type)}
         except:
-            query = {"name": data["type"]}
+            query = {"name": leaf_type}
 
         species = yield self.application.async_db.species.find_one(query)
 
@@ -71,15 +75,15 @@ class LeavesHandler(Handler):
                 "desc": "",
                 "type": species["_id"],
                 "active": True,
-                "address": [data["address"]],
+                "address": [leaf_address],
                 "branch": None,
-                "settings": {}
+                "settings": leaf_settings
             }}
         )
 
         self.note("Asking air to enable host...")
         for air in self.application.druid.air:
-            yield send_post_request(air, "air/hosts", {"host": data["address"]})
+            yield send_post_request(air, "air/hosts", {"host": leaf_address})
 
         if species.get("requires", []):
             self.note("Species {} requires following batteries: {}".format(
@@ -91,7 +95,7 @@ class LeavesHandler(Handler):
             roots = self.application.druid.roots[0]
             self.note("Using roots server at {}".format(roots["host"]))
             credentials = yield send_post_request(roots, "roots/db", {
-                "name": data["name"],
+                "name": leaf_name,
                 "db_type": species["requires"]
             })
             db_settings = credentials["data"]
@@ -136,6 +140,16 @@ class LeavesHandler(Handler):
 
 
 class LeafHandler(Handler):
+
+    @gen.coroutine
+    def get(self, leaf_name):
+        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
+
+        if not leaf_data:
+            self.set_status(404)
+            self.finish("")
+
+        self.finish(json.dumps(leaf_data, default=json_util.default))
 
     @gen.coroutine
     def patch(self, leaf_name):
@@ -185,6 +199,22 @@ class LeafHandler(Handler):
         self.finish()
 
 
+class LeafStatusHandler(Handler):
+
+    @gen.coroutine
+    def get(self, leaf_name):
+        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
+
+        if not leaf_data:
+            self.set_status(404)
+            self.finish("")
+
+        branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
+        leaf_status = yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "GET")
+
+        self.finish(json.dumps(leaf_status, default=json_util.default))
+
+
 class SpeciesHandler(Handler):
 
     @gen.coroutine
@@ -201,7 +231,15 @@ class SpeciesHandler(Handler):
 class BranchHandler(Handler):
 
     @gen.coroutine
-    def put(self, branch_name):
+    def get(self, branch_name=None):
+        if branch_name:
+            self.finish("{}")
+        else:
+            self.finish(json.dumps([x["name"] for x in self.application.druid.branch]))
+
+    @gen.coroutine
+    def put(self, branch_name=None):
+        assert branch_name
         try:
             branch = next(x for x in self.application.druid.branch if x["name"] == branch_name)
         except:

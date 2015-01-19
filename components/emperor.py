@@ -7,7 +7,10 @@
 from __future__ import print_function, unicode_literals
 
 import os
+import socket
 import subprocess
+
+import simplejson as json
 
 from components.common import log_message
 
@@ -51,6 +54,7 @@ class Emperor(object):
                     "--pidfile", self.__pid_file,
                     "--daemonize", "/dev/null",
                     "--logger", "zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
+                    "--emperor-stats", "127.0.0.1:1777",
                     "--emperor-required-heartbeat", "40",
                     "--emperor-throttle", "10000",  # TODO: Настраивать? Не уверен, нужно ли
                     "--vassal-set", "socket=%s:0" % self.__leaves_host,
@@ -145,3 +149,23 @@ class Emperor(object):
 
         if os.path.exists(cfg_path):
             os.utime(cfg_path, None)
+
+    def stats(self, leaf):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(("127.0.0.1", 1777))
+
+        data = ""
+
+        while True:
+            new_data = s.recv(4096)
+            if len(new_data) < 1:
+                break
+            data += new_data.decode('utf8')
+
+        data = json.loads(data)
+
+        for leaf in data["vassals"]:
+            if leaf["id"] == "{}.ini".format(leaf):
+                return leaf
+
+        return {}
