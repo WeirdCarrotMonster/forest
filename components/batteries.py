@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from tornado.gen import coroutine, Return
+
+from components.common import log_message
+from components.database import get_settings_connection_async
+
+
 from __future__ import unicode_literals
 import random
 import string
 
 import pymysql
 pymysql.install_as_MySQLdb()
-from tornado.gen import coroutine, Return
-
-from components.common import log_message
-from components.database import get_settings_connection_async
 
 
 class Battery(object):

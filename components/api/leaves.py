@@ -13,6 +13,7 @@ from components.decorators import login_required
 
 
 class LeafListHandler(Handler):
+
     @gen.coroutine
     @login_required
     def get(self):
@@ -69,6 +70,7 @@ class LeafListHandler(Handler):
 
 
 class LeafHandler(Handler):
+
     @gen.coroutine
     @login_required
     def get(self, _id):
@@ -111,6 +113,7 @@ class LeafHandler(Handler):
 
 
 class LeafLogsHandler(Handler):
+
     @gen.coroutine
     @login_required
     def get(self, _id):
@@ -140,6 +143,7 @@ class LeafLogsHandler(Handler):
 
 
 class LeafSettingsHandler(Handler):
+
     @gen.coroutine
     @login_required
     def get(self, _id):

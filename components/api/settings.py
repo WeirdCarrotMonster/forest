@@ -11,6 +11,7 @@ from components.decorators import login_required
 
 
 class CommonLeafSettingsHandler(Handler):
+
     @gen.coroutine
     @login_required
     def get(self):
