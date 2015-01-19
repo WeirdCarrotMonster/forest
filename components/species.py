@@ -10,21 +10,22 @@ import os
 from os.path import join
 import shutil
 import shlex
-from bson import ObjectId
-from datetime import datetime
+from bson import ObjectId, json_util
 
 import tornado
 from tornado.gen import coroutine, Task, Return
 import simplejson as json
 
-from components.common import log_message, CustomEncoder
+from components.common import log_message
 
 
 class Species(object):
+
     """
     Класс, представляющий вид листа - совокупность исходного кода
     и виртуального окружения python
     """
+
     def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, **kwargs):
         self.directory = directory
         self.specie_id = _id
@@ -40,7 +41,7 @@ class Species(object):
 
     @property
     def is_ready(self):
-        return self.modified.isoformat() == self.metadata.get("modified")
+        return self.modified == self.metadata.get("modified")
 
     @is_ready.setter
     def is_ready(self, value):
@@ -59,7 +60,7 @@ class Species(object):
     def metadata(self):
         try:
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
-                data = json.loads(f.read())
+                data = json.loads(f.read(), object_hook=json_util.object_hook)
 
                 for key, value in data.items():
                     try:
@@ -72,7 +73,7 @@ class Species(object):
 
     @metadata.setter
     def metadata(self, value):
-        data = json.dumps(value, cls=CustomEncoder)
+        data = json.dumps(value, default=json_util.default)
         with open(join(self.specie_path, "metadata.json"), 'w') as f:
             f.write(data)
 
@@ -90,7 +91,7 @@ class Species(object):
                 shutil.rmtree(self._path)
             log_message(
                 "Initializing sources for {}".format(self.name),
-                component="Specie"
+                component="Species"
             )
             yield self.run_in_env(
                 [
@@ -106,8 +107,8 @@ class Species(object):
             if os.path.exists(self._environment):
                 shutil.rmtree(self._environment)
             log_message(
-                "Creating virtualenv for specie {}".format(self.name),
-                component="Specie"
+                "Creating virtualenv for species {}".format(self.name),
+                component="Species"
             )
 
             yield self.run_in_env(
@@ -121,7 +122,7 @@ class Species(object):
 
             log_message(
                 "Installing virtualenv requirements for {}".format(self.name),
-                component="Specie"
+                component="Species"
             )
 
             yield self.run_in_env(
@@ -137,7 +138,7 @@ class Species(object):
             self.is_ready = True
             log_message(
                 "Done initializing {}".format(self.name),
-                component="Specie"
+                component="Species"
             )
             self.ready_callback(self)
 

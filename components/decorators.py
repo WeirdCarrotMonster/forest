@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 from pymongo.errors import AutoReconnect
 from tornado.web import HTTPError
 from components.common import log_message

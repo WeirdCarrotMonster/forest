@@ -3,16 +3,15 @@ import os
 import shutil
 import subprocess
 
-from tornado import gen
-
 from components.common import log_message
 
 
 class Air():
-    def __init__(self, settings, trunk, port=3000):
+
+    def __init__(self, trunk, host, fastrouter, port=3000):
         self.trunk = trunk
-        self.__host = settings.get("host", "127.0.0.1")
-        self.__fastrouter = settings.get("fastrouter", 3333)
+        self.__host = host
+        self.__fastrouter = fastrouter
         self.__port = port
         self.__uwsgi_binary = os.path.join(self.trunk.forest_root, "bin/uwsgi")
         self.__pid_file = os.path.join(self.trunk.forest_root, "fastrouter.pid")
@@ -53,7 +52,7 @@ class Air():
             assert code == 0, "Error starting fastrouter"
             log_message("Started fastrouter", component="Air")
 
-        self.last_update = None
+        log_message("Started air", component="Air")
 
     @property
     def settings(self):
@@ -62,28 +61,14 @@ class Air():
             "fastrouter": self.__fastrouter
         }
 
-    @gen.coroutine
-    def periodic_event(self):
-        query = {"batteries": {'$exists': True}}
-        if self.last_update:
-            query["modified"] = {"$gt": self.last_update}
-
-        cursor = self.trunk.async_db.leaves.find(query)
-
+    def allow_host(self, host):
         default_key = os.path.join(self.__key_dir, "default.pem")
 
-        while (yield cursor.fetch_next):
-            leaf = cursor.next_object()
+        key_file = os.path.join(self.trunk.forest_root, "keys/{}.pem".format(host))
 
-            if not self.last_update or self.last_update < leaf.get("modified"):
-                self.last_update = leaf.get("modified")
-
-            for add in leaf.get("address", []):
-                key_file = os.path.join(self.trunk.forest_root, "keys/{}.pem".format(add))
-
-                if not os.path.isfile(key_file):
-                    log_message("Creating key for address: {0}".format(add), component="Air")
-                    shutil.copyfile(default_key, key_file)
+        if not os.path.isfile(key_file):
+            log_message("Creating key for address: {0}".format(host), component="Air")
+            shutil.copyfile(default_key, key_file)
 
     def cleanup(self):
         log_message("Stopping uwsgi fastrouter", component="Air")

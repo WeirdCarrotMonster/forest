@@ -8,12 +8,12 @@ from __future__ import print_function, unicode_literals
 
 import os
 import subprocess
-from os.path import join
 
 from components.common import log_message
 
 
 class Emperor(object):
+
     def __init__(self, root_dir, leaves_host, logs_port=5122):
         self.__leaves_host = leaves_host
         self.__logs_port = logs_port
@@ -52,6 +52,7 @@ class Emperor(object):
                     "--daemonize", "/dev/null",
                     "--logger", "zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
                     "--emperor-required-heartbeat", "40",
+                    "--emperor-throttle", "10000",  # TODO: Настраивать? Не уверен, нужно ли
                     "--vassal-set", "socket=%s:0" % self.__leaves_host,
                     "--vassal-set", "plugins-dir=%s" % self.__binary_dir,
                     "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.__logs_port,

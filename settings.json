@@ -1,40 +1,73 @@
 {
-    "connections":
-    {
-        "trunk_host": "127.0.0.1",
-        "trunk_port": 1234
-    },
-    "roles": {
-        "roots": {
-            "mysql": {
-                "user": "root",
-                "pass": "password",
-                "host": "127.0.0.1",
-                "port": 3306
-            },
-            "mongo": {
-                "user": "admin",
-                "pass": "password",
-                "host": "127.0.0.1",
-                "port": 27017
-            }
-        },
-        "branch": {
-            "host": "127.0.0.1"
-        },
-        "air": {
+    "base": {
+        "host": "127.0.0.1",
+        "port": 1234,
+        "root": "/home/wcm/coding/forest",
+        "name": "main",
+        "db": {
             "host": "127.0.0.1",
-            "fastrouter": 3333
+            "port": 27017,
+            "user": "admin",
+            "pass": "password",
+            "name": "trunk"
+        },
+        "secret": "71a9eccb2cedb3dbd850d907d803388f"
+    },
+    "roots": {
+        "mongo": {
+            "user": "admin",
+            "pass": "password",
+            "host": "127.0.0.1",
+            "port": 27017
         }
     },
-    "settings":
-    {
-        "name": "main",
+    "branch": {
         "host": "127.0.0.1",
-        "port": 27017,
-        "user": "user",
-        "pass": "password",
-        "database": "trunk",
-        "forest_root": "/home/wcm/coding/forest"
+        "loggers": [
+            {
+                "host": "127.0.0.1",
+                "port": 1234,
+                "name": "main",
+                "secret": "71a9eccb2cedb3dbd850d907d803388f",
+                "resource": "druid/logs"
+            }
+        ],
+        "druid": {
+            "host": "127.0.0.1",
+            "port": 1234,
+            "name": "main",
+            "secret": "71a9eccb2cedb3dbd850d907d803388f"
+        }
+    },
+    "air": {
+        "host": "127.0.0.1",
+        "port": 3333
+    },
+    "druid": {
+        "branch": [
+            {
+                "host": "127.0.0.1",
+                "port": 1234,
+                "name": "main",
+                "secret": "71a9eccb2cedb3dbd850d907d803388f"
+            }
+        ],
+        "air": [
+            {
+                "host": "127.0.0.1",
+                "port": 1234,
+                "fastrouter": 3333,
+                "name": "main",
+                "secret": "71a9eccb2cedb3dbd850d907d803388f"
+            }
+        ],
+        "roots": [
+            {
+                "host": "127.0.0.1",
+                "port": 1234,
+                "name": "main",
+                "secret": "71a9eccb2cedb3dbd850d907d803388f"
+            }
+        ]
     }
 }

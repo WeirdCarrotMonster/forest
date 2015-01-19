@@ -1,9 +1,0 @@
-<a href="" class="btn btn-green btn-100 btn-monospase">Подгрузить ещё</a>
-<ul class="logs">
-    <div ng-repeat="log in logs" class="log_record" ng-class="{bgred: log.status == 500}">
-        <div>
-            <span>{{ log.added }}</span>
-            <div>{{ fixNewline(log.raw) }}</div>
-        </div>
-    </div>
-</ul>

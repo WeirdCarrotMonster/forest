@@ -5,7 +5,8 @@ tornado
 psutil
 pymongo==2.7.1
 motor
-MySQL-python
+PyMySQL
 pyzmq
 dateutils
 virtualenv
+toro

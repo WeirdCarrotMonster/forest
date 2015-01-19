@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-from datetime import datetime
-import random
-import string
 
-import MySQLdb
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
 
 from components.common import log_message
 from components.database import get_settings_connection_async
 
 
+import random
+import string
+
+import pymysql
+pymysql.install_as_MySQLdb()
+
+
 class Battery(object):
+
     def __init__(self):
         pass
 
@@ -21,6 +25,7 @@ class Battery(object):
 
 
 class MySQL(Battery):
+
     def __init__(self, settings, trunk):
         Battery.__init__(self)
         self.settings = settings
@@ -68,16 +73,12 @@ class MySQL(Battery):
         return username
 
     @coroutine
-    def prepare_leaf(self, leaf):
-        if not leaf:
-            return
-
+    def prepare_leaf(self, db_name):
         log_message(
-            "Preparing MySQL for {0}".format(leaf["name"]),
+            "Preparing MySQL for {0}".format(db_name),
             component="Roots"
         )
 
-        db_name = leaf["name"]
         if MySQL.mysql_db_exists(self.settings, db_name):
             db_name = MySQL.string_generator()
 
@@ -86,7 +87,9 @@ class MySQL(Battery):
         result = {
             "name": db_name,
             "user": username,
-            "pass": password
+            "pass": password,
+            "host": self.settings.get("host", "127.0.0.1"),
+            "port": self.settings["port"],
         }
 
         log_message(
@@ -115,31 +118,22 @@ class MySQL(Battery):
         except:
             result = None
 
-        yield self.trunk.async_db.leaves.update(
-            {"_id": leaf["_id"]},
-            {
-                "$set": {"batteries.mysql": result}
-            }
-        )
+        raise Return(result)
 
 
 class Mongo(Battery):
+
     def __init__(self, settings, trunk):
         Battery.__init__(self)
         self.settings = settings
         self.trunk = trunk
 
     @coroutine
-    def prepare_leaf(self, leaf):
-        if not leaf:
-            return
-
+    def prepare_leaf(self, name):
         log_message(
-            "Preparing Mongo for {0}".format(leaf["name"]),
+            "Preparing Mongo for {0}".format(name),
             component="Roots"
         )
-
-        name = leaf["name"]
 
         self.settings["database"] = "admin"
         con = get_settings_connection_async(self.settings)
@@ -156,18 +150,13 @@ class Mongo(Battery):
 
         yield db.add_user(username, password, roles=["readWrite"])
 
-        yield self.trunk.async_db.leaves.update(
-            {"_id": leaf["_id"]},
-            {"$set": {
-                "batteries.mongo": {
-                    "name": name,
-                    "user": username,
-                    "pass": password
-                },
-                "modified": datetime.now()
-            }
-            }
-        )
+        raise Return({
+            "name": name,
+            "user": username,
+            "pass": password,
+            "host": self.settings.get("host", "127.0.0.1"),
+            "port": self.settings["port"]
+        })
 
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
