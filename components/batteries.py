@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 from tornado.gen import coroutine, Return
 
 from components.common import log_message
 from components.database import get_settings_connection_async
 
 
-from __future__ import unicode_literals
 import random
 import string
 
