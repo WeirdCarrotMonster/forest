@@ -164,8 +164,6 @@ class Emperor(object):
 
         data = json.loads(data)
 
-        print(data["vassals"])
-        print("{}.ini".format(leaf))
         for l in data["vassals"]:
             if l["id"] == "{}.ini".format(leaf):
                 return l

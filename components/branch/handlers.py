@@ -39,7 +39,6 @@ class LeafHandler(tornado.web.RequestHandler):
         """
         Получает информацию о листе с указанным id
         """
-        print(_id)
         self.finish(json.dumps(self.application.branch.emperor.stats(_id)))
 
     @tornado.gen.coroutine
