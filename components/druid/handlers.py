@@ -15,6 +15,21 @@ import random
 class LeavesHandler(Handler):
 
     @gen.coroutine
+    def get(self):
+        cursor = self.application.async_db.leaves.find()
+        self.write("[")
+        first = True
+        while (yield cursor.fetch_next):
+            if not first:
+                self.write(",")
+            else:
+                first = False
+
+            leaf = cursor.next_object()
+            self.write(json.dumps(leaf["name"]))
+        self.finish("]")
+
+    @gen.coroutine
     def post(self):
         """
         Создает новый лист.
@@ -125,12 +140,15 @@ class LeafHandler(Handler):
     @gen.coroutine
     def patch(self, leaf_name):
         # Обрабатываем только ключи active, address
+        apply_changes = self.get_argument("apply", default="TRUE").upper() == "TRUE"
+
         keys = ["active", "address"]
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
         for key in data.keys():
             if key not in keys:
                 del data[key]
+
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
             self.note("Unknown leaf specified")
@@ -142,14 +160,18 @@ class LeafHandler(Handler):
             {"$set": data}
         )
 
-        if data["active"] != leaf_data["active"]:
-            leaf_data_new = yield self.application.async_db.leaves.find_one({"name": leaf_name})
-            branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
+        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
-            if data["active"]:
+        if apply_changes:
+            if leaf_data["active"]:
+                branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
+
                 self.note("Starting leaf {}".format(leaf_name))
-                leaf_data_new["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
-                result = yield send_post_request(branch, "branch/leaves", leaf_data_new)
+                leaf_data["fastrouters"] = [
+                    "{host}:{fastrouter}".format(**a) for a in self.application.druid.air
+                ]
+                result = yield send_post_request(branch, "branch/leaves", leaf_data)
+
                 if result["data"]["result"] == "started":
                     self.note("Successfully started leaf")
                 elif result["data"]["result"] == "queued":
@@ -157,6 +179,7 @@ class LeafHandler(Handler):
                 else:
                     self.note("Leaf start failed")
             else:
+                branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
                 self.note("Stopping leaf {}".format(leaf_name))
                 yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "DELETE")
         self.finish()

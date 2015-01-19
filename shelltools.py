@@ -4,106 +4,158 @@
 from __future__ import unicode_literals, print_function
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
 import sys
 import simplejson as json
 from bson import json_util
+import cmd
 
 
-def parse_response(data):
-    try:
-        data = json.loads(data, object_hook=json_util.object_hook)
-        if data["log_type"] == "leaf.event":
-            print("[{added}] {method} - {uri}".format(**data))
-        elif data["log_type"] == "leaf.stdout_stderr":
-            print("[{added}] {raw}".format(**data))
-    except:
-        print(data)
+def asyncloop(f):
+    def wraps(*args, **kwargs):
+        loop = IOLoop.instance()
+
+        try:
+            coroutine(f)(loop, *args, **kwargs)
+        except Exception, e:
+            print(e)
+
+        try:
+            loop.start()
+        except:
+            print("", end="\r")
+    wraps()
 
 
 @coroutine
-def send_request(resource, method, data):
+def asyncclient_wrapper(*args, **kwargs):
     http_client = AsyncHTTPClient()
-    if method in ("GET", "DELETE"):
-        yield http_client.fetch(
-            "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
-            method=method,
-            streaming_callback=parse_response,
-            headers={"Interactive": "True"},
-            request_timeout=0
-        )
-    else:
-        yield http_client.fetch(
-            "http://127.0.0.1:1234/api/{}".format(resource.format(**data)),
-            body=json.dumps(data),
-            method=method,
-            streaming_callback=print,
-            headers={"Interactive": "True"},
-            request_timeout=0
-        )
-    sys.exit(0)
+    try:
+        res = yield http_client.fetch(*args, **kwargs)
+        res = res.body
+    except:
+        res = None
+    raise Return(res)
 
 
-@coroutine
-def parsecmd():
-    if len(sys.argv) < 2:
-        print("Wrong number of arguments specified")
-        sys.exit(0)
-    cmd = sys.argv[1]
-    params = sys.argv[2:]
+class ShellTool(cmd.Cmd):
+    def __init__(self, *args, **kwargs):
+        self.leaf_name = None
+        cmd.Cmd.__init__(self, *args, **kwargs)
+        self.set_prompt()
+        self.leaves = []
 
-    command = commands[cmd]
+        @asyncloop
+        def async_request(loop):
+            print("Preloading leaves...", end="")
+            leaves = yield asyncclient_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf",
+                method="GET"
+            )
 
-    if cmd not in commands:
-        print("Unknown command")
-        sys.exit(0)
+            self.leaves = json.loads(leaves)
+            print("done, {} elements".format(len(self.leaves)))
+            loop.stop()
 
-    if len(params) < len(command["args"]):
-        print("Wrong arguments count: expected {}".format(", ".join(command["args"])))
+    def set_prompt(self, leaf=None):
+        self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
+
+    def do_exit(self):
         sys.exit(0)
 
-    required_params = params[:len(command["args"])]
-    data = {}
-    for k, v in zip(command["args"], required_params):
-        data[k] = v
+    def do_use(self, leaf_name):
+        if not leaf_name:
+            print("Leaf name required")
+            return
+        self.leaf_name = leaf_name
+        self.set_prompt(leaf_name)
 
-    data.update(command.get("update", {}))
+    def complete_use(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.leaves[:]
+        else:
+            completions = [
+                f for f in self.leaves if f.startswith(text)
+            ]
+        return completions
 
-    yield send_request(command["resource"], command["method"], data)
+    def do_stop_leaf(self, leaf_name=None):
+        leaf_name = leaf_name or self.leaf_name
 
-commands = {
-    "create_leaf": {
-        "resource": "druid/leaf",
-        "method": "POST",
-        "args": ["name", "type", "address"]
-    },
-    "stop_leaf": {
-        "resource": "druid/leaf/{name}",
-        "method": "PATCH",
-        "args": ["name"],
-        "update": {"active": False}
-    },
-    "start_leaf": {
-        "resource": "druid/leaf/{name}",
-        "method": "PATCH",
-        "args": ["name"],
-        "update": {"active": True}
-    },
-    "check_branch": {
-        "resource": "druid/branch/{name}",
-        "method": "PUT",
-        "args": ["name"],
-        "update": {"active": True}
-    },
-    "watch_logs": {
-        "resource": "druid/logs/{name}",
-        "method": "GET",
-        "args": ["name"]
-    },
-}
+        @asyncloop
+        def async_request(loop):
+            yield asyncclient_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                method="PATCH",
+                streaming_callback=print,
+                headers={"Interactive": "True"},
+                request_timeout=0,
+                body=json.dumps({"active": False})
+            )
+            loop.stop()
+
+    def do_start_leaf(self, leaf_name=None):
+        leaf_name = leaf_name or self.leaf_name
+
+        @asyncloop
+        def async_request(loop):
+            yield asyncclient_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                method="PATCH",
+                streaming_callback=print,
+                headers={"Interactive": "True"},
+                request_timeout=0,
+                body=json.dumps({"active": True})
+            )
+            loop.stop()
+
+    def do_watch(self, *args):
+        if not self.leaf_name:
+            print("Setting leaf name is required")
+            return
+
+        def parse_response(data):
+            try:
+                data = json.loads(data, object_hook=json_util.object_hook)
+                if data["log_type"] == "leaf.event":
+                    print("[{added}] {method} - {uri}".format(**data))
+                elif data["log_type"] == "leaf.stdout_stderr":
+                    print("[{added}] {raw}".format(**data))
+            except:
+                print(data)
+
+        @asyncloop
+        def async_request(loop):
+            yield asyncclient_wrapper(
+                "http://127.0.0.1:1234/api/druid/logs/{}".format(self.leaf_name),
+                method="GET",
+                streaming_callback=parse_response,
+                headers={"Interactive": "True"},
+                request_timeout=0
+            )
+            loop.stop()
+
+    def do_check_branch(self, branch):
+        if not branch:
+            print("Specify branch")
+            return
+
+        @asyncloop
+        def async_request(loop):
+            yield asyncclient_wrapper(
+                "http://127.0.0.1:1234/api/druid/branch/{}".format(branch),
+                method="PUT",
+                streaming_callback=print,
+                headers={"Interactive": "True"},
+                request_timeout=0,
+                body=""
+            )
+            loop.stop()
+
+    def do_EOF(self, line):
+        print()
+        return True
 
 
-loop = IOLoop.instance()
-parsecmd()
-
-loop.start()
+if __name__ == '__main__':
+    ShellTool().cmdloop()
