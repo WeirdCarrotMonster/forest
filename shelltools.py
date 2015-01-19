@@ -28,7 +28,7 @@ def asyncloop(f):
 
 
 @coroutine
-def asyncclient_wrapper(*args, **kwargs):
+def async_client_wrapper(*args, **kwargs):
     http_client = AsyncHTTPClient()
     try:
         res = yield http_client.fetch(*args, **kwargs)
@@ -48,7 +48,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             print("Preloading leaves...", end="")
-            leaves = yield asyncclient_wrapper(
+            leaves = yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/leaf",
                 method="GET"
             )
@@ -84,7 +84,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request(loop):
-            yield asyncclient_wrapper(
+            yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
                 method="PATCH",
                 streaming_callback=print,
@@ -99,7 +99,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request(loop):
-            yield asyncclient_wrapper(
+            yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
                 method="PATCH",
                 streaming_callback=print,
@@ -126,7 +126,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request(loop):
-            yield asyncclient_wrapper(
+            yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/logs/{}".format(self.leaf_name),
                 method="GET",
                 streaming_callback=parse_response,
@@ -142,7 +142,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request(loop):
-            yield asyncclient_wrapper(
+            yield async_client_wrapper(
                 "http://127.0.0.1:1234/api/druid/branch/{}".format(branch),
                 method="PUT",
                 streaming_callback=print,
