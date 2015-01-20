@@ -47,9 +47,25 @@ class LeavesHandler(Handler):
             upsert=True,
             new=True
         )
+
         if leaf["updatedExisting"]:
-            self.note("Leaf with name {} already exists, pick another name")
-            self.finish()
+            self.note("Leaf with name {} already exists, pick another name".format(leaf_name))
+            self.set_status(400)
+            self.finish(json.dumps({
+                "result": "error",
+                "message": "Duplicate name"
+            }))
+            raise gen.Return()
+
+        leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
+
+        if leaf_address_check:
+            self.note("Leaf with address {} already exists, pick another name".format())
+            self.set_status(400)
+            self.finish(json.dumps({
+                "result": "error",
+                "message": "Duplicate address"
+            }))
             raise gen.Return()
 
         leaf_id = leaf["upserted"]
@@ -64,7 +80,11 @@ class LeavesHandler(Handler):
 
         if not species:
             self.note("Unknown species specified, verify forest settings")
-            self.finish()
+            self.set_status(400)
+            self.finish(json.dumps({
+                "result": "error",
+                "message": "Unknown species"
+            }))
             raise gen.Return()
         else:
             self.note("Using species {}[{}]".format(species["name"], species["_id"]))
@@ -136,7 +156,7 @@ class LeavesHandler(Handler):
             self.note("Leaf queued")
         else:
             self.note("Leaf start failed")
-        self.finish()
+        self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
 class LeafHandler(Handler):

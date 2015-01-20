@@ -38,7 +38,7 @@ class MySQL(Battery):
     @staticmethod
     def mysql_user_exists(settings, username):
         db = MySQLdb.connect(
-            host=settings.get("host", "127.0.0.1"),
+            host="127.0.0.1",
             port=settings["port"],
             user=settings["user"],
             passwd=settings["pass"]
@@ -53,7 +53,7 @@ class MySQL(Battery):
     @staticmethod
     def mysql_db_exists(settings, db_name):
         db = MySQLdb.connect(
-            host=settings.get("host", "127.0.0.1"),
+            host="127.0.0.1",
             port=settings["port"],
             user=settings["user"],
             passwd=settings["pass"]
@@ -98,7 +98,7 @@ class MySQL(Battery):
         )
 
         db = MySQLdb.connect(
-            host=self.settings.get("host", "127.0.0.1"),
+            host="127.0.0.1",
             port=self.settings["port"],
             user=self.settings["user"],
             passwd=self.settings["pass"]

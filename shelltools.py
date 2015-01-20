@@ -222,6 +222,28 @@ class ShellTool(cmd.Cmd):
             ]
         return completions
 
+    def do_create_leaf(self, args):
+        leaf_name, leaf_type, leaf_address = args.split()
+        if not all([leaf_name, leaf_type, leaf_address]):
+            print("Specify all args")
+            return
+
+        @asyncloop
+        def async_request(loop):
+            yield async_client_wrapper(
+                "http://127.0.0.1:1234/api/druid/leaf",
+                method="POST",
+                streaming_callback=print,
+                headers={"Interactive": "True"},
+                request_timeout=0,
+                body=json.dumps({
+                    "name": leaf_name,
+                    "type": leaf_type,
+                    "address": leaf_address
+                })
+            )
+            loop.stop()
+
     def do_EOF(self, line):
         print()
         return True
