@@ -210,7 +210,7 @@ class LeafStatusHandler(Handler):
             self.finish("")
 
         branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
-        leaf_status = yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "GET")
+        leaf_status, code = yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "GET")
 
         self.finish(json.dumps(leaf_status, default=json_util.default))
 
