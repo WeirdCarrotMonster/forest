@@ -12,7 +12,6 @@ import random
 import string
 
 import pymysql
-pymysql.install_as_MySQLdb()
 
 
 class Battery(object):
@@ -37,7 +36,7 @@ class MySQL(Battery):
 
     @staticmethod
     def mysql_user_exists(settings, username):
-        db = MySQLdb.connect(
+        db = pymysql.connect(
             host="127.0.0.1",
             port=settings["port"],
             user=settings["user"],
@@ -52,7 +51,7 @@ class MySQL(Battery):
 
     @staticmethod
     def mysql_db_exists(settings, db_name):
-        db = MySQLdb.connect(
+        db = pymysql.connect(
             host="127.0.0.1",
             port=settings["port"],
             user=settings["user"],
@@ -97,7 +96,7 @@ class MySQL(Battery):
             component="Roots"
         )
 
-        db = MySQLdb.connect(
+        db = pymysql.connect(
             host="127.0.0.1",
             port=self.settings["port"],
             user=self.settings["user"],
