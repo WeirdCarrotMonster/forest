@@ -41,6 +41,17 @@ class LeavesHandler(Handler):
         leaf_address = data["address"]
         leaf_settings = data.get("settings", {})
 
+        leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
+
+        if leaf_address_check:
+            self.note("Leaf with address {} already exists, pick another name".format(leaf_address))
+            self.set_status(400)
+            self.finish(json.dumps({
+                "result": "error",
+                "message": "Duplicate address"
+            }))
+            raise gen.Return()
+
         leaf = yield self.application.async_db.leaves.update(
             {"name": leaf_name},
             {"$set": {"name": leaf_name}},
@@ -54,17 +65,6 @@ class LeavesHandler(Handler):
             self.finish(json.dumps({
                 "result": "error",
                 "message": "Duplicate name"
-            }))
-            raise gen.Return()
-
-        leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
-
-        if leaf_address_check:
-            self.note("Leaf with address {} already exists, pick another name".format())
-            self.set_status(400)
-            self.finish(json.dumps({
-                "result": "error",
-                "message": "Duplicate address"
             }))
             raise gen.Return()
 
