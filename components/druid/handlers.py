@@ -40,6 +40,7 @@ class LeavesHandler(Handler):
         leaf_type = data["type"]
         leaf_address = data["address"]
         leaf_settings = data.get("settings", {})
+        leaf_desc = data.get("description", "")
 
         leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
 
@@ -92,7 +93,7 @@ class LeavesHandler(Handler):
         yield self.application.async_db.leaves.update(
             {"_id": leaf_id},
             {"$set": {
-                "desc": "",
+                "desc": leaf_desc,
                 "type": species["_id"],
                 "active": True,
                 "address": [leaf_address],
