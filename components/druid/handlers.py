@@ -34,7 +34,15 @@ class LeavesHandler(Handler):
         """
         Создает новый лист.
         """
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        try:
+            data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        except:
+            self.set_status(400)
+            self.finish(json.dumps({
+                "result": "error",
+                "message": "Malformed json"
+            }))
+            raise gen.Return()
         assert "name" and "type" and "address" in data
         leaf_name = data["name"]
         leaf_type = data["type"]
