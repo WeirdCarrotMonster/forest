@@ -6,15 +6,16 @@ from tornado import gen
 import simplejson as json
 
 from components.api.handler import Handler
+from components.api.decorators import token_auth
 from components.common import send_post_request, send_request
 from bson import ObjectId, json_util
-
 import random
 
 
 class LeavesHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self):
         cursor = self.application.async_db.leaves.find()
         self.write("[")
@@ -30,6 +31,7 @@ class LeavesHandler(Handler):
         self.finish("]")
 
     @gen.coroutine
+    @token_auth
     def post(self):
         """
         Создает новый лист.
@@ -171,6 +173,7 @@ class LeavesHandler(Handler):
 class LeafHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self, leaf_name):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
@@ -181,6 +184,7 @@ class LeafHandler(Handler):
         self.finish(json.dumps(leaf_data, default=json_util.default))
 
     @gen.coroutine
+    @token_auth
     def patch(self, leaf_name):
         # Обрабатываем только ключи active, address
         apply_changes = self.get_argument("apply", default="TRUE").upper() == "TRUE"
@@ -231,6 +235,7 @@ class LeafHandler(Handler):
 class LeafStatusHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self, leaf_name):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
@@ -247,6 +252,7 @@ class LeafStatusHandler(Handler):
 class SpeciesHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self, species_id):
         _id = ObjectId(species_id)
         species = yield self.application.async_db.species.find_one({"_id": _id})
@@ -260,6 +266,7 @@ class SpeciesHandler(Handler):
 class BranchHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self, branch_name=None):
         if branch_name:
             self.finish("{}")
@@ -267,6 +274,7 @@ class BranchHandler(Handler):
             self.finish(json.dumps([x["name"] for x in self.application.druid.branch]))
 
     @gen.coroutine
+    @token_auth
     def put(self, branch_name=None):
         assert branch_name
         try:
@@ -293,6 +301,7 @@ class BranchHandler(Handler):
 class LogWatcher(Handler):
 
     @gen.coroutine
+    @token_auth
     def get(self, leaf_name):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
@@ -309,6 +318,7 @@ class LogWatcher(Handler):
 class LogHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
         yield self.application.druid.propagate_event(data)

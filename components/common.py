@@ -55,7 +55,8 @@ def send_post_request(host, resource, data):
     response = yield http_client.fetch(
         "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
         body=dumps(data, default=json_util.default),
-        method="POST"
+        method="POST",
+        headers={"Token": host["secret"]},
     )
 
     try:

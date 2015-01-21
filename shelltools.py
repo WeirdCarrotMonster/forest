@@ -46,6 +46,7 @@ class ShellTool(cmd.Cmd):
         self.leaves = []
         self.branches = []
         self.do_set_host("127.0.0.1:1234")
+        self.token = ""
 
     def set_prompt(self, leaf=None):
         self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
@@ -60,7 +61,8 @@ class ShellTool(cmd.Cmd):
                 leaves = yield async_client_wrapper(
                     "http://{}/api/druid/leaf".format(self.host),
                     method="GET",
-                    request_timeout=1
+                    request_timeout=1,
+                    headers={"Token": self.token}
                 )
                 self.leaves = json.loads(leaves)
                 print("done, {} elements".format(len(self.leaves)))
@@ -75,7 +77,8 @@ class ShellTool(cmd.Cmd):
             try:
                 branches = yield async_client_wrapper(
                     "http://{}/api/druid/branch".format(self.host),
-                    method="GET"
+                    method="GET",
+                    headers={"Token": self.token}
                 )
 
                 self.branches = json.loads(branches)
@@ -113,7 +116,7 @@ class ShellTool(cmd.Cmd):
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
                 streaming_callback=print,
-                headers={"Interactive": "True"},
+                headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0,
                 body=json.dumps({"active": False})
             )
@@ -128,7 +131,7 @@ class ShellTool(cmd.Cmd):
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
                 streaming_callback=print,
-                headers={"Interactive": "True"},
+                headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0,
                 body=json.dumps({"active": True})
             )
@@ -155,7 +158,7 @@ class ShellTool(cmd.Cmd):
                 "http://{}/api/druid/logs/{}".format(self.host, self.leaf_name),
                 method="GET",
                 streaming_callback=parse_response,
-                headers={"Interactive": "True"},
+                headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0
             )
             loop.stop()
@@ -179,7 +182,8 @@ class ShellTool(cmd.Cmd):
         def async_request(loop):
             leaf_data = yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
-                method="GET"
+                method="GET",
+                headers={"Token": self.token}
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
             loop.stop()
@@ -203,7 +207,8 @@ class ShellTool(cmd.Cmd):
         def async_request(loop):
             leaf_data = yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}/status".format(self.host, leaf_name),
-                method="GET"
+                method="GET",
+                headers={"Token": self.token}
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
             loop.stop()
@@ -219,7 +224,7 @@ class ShellTool(cmd.Cmd):
                 "http://{}/api/druid/branch/{}".format(self.host, branch),
                 method="PUT",
                 streaming_callback=print,
-                headers={"Interactive": "True"},
+                headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0,
                 body=""
             )
@@ -246,7 +251,7 @@ class ShellTool(cmd.Cmd):
                 "http://{}/api/druid/leaf".format(self.host),
                 method="POST",
                 streaming_callback=print,
-                headers={"Interactive": "True"},
+                headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0,
                 body=json.dumps({
                     "name": leaf_name,
@@ -255,6 +260,9 @@ class ShellTool(cmd.Cmd):
                 })
             )
             loop.stop()
+
+    def do_set_token(self, token):
+        self.token = token
 
     def do_EOF(self, line):
         print()

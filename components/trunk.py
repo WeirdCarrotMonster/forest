@@ -13,6 +13,7 @@ class Trunk(tornado.web.Application):
         self.settings["cookie_secret"] = "asdasd"
         self.database = settings_dict["db"]
         self.name = settings_dict["name"]
+        self.secret = settings_dict["secret"]
 
         self.async_db = get_default_database(self.database, async=True)
         self.sync_db = get_default_database(self.database)
