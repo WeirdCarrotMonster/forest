@@ -80,12 +80,14 @@ def send_request(host, resource, method, data=None):
         response = yield http_client.fetch(
             "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
             body=dumps(data, default=json_util.default),
-            method=method
+            method=method,
+            headers={"Token": host["secret"]}
         )
     else:
         response = yield http_client.fetch(
             "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-            method=method
+            method=method,
+            headers={"Token": host["secret"]}
         )
 
     try:
