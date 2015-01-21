@@ -45,33 +45,45 @@ class ShellTool(cmd.Cmd):
         self.set_prompt()
         self.leaves = []
         self.branches = []
+        self.do_set_host("127.0.0.1:1234")
+
+    def set_prompt(self, leaf=None):
+        self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
+
+    def do_set_host(self, host):
+        self.host = host
 
         @asyncloop
         def async_request_leaves(loop):
             print("Preloading leaves...", end="")
-            leaves = yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf",
-                method="GET"
-            )
-
-            self.leaves = json.loads(leaves)
-            print("done, {} elements".format(len(self.leaves)))
-            loop.stop()
+            try:
+                leaves = yield async_client_wrapper(
+                    "http://{}/api/druid/leaf".format(self.host),
+                    method="GET",
+                    request_timeout=1
+                )
+                self.leaves = json.loads(leaves)
+                print("done, {} elements".format(len(self.leaves)))
+            except:
+                print("failed")
+            finally:
+                loop.stop()
 
         @asyncloop
         def async_request_branches(loop):
             print("Preloading branches...", end="")
-            branches = yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/branch",
-                method="GET"
-            )
+            try:
+                branches = yield async_client_wrapper(
+                    "http://{}/api/druid/branch".format(self.host),
+                    method="GET"
+                )
 
-            self.branches = json.loads(branches)
-            print("done, {} elements".format(len(self.branches)))
-            loop.stop()
-
-    def set_prompt(self, leaf=None):
-        self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
+                self.branches = json.loads(branches)
+                print("done, {} elements".format(len(self.branches)))
+            except:
+                print("failed")
+            finally:
+                loop.stop()
 
     def do_exit(self):
         sys.exit(0)
@@ -98,7 +110,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
                 streaming_callback=print,
                 headers={"Interactive": "True"},
@@ -113,7 +125,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
                 streaming_callback=print,
                 headers={"Interactive": "True"},
@@ -140,7 +152,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/logs/{}".format(self.leaf_name),
+                "http://{}/api/druid/logs/{}".format(self.host, self.leaf_name),
                 method="GET",
                 streaming_callback=parse_response,
                 headers={"Interactive": "True"},
@@ -166,7 +178,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             leaf_data = yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf/{}".format(leaf_name),
+                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="GET"
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
@@ -190,7 +202,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             leaf_data = yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf/{}/status".format(leaf_name),
+                "http://{}/api/druid/leaf/{}/status".format(self.host, leaf_name),
                 method="GET"
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
@@ -204,7 +216,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/branch/{}".format(branch),
+                "http://{}/api/druid/branch/{}".format(self.host, branch),
                 method="PUT",
                 streaming_callback=print,
                 headers={"Interactive": "True"},
@@ -231,7 +243,7 @@ class ShellTool(cmd.Cmd):
         @asyncloop
         def async_request(loop):
             yield async_client_wrapper(
-                "http://127.0.0.1:1234/api/druid/leaf",
+                "http://{}/api/druid/leaf".format(self.host),
                 method="POST",
                 streaming_callback=print,
                 headers={"Interactive": "True"},
