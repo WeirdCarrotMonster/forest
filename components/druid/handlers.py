@@ -199,7 +199,8 @@ class LeafHandler(Handler):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
             self.note("Unknown leaf specified")
-            self.finish()
+            self.set_status(404)
+            self.finish(json.dumps({"result": "success", "message": "Unknown leaf"}))
             raise gen.Return()
 
         yield self.application.async_db.leaves.update(
@@ -229,7 +230,7 @@ class LeafHandler(Handler):
                 branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
                 self.note("Stopping leaf {}".format(leaf_name))
                 yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "DELETE")
-        self.finish()
+        self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
 class LeafStatusHandler(Handler):
