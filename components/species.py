@@ -26,7 +26,7 @@ class Species(object):
     и виртуального окружения python
     """
 
-    def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, **kwargs):
+    def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, branch="master", **kwargs):
         self.directory = directory
         self.specie_id = _id
         self.specie_path = os.path.join(self.directory, str(self.specie_id))
@@ -98,6 +98,7 @@ class Species(object):
                     "git",
                     "clone",
                     "--depth", "1",
+                    "--branch", self.branch,
                     self.url,
                     self._path
                 ],
