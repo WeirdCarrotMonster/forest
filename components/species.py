@@ -33,6 +33,7 @@ class Species(object):
         self.interpreter = interpreter if interpreter in ["python2", "python3"] else "python2"
         self.url = url
         self.name = name
+        self.branch = branch
         self.triggers = triggers or {}
         self._environment = os.path.join(self.specie_path, "env")
         self._path = os.path.join(self.specie_path, "src")
