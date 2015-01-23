@@ -17,7 +17,7 @@ from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import zmq
 
-from components.common import log_message, send_request, send_post_request
+from components.common import log_message, send_post_request
 from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -38,7 +38,6 @@ class Branch(object):
         self.leaves = {}
         self.species = {}
 
-        self.druid = settings.get("druid")
         self.__loggers__ = settings.get("loggers")
         self.batteries = defaultdict(list)
 
@@ -121,7 +120,12 @@ class Branch(object):
             directory=os.path.join(self.trunk.forest_root, "species"),
             **species
         )
-        log_message("Creating species {}".format(species.id), component="Branch")
+
+        if species.id in self.species:
+            log_message("Updating species {}".format(species.id), component="Branch")
+        else:
+            log_message("Creating species {}".format(species.id), component="Branch")
+
         self.species[species.id] = species
 
         self.__species_initialization_started__(species)
