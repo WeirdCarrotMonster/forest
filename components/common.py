@@ -67,13 +67,13 @@ def send_post_request(host, resource, data):
 
     try:
         parsed = {
-            "data": loads(response.body, object_hook=json_util.object_hook),
-            "code": response.code
+            "data": loads(data, object_hook=json_util.object_hook),
+            "code": code
         }
     except:
         parsed = {
-            "code": response.code,
-            "data": response.body
+            "code": data,
+            "data": code
         }
     raise Return(parsed)
 
