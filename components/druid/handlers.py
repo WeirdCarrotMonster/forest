@@ -10,6 +10,7 @@ from components.api.decorators import token_auth
 from components.common import send_post_request, send_request
 from bson import ObjectId, json_util
 import random
+from datetime import datetime
 
 
 class LeavesHandler(Handler):
@@ -268,6 +269,28 @@ class LeafStatusHandler(Handler):
         self.finish(json.dumps(leaf_status, default=json_util.default))
 
 
+class SpeciesListHandler(Handler):
+
+    @gen.coroutine
+    @token_auth
+    def get(self):
+        cursor = self.application.async_db.species.find()
+        self.write("[")
+        first = True
+        while (yield cursor.fetch_next):
+            if not first:
+                self.write(",")
+            else:
+                first = False
+
+            species = cursor.next_object()
+            self.write(json.dumps({
+                "_id": species["_id"],
+                "name": species["name"]
+            }, default=json_util.default))
+        self.finish("]")
+
+
 class SpeciesHandler(Handler):
 
     @gen.coroutine
@@ -280,6 +303,35 @@ class SpeciesHandler(Handler):
             self.set_status(404)
 
         self.finish(json.dumps(species, default=json_util.default))
+
+    @gen.coroutine
+    @token_auth
+    def patch(self, species_id):
+        _id = ObjectId(species_id)
+
+        species = yield self.application.async_db.species.find_one({"_id": _id})
+
+        if not species:
+            self.set_status(404)
+            self.finish("{}")
+            raise gen.Return()
+
+        yield self.application.async_db.species.update(
+            {"_id": _id},
+            {"$set": {"modified": datetime.utcnow()}}
+        )
+
+        species = yield self.application.async_db.species.find_one({"_id": _id})
+
+        for branch in self.application.druid.branch:
+            response, code = yield send_request(
+                branch,
+                "branch/species/{}".format(species["_id"]),
+                "PATCH",
+                species
+            )
+
+        self.finish("{}")
 
 
 class BranchHandler(Handler):

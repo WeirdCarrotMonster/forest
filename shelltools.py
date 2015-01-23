@@ -45,6 +45,7 @@ class ShellTool(cmd.Cmd):
         self.set_prompt()
         self.leaves = []
         self.branches = []
+        self.species = []
         self.do_set_host("127.0.0.1:1234")
         self.token = ""
 
@@ -83,6 +84,23 @@ class ShellTool(cmd.Cmd):
 
                 self.branches = json.loads(branches)
                 print("done, {} elements".format(len(self.branches)))
+            except:
+                print("failed")
+            finally:
+                loop.stop()
+
+        @asyncloop
+        def async_request_species(loop):
+            print("Preloading species...", end="")
+            try:
+                branches = yield async_client_wrapper(
+                    "http://{}/api/druid/species".format(self.host),
+                    method="GET",
+                    headers={"Token": self.token}
+                )
+
+                self.species = json.loads(branches, object_hook=json_util.object_hook)
+                print("done, {} elements".format(len(self.species)))
             except:
                 print("failed")
             finally:
@@ -236,6 +254,29 @@ class ShellTool(cmd.Cmd):
         else:
             completions = [
                 f for f in self.branches if f.startswith(text)
+            ]
+        return completions
+
+    def do_update_species(self, species):
+        species = next(x for x in self.species if x["name"] == species)
+        print(species)
+
+        @asyncloop
+        def async_request(loop):
+            yield async_client_wrapper(
+                "http://{}/api/druid/species/{}".format(self.host, species["_id"]),
+                method="PATCH",
+                headers={"Interactive": "True", "Token": self.token},
+                body=""
+            )
+            loop.stop()
+
+    def complete_update_species(self, text, line, begidx, endidx):
+        if not text:
+            completions = [x["name"] for x in self.species]
+        else:
+            completions = [
+                f["name"] for f in self.species if f["name"].startswith(text)
             ]
         return completions
 
