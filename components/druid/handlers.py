@@ -174,7 +174,7 @@ class LeavesHandler(Handler):
         if code == 404:
             response, code = yield send_request(
                 branch,
-                "branch/species".format(species["_id"]),
+                "branch/species",
                 "POST",
                 species
             )
@@ -237,6 +237,23 @@ class LeafHandler(Handler):
                 leaf_data["fastrouters"] = [
                     "{host}:{fastrouter}".format(**a) for a in self.application.druid.air
                 ]
+
+                species = yield self.application.async_db.species.find_one({"_id": leaf_data["type"]})
+
+                response, code = yield send_request(
+                    branch,
+                    "branch/species/{}".format(species["_id"]),
+                    "GET"
+                )
+
+                if code == 404:
+                    response, code = yield send_request(
+                        branch,
+                        "branch/species",
+                        "POST",
+                        species
+                    )
+
                 result = yield send_post_request(branch, "branch/leaf", leaf_data)
 
                 if result["data"]["result"] == "started":
