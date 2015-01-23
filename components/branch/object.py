@@ -95,8 +95,7 @@ class Branch(object):
                     data_parsed
                 )
 
-    @coroutine
-    def get_species(self, species_config):
+    def get_species(self, species_id):
         """
         Получает экземпляр класса Species
 
@@ -104,24 +103,12 @@ class Branch(object):
         :raise Return: Возвращение результата через tornado coroutines
         :rtype : Species
         """
-        with (yield self.species_lock.acquire()):
-            if species_config in self.species:
-                raise Return(self.species[species_config])
+        if species_id in self.species:
+            return self.species[species_id]
+        else:
+            return None
 
-            species, code = yield send_request(self.druid, "druid/species/{}".format(str(species_config)), "GET")
-
-            if species:
-                species_new = self.create_specie(species)
-                self.species[species_config] = species_new
-
-                self.__species_initialization_started__(species_new)
-                IOLoop.current().spawn_callback(species_new.initialize)
-
-                raise Return(self.species[species_config])
-
-            raise Return(None)
-
-    def create_specie(self, species):
+    def create_species(self, species):
         """
         Создает вид листа по данным из словаря
 
@@ -129,11 +116,15 @@ class Branch(object):
         :param species: словарь с данными конфигурации вида
         :return: Созданный экземпляр вида листа
         """
-        return Species(
+        species = Species(
             ready_callback=self.__species_initialization_finished__,
             directory=os.path.join(self.trunk.forest_root, "species"),
             **species
         )
+        self.species[species.id] = species
+
+        self.__species_initialization_started__(species)
+        IOLoop.current().spawn_callback(species.initialize)
 
     def __species_initialization_started__(self, species):
         for leaf in self.leaves.values():
@@ -166,7 +157,9 @@ class Branch(object):
         :rtype: Leaf
         :return: Созданный по данным базы экземпляр листа
         """
-        species = yield self.get_species(leaf.get("type"))
+        species = self.get_species(leaf.get("type"))
+        if not species:
+            raise Return(None)
         l = Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
             emperor=self.emperor,

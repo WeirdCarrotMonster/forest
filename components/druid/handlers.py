@@ -81,7 +81,7 @@ class LeavesHandler(Handler):
 
         leaf_id = leaf["upserted"]
 
-        self.note("Looking up specie settings")
+        self.note("Looking up species settings")
         try:
             query = {"_id": ObjectId(leaf_type)}
         except:
@@ -160,7 +160,25 @@ class LeavesHandler(Handler):
         leaf_config = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
         leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
 
-        result = yield send_post_request(branch, "branch/leaves", leaf_config)
+        # ==============
+        # Проверяем наличие искомого типа на ветви
+        # ==============
+
+        response, code = yield send_request(
+            branch,
+            "branch/species/{}".format(species["_id"]),
+            "GET"
+        )
+
+        if code == 404:
+            response, code = yield send_request(
+                branch,
+                "branch/species".format(species["_id"]),
+                "POST",
+                species
+            )
+
+        result = yield send_post_request(branch, "branch/leaf", leaf_config)
         if result["data"]["result"] == "started":
             self.note("Successfully started leaf")
         elif result["data"]["result"] == "queued":
@@ -218,7 +236,7 @@ class LeafHandler(Handler):
                 leaf_data["fastrouters"] = [
                     "{host}:{fastrouter}".format(**a) for a in self.application.druid.air
                 ]
-                result = yield send_post_request(branch, "branch/leaves", leaf_data)
+                result = yield send_post_request(branch, "branch/leaf", leaf_data)
 
                 if result["data"]["result"] == "started":
                     self.note("Successfully started leaf")
@@ -289,12 +307,33 @@ class BranchHandler(Handler):
         self.note("Updating branch {} status...".format(branch["name"]))
         cursor = self.application.async_db.leaves.find({"branch": branch_name, "active": True})
 
+        verified_species = set()
+
         while (yield cursor.fetch_next):
             leaf = cursor.next_object()
 
             self.note("Starting leaf {}".format(leaf["name"]))
             leaf["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
-            yield send_post_request(branch, "branch/leaves", leaf)
+
+            if leaf["type"] not in verified_species:
+                response, code = yield send_request(
+                    branch,
+                    "branch/species/{}".format(leaf["type"]),
+                    "GET"
+                )
+
+                if code == 404:
+                    species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
+
+                    response, code = yield send_request(
+                        branch,
+                        "branch/species",
+                        "POST",
+                        species
+                    )
+                verified_species.add(leaf["type"])
+
+            yield send_post_request(branch, "branch/leaf", leaf)
 
         self.finish(json.dumps({"result": "success"}))
 

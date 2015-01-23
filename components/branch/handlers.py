@@ -24,9 +24,13 @@ class LeavesHandler(tornado.web.RequestHandler):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
         leaf = yield self.application.branch.create_leaf(data)
-        started = self.application.branch.add_leaf(leaf)
 
-        self.finish({"result": "started" if started else "queued"})
+        if leaf:
+            started = self.application.branch.add_leaf(leaf)
+            self.finish(json.dumps({"result": "started" if started else "queued"}))
+        else:
+            self.set_status(400)
+            self.finish(json.dumps({"result": "error", "message": "Unknown species"}))
 
 
 class LeafHandler(tornado.web.RequestHandler):
@@ -57,3 +61,37 @@ class LeafHandler(tornado.web.RequestHandler):
             self.application.branch.del_leaf(leaf)
 
         self.finish()
+
+
+class SpeciesListHandler(tornado.web.RedirectHandler):
+
+    @tornado.gen.coroutine
+    def post(self):
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+
+        self.application.branch.create_species(data)
+
+        self.finish(json.dumps({"result": "success", "message": "OK"}))
+
+
+class SpeciesHandler(tornado.web.RedirectHandler):
+
+    @tornado.gen.coroutine
+    def get(self, _id):
+        _id = ObjectId(_id)
+
+        species = self.application.branch.get_species(_id)
+
+        if species:
+            self.finish(json.dumps({}))
+        else:
+            self.set_status(404)
+            self.finish()
+
+    @tornado.gen.coroutine
+    def patch(self, _id):
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+
+        self.application.branch.create_species(data)
+
+        self.finish(json.dumps({"result": "success", "message": "OK"}))
