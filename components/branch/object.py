@@ -121,6 +121,7 @@ class Branch(object):
             directory=os.path.join(self.trunk.forest_root, "species"),
             **species
         )
+        log_message("Creating species {}".format(species.id), component="Branch")
         self.species[species.id] = species
 
         self.__species_initialization_started__(species)
