@@ -5,7 +5,7 @@ from __future__ import print_function, unicode_literals
 from datetime import datetime
 
 from simplejson import dumps, loads
-from tornado.httpclient import AsyncHTTPClient
+from tornado.httpclient import AsyncHTTPClient, HTTPError
 from tornado.gen import coroutine, Return
 from bson import json_util
 
@@ -76,22 +76,27 @@ def send_post_request(host, resource, data):
 def send_request(host, resource, method, data=None):
     http_client = AsyncHTTPClient()
 
-    if data:
-        response = yield http_client.fetch(
-            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-            body=dumps(data, default=json_util.default),
-            method=method,
-            headers={"Token": host["secret"]}
-        )
-    else:
-        response = yield http_client.fetch(
-            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-            method=method,
-            headers={"Token": host["secret"]}
-        )
+    try:
+        if data:
+            response = yield http_client.fetch(
+                "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+                body=dumps(data, default=json_util.default),
+                method=method,
+                headers={"Token": host["secret"]}
+            )
+        else:
+            response = yield http_client.fetch(
+                "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+                method=method,
+                headers={"Token": host["secret"]}
+            )
+        data = response.body
+        code = response.code
+    except HTTPError, e:
+        data = ""
+        code = e.code
 
     try:
-        data = loads(response.body, object_hook=json_util.object_hook)
-    except:
-        data = response.body
-    raise Return((data, response.code))
+        data = loads(data, object_hook=json_util.object_hook)
+    finally:
+        raise Return((data, code))

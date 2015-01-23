@@ -63,7 +63,7 @@ class LeafHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class SpeciesListHandler(tornado.web.RedirectHandler):
+class SpeciesListHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def post(self):
@@ -74,7 +74,7 @@ class SpeciesListHandler(tornado.web.RedirectHandler):
         self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
-class SpeciesHandler(tornado.web.RedirectHandler):
+class SpeciesHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def get(self, _id):
