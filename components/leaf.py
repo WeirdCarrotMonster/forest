@@ -139,7 +139,8 @@ class Leaf(object):
             "status": "%(status)",
             "msecs": "%(msecs)",
             "time": "%(ltime)",
-            "size": "%(size)",
+            "response_size": "%(size)",
+            "request_size": "%(cl)",
             "log_source": str(self.id)
         }
 
