@@ -52,12 +52,18 @@ def send_post_request(host, resource, data):
     """
     http_client = AsyncHTTPClient()
 
-    response = yield http_client.fetch(
-        "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-        body=dumps(data, default=json_util.default),
-        method="POST",
-        headers={"Token": host["secret"]},
-    )
+    try:
+        response = yield http_client.fetch(
+            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+            body=dumps(data, default=json_util.default),
+            method="POST",
+            headers={"Token": host["secret"]},
+        )
+        data = response.body
+        code = response.code
+    except HTTPError, e:
+        data = ""
+        code = e.code
 
     try:
         parsed = {
