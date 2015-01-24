@@ -63,14 +63,15 @@ class Branch(object):
         """
         for data in message:
             data = data.strip()
+
+            if not data:
+                continue
+
             add_info = {
                 "component_name": self.trunk.name,
                 "component_type": "branch",
                 "log_type": "leaf.event"
             }
-
-            if not data:
-                return
 
             try:
                 data_parsed = json.loads(data)
