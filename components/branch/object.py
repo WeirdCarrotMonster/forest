@@ -78,7 +78,8 @@ class Branch(object):
                 data_parsed.update(add_info)
                 data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["msecs"] = int(data_parsed["msecs"])
-                data_parsed["size"] = int(data_parsed["size"])
+                data_parsed["request_size"] = int(data_parsed["request_size"])
+                data_parsed["response_size"] = int(data_parsed["response_size"])
 
             except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
