@@ -37,3 +37,5 @@ class Trunk(tornado.web.Application):
             self.branch.cleanup()
         if self.air:
             self.air.cleanup()
+        if self.roots:
+            self.roots.cleanup()

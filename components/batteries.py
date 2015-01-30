@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
-from tornado.gen import coroutine, Return
+from tornado.gen import coroutine, Return, Task
+
+from tornado.ioloop import IOLoop
 
 from components.common import log_message
+from components.cmdrunner import call_subprocess
 from components.database import get_settings_connection_async
 
 
@@ -12,111 +15,156 @@ import random
 import string
 
 import pymysql
+from pymysql import OperationalError
+import subprocess
+import os
+import time
+
+try:
+    from subprocess import DEVNULL
+except ImportError:
+    DEVNULL = open(os.devnull, 'wb')
 
 
 class Battery(object):
 
-    def __init__(self):
-        pass
+    def __init__(
+            self,
+            path=None,
+            port=None,
+            owner=None,
+            rootpass=None,
+            username=None,
+            password=None,
+            database=None,
+            **kwargs):
+        self.__path__ = path
+        self.__port__ = port
+        self.__owner__ = owner
+        self.__rootpass__ = rootpass or self.string_generator()
+        self.__username__ = username or self.string_generator()
+        self.__password__ = password or self.string_generator()
+        self.__database__ = database or self.string_generator()
+
+    @staticmethod
+    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
+
+    @property
+    def owner(self):
+        return self.owner
+
+    def config(self):
+        return {
+            "path": self.__path__,
+            "port": self.__port__,
+            "rootpass": self.__rootpass__,
+            "username": self.__username__,
+            "password": self.__password__,
+            "database": self.__database__
+        }
+
+    @property
+    def uwsgi_config(self):
+        raise NotImplemented
+
+    @property
+    def config_ext(self):
+        raise NotImplemented
+
+    def start(self):
+        raise NotImplemented
+
+    def stop(self):
+        raise NotImplemented
+
+    @coroutine
+    def wait(self):
+        raise NotImplemented
 
     def update(self):
         raise NotImplemented
 
 
 class MySQL(Battery):
+    """docstring for MySQL"""
+    def __init__(self, **kwargs):
+        super(MySQL, self).__init__(**kwargs)
+        self.__server__ = None
 
-    def __init__(self, settings, trunk):
-        Battery.__init__(self)
-        self.settings = settings
-        self.trunk = trunk
-
-    @staticmethod
-    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
-
-    @staticmethod
-    def mysql_user_exists(settings, username):
-        db = pymysql.connect(
-            host="127.0.0.1",
-            port=settings["port"],
-            user=settings["user"],
-            passwd=settings["pass"]
-        )
-        cur = db.cursor()
-        cur.execute(
-            "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = '{0}')".format(username))
-        result = cur.fetchall()
-        cur.close()
-        return bool(result[0][0])
-
-    @staticmethod
-    def mysql_db_exists(settings, db_name):
-        db = pymysql.connect(
-            host="127.0.0.1",
-            port=settings["port"],
-            user=settings["user"],
-            passwd=settings["pass"]
-        )
-        cur = db.cursor()
-        cur.execute("SELECT EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA "
-                    "WHERE SCHEMA_NAME = '{0}')".format(db_name))
-        result = cur.fetchall()
-        cur.close()
-        return bool(result[0][0])
-
-    @staticmethod
-    def generate_username(settings):
-        username = MySQL.string_generator()
-        while MySQL.mysql_user_exists(settings, username):
-            username = MySQL.string_generator()
-        return username
+    @property
+    def config_ext(self):
+        return "mysql"
 
     @coroutine
-    def prepare_leaf(self, db_name):
-        log_message(
-            "Preparing MySQL for {0}".format(db_name),
-            component="Roots"
+    def initialize(self):
+        log_message("Initializing database")
+        os.makedirs(self.__path__)
+        result, error = yield call_subprocess(
+            [
+                "mysql_install_db",
+                "--no-defaults",
+                "--datadir={}".format(self.__path__)
+            ]
         )
 
-        if MySQL.mysql_db_exists(self.settings, db_name):
-            db_name = MySQL.string_generator()
-
-        username = MySQL.generate_username(self.settings)
-        password = MySQL.string_generator()
-        result = {
-            "name": db_name,
-            "user": username,
-            "pass": password,
-            "host": self.settings.get("host", "127.0.0.1"),
-            "port": self.settings["port"],
-        }
-
-        log_message(
-            "Creating database {0}".format(db_name),
-            component="Roots"
-        )
-
-        db = pymysql.connect(
-            host="127.0.0.1",
-            port=self.settings["port"],
-            user=self.settings["user"],
-            passwd=self.settings["pass"]
-        )
-        try:
-            cur = db.cursor()
-            cur.execute(
-                """
-                CREATE DATABASE `{0}` CHARACTER SET utf8
-                COLLATE utf8_general_ci;
-                GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%'
-                IDENTIFIED BY '{2}' WITH GRANT OPTION;
-                FLUSH PRIVILEGES;
-                """.format(db_name, username, password)
+        with open(os.path.join(self.__path__, "firstrun.sql"), "w") as config:
+            config.write("""
+DELETE FROM mysql.user;
+CREATE USER 'root'@'%' IDENTIFIED BY '{0}';
+GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
+DROP DATABASE IF EXISTS test;
+CREATE DATABASE `{1}` CHARACTER SET utf8 COLLATE utf8_general_ci;
+GRANT ALL PRIVILEGES ON {1}.* TO '{2}'@'%' IDENTIFIED BY '{3}' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+""".format(self.__rootpass__, self.__database__, self.__username__, self.__password__)
             )
-            db.close()
-        except:
-            result = None
 
+    def __start_process__(self, firstrun=True):
+        cmd = [
+            "mysqld",
+            "--no-defaults",
+            "--datadir={}".format(self.__path__),
+            "--port={}".format(self.__port__),
+            "--socket={}".format(os.path.join(self.__path__, "socket")),
+            "--skip-name-resolve",
+            "--init-file={}".format(os.path.join(self.__path__, "firstrun.sql"))
+        ]
+
+        self.__server__ = subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+    def __stop_process__(self):
+        self.__server__.kill()
+        self.__server__.wait()
+
+    @coroutine
+    def wait_ready(self, timeout=20):
+        t = timeout
+        while t >= 0:
+            t -= 1
+
+            try:
+                pymysql.connect(
+                    host="127.0.0.1",
+                    port=self.__port__
+                )
+                raise Return(True)
+            except OperationalError, e:
+                if "Access denied for user" in e.args[1]:
+                    raise Return(True)
+
+            yield Task(IOLoop.current().add_timeout, time.time() + 1)
+
+        raise Return(False)
+
+    @coroutine
+    def start(self):
+        if not os.path.exists(self.__path__):
+            yield self.initialize()
+
+        self.__start_process__()
+        result = yield self.wait_ready()
+        print("server ready")
         raise Return(result)
 
 

@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import simplejson as json
-from bson import ObjectId
+from components.emperor import Vassal
 from components.common import log_message
 
 
-class Leaf(object):
+class Leaf(Vassal):
 
     def __init__(self,
-                 name=None,
-                 _id=None,
                  keyfile=None,
                  settings=None,
                  fastrouters=None,
@@ -22,8 +20,11 @@ class Leaf(object):
                  branch=None,
                  active=False,
                  modified=None,
+                 log_port=None,
+                 leaf_host=None,
                  **kwargs
                  ):
+        super(Leaf, self).__init__(**kwargs)
         self.__keyfile = keyfile
         self.fastrouters = fastrouters or []
         self.emperor_dir = None
@@ -37,8 +38,8 @@ class Leaf(object):
         self.threads = threads
         self.branch = branch or []
         self.active = active
-        self.__name = name
-        self._id = ObjectId(_id)
+        self.log_port = log_port
+        self.leaf_host = leaf_host
         self.paused = False
 
         self.__status__ = "stopped"
@@ -61,7 +62,7 @@ class Leaf(object):
 
     def start(self):
         if self.__species__.is_ready:
-            self.__emperor__.start_leaf(self)
+            super(Leaf, self).start()
             self.__status__ = "started"
             log_message("Starting leaf {}".format(self.id), component="Leaf")
             return True
@@ -70,7 +71,7 @@ class Leaf(object):
 
     def stop(self):
         log_message("Stopping leaf {}".format(self.id), component="Leaf")
-        self.__emperor__.stop_leaf(self)
+        super(Leaf, self).stop()
         self.__status__ = "stopped"
 
     @property
@@ -120,16 +121,14 @@ class Leaf(object):
 
     def get_config(self):
         if not self.paused:
-            return self.__get_config()
+            return self.__get_config__()
         else:
             return self.__get_config_paused()
 
-    def __get_config_paused(self):
-        return """
-[uwsgi]
-"""
+    def __get_config_paused__(self):
+        return """[uwsgi]"""
 
-    def __get_config(self):
+    def __get_config__(self):
         logs_format = {
             "uri": "%(uri)",
             "method": "%(method)",
@@ -145,6 +144,10 @@ class Leaf(object):
         }
 
         config = """[uwsgi]
+socket={leaf_host}:0
+logger=zeromq:tcp://127.0.0.1:{log_port}
+req-logger=zeromq:tcp://127.0.0.1:{log_port}
+buffer-size=65535
 chdir={chdir}
 plugin={python}
 module=wsgi:application
@@ -169,7 +172,9 @@ endif=
             logformat=json.dumps(logs_format),
             workers=self.workers,
             id=self.id,
-            python=self.__species__.python_version
+            python=self.__species__.python_version,
+            leaf_host=self.leaf_host,
+            log_port=self.log_port
         )
         if self.threads:
             config += "enable-threads=1\n"
@@ -181,6 +186,7 @@ endif=
             for address in self.address:
                 config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
-                    address, self.keyfile)
+                    address, self.keyfile
+                )
 
         return config

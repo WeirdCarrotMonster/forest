@@ -41,7 +41,10 @@ class Branch(object):
         self.__loggers__ = settings.get("loggers")
         self.batteries = defaultdict(list)
 
-        self.emperor = Emperor(self.trunk.forest_root, self.__host__)
+        if self.trunk.roots:
+            self.emperor = self.trunk.roots.emperor
+        else:
+            self.emperor = Emperor(self.trunk.forest_root)
 
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
@@ -171,6 +174,8 @@ class Branch(object):
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
             emperor=self.emperor,
             species=species,
+            log_port=5122,
+            leaf_host=self.__host__,
             **leaf
         )
         raise Return(l)

@@ -15,51 +15,73 @@ import simplejson as json
 from components.common import log_message
 
 
+class Vassal(object):
+
+    def __init__(
+            self,
+            name=None,
+            _id=None,
+            **kwargs
+    ):
+        self.__name__ = name
+        self.__id__ = _id
+
+    @property
+    def id(self):
+        return self.__id__
+
+    @property
+    def name(self):
+        return self.__name__
+
+    def start(self):
+        self.__emperor__.start_vassal(self)
+
+    def stop(self):
+        self.__emperor__.stop_vassal(self)
+
+    def get_config(self):
+        return self.__get_config__()
+
+    def __get_config__(self):
+        raise NotImplemented
+
+
 class Emperor(object):
 
-    def __init__(self, root_dir, leaves_host, logs_port=5122):
-        self.__leaves_host = leaves_host
-        self.__logs_port = logs_port
-        self.__forest_root = root_dir
+    def __init__(self, root_dir):
+        self.__root_dir__ = root_dir
 
-        self.__binary_dir = os.path.join(root_dir, "bin")
-        self.__uwsgi_binary = os.path.join(self.__binary_dir, "uwsgi")
-        self.__vassal_dir = os.path.join(root_dir, "vassals")
-        self.__pid_file = os.path.join(root_dir, "emperor.pid")
-
-        if not os.path.exists(self.__vassal_dir):
-            log_message("Vassal directory does not exist, creating one", component="Branch")
-            os.mkdir(self.__vassal_dir)
+        if not os.path.exists(self.vassal_dir):
+            log_message("Vassal directory does not exist, creating one", component="Emperor")
+            os.mkdir(self.vassal_dir)
 
         emperor_pid = 0
 
-        if os.path.exists(self.__pid_file):
-            with open(self.__pid_file) as pid_file:
+        if os.path.exists(self.pidfile):
+            with open(self.pidfile) as pid_file:
                 try:
                     emperor_pid = int(pid_file.read())
                     if not os.path.exists("/proc/{}".format(emperor_pid)):
                         emperor_pid = 0
                         raise ValueError()
 
-                    log_message("Found running emperor server", component="Branch")
+                    log_message("Found running emperor server", component="Emperor")
                 except ValueError:
-                    os.remove(self.__pid_file)
+                    os.remove(self.pidfile)
 
         if not emperor_pid:
             emperor = subprocess.Popen(
                 [
-                    self.__uwsgi_binary,
-                    "--plugins-dir", self.__binary_dir,
-                    "--emperor", "%s" % self.__vassal_dir,
-                    "--pidfile", self.__pid_file,
+                    self.uwsgi_binary,
+                    "--plugins-dir", self.binary_dir,
+                    "--emperor", self.vassal_dir,
+                    "--pidfile", self.pidfile,
                     "--daemonize", "/dev/null",
-                    "--logger", "zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
                     "--emperor-stats", "127.0.0.1:1777",
                     "--emperor-required-heartbeat", "40",
-                    "--emperor-throttle", "10000",  # TODO: Настраивать? Не уверен, нужно ли
-                    "--vassal-set", "socket=%s:0" % self.__leaves_host,
-                    "--vassal-set", "plugins-dir=%s" % self.__binary_dir,
-                    "--vassal-set", "req-logger=zeromq:tcp://127.0.0.1:%d" % self.__logs_port,
+                    "--emperor-throttle", "10000",
+                    "--vassal-set", "plugins-dir=%s" % self.binary_dir,
                     "--vassal-set", "buffer-size=65535",
                     "--vassal-set", "heartbeat=10",
                     "--vassal-set", "master=1",
@@ -71,9 +93,29 @@ class Emperor(object):
             code = emperor.wait()
 
             assert code == 0, "Error starting emperor server"
-            log_message("Started emperor server", component="Branch")
+            log_message("Started emperor server", component="Emperor")
 
         self.vassal_ports = {}
+
+    @property
+    def root_dir(self):
+        return self.__root_dir__
+
+    @property
+    def binary_dir(self):
+        return os.path.join(self.root_dir, "bin")
+
+    @property
+    def uwsgi_binary(self):
+        return os.path.join(self.binary_dir, "uwsgi")
+
+    @property
+    def vassal_dir(self):
+        return os.path.join(self.root_dir, "vassals")
+
+    @property
+    def pidfile(self):
+        return os.path.join(self.root_dir, "emperor.pid")
 
     @property
     def vassal_names(self):
@@ -86,32 +128,32 @@ class Emperor(object):
         :return: Список имен запущенных вассалов
         :rtype: list
         """
-        raw_names = os.listdir(self.__vassal_dir)
+        raw_names = os.listdir(self.vassal_dir)
         return [name[:-4] for name in raw_names]
 
     def stop_emperor(self):
         """
-        Выполняет остановку emperor-сервера, убивая процесс с pid, указанным в `self.__pid_file`, а так же очищает
+        Выполняет остановку emperor-сервера, убивая процесс с pid, указанным в `self.pidfile`, а так же очищает
         директорию вассалов для.
 
         """
         log_message("Stopping uwsgi emperor", component="Branch")
-        subprocess.call([self.__uwsgi_binary, "--stop", self.__pid_file])
-        os.remove(self.__pid_file)
+        subprocess.call([self.uwsgi_binary, "--stop", self.pidfile])
+        os.remove(self.pidfile)
 
-        for name in os.listdir(self.__vassal_dir):
-            os.remove(os.path.join(self.__vassal_dir, name))
+        for name in os.listdir(self.vassal_dir):
+            os.remove(os.path.join(self.vassal_dir, name))
 
     def start_leaf(self, leaf):
         """
         Запускает лист через uwsgi-emperor в качестве вассала
 
-        При запуске листа его конфигурационный файл размещается в директории, сохраненной в `self.__vassal_dir`.
+        При запуске листа его конфигурационный файл размещается в директории, сохраненной в `self.vassal_dir`.
 
         :param leaf: Запускаемый лист
         :type leaf: Leaf
         """
-        cfg_path = os.path.join(self.__vassal_dir, "{}.ini".format(leaf.id))
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
         if os.path.exists(cfg_path):
             with open(cfg_path, "r") as cfg:
                 data = cfg.read()
@@ -131,7 +173,7 @@ class Emperor(object):
         :param leaf: Останавливаемый лист
         :type leaf: Leaf
         """
-        cfg_path = os.path.join(self.__vassal_dir, "{}.ini".format(leaf.id))
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
 
         if os.path.exists(cfg_path):
             os.remove(cfg_path)
@@ -145,7 +187,7 @@ class Emperor(object):
         :param leaf: Перезапускаемый лист
         :type leaf: Leaf
         """
-        cfg_path = os.path.join(self.__vassal_dir, "{}.ini".format(leaf.id))
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
 
         if os.path.exists(cfg_path):
             os.utime(cfg_path, None)
