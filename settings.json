@@ -15,12 +15,7 @@
         "secret": "71a9eccb2cedb3dbd850d907d803388f"
     },
     "roots": {
-        "mongo": {
-            "user": "admin",
-            "pass": "password",
-            "host": "127.0.0.1",
-            "port": 27017
-        }
+        "roots_dir": "/home/wcm/coding/forest/roots"
     },
     "branch": {
         "host": "127.0.0.1",
@@ -32,13 +27,7 @@
                 "secret": "71a9eccb2cedb3dbd850d907d803388f",
                 "resource": "druid/logs"
             }
-        ],
-        "druid": {
-            "host": "127.0.0.1",
-            "port": 1234,
-            "name": "main",
-            "secret": "71a9eccb2cedb3dbd850d907d803388f"
-        }
+        ]
     },
     "air": {
         "host": "127.0.0.1",
