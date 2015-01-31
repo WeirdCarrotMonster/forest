@@ -1,5 +1,4 @@
 .idea
-bin/uwsgi
 
 *.py[cod]
 
@@ -46,6 +45,7 @@ nosetests.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
 
+emperor
 keys
 species
 vassals

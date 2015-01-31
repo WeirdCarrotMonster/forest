@@ -38,6 +38,7 @@ class Battery(object):
             password=None,
             database=None,
             **kwargs):
+        super(Battery, self).__init__(**kwargs)
         self.__path__ = path
         self.__port__ = port
         self.__owner__ = owner
@@ -66,24 +67,24 @@ class Battery(object):
 
     @property
     def uwsgi_config(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def config_ext(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def start(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def stop(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     @coroutine
     def wait(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def update(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class MySQL(Battery):

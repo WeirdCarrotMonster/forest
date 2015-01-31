@@ -2,7 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals
+
+import os
 import sys
+import shutil
 import signal
 
 from tornado.ioloop import IOLoop
@@ -19,12 +22,30 @@ if len(sys.argv) < 2:
         Specify settings filename
         """
     )
-    sys.exit(0)
+    sys.exit(1)
 
 filename = sys.argv[1]
 
 with open(filename) as config:
     settings = json.load(config)
+
+if len(sys.argv) == 3 and sys.argv[2] == "prepare":
+    from build import build_uwsgi
+
+    emperor_dir = settings["base"].get("emperor", os.path.join(settings["base"]["root"], "emperor"))
+    if not os.path.exists(emperor_dir):
+        print("Creating emperor directory at {}".format(emperor_dir))
+        os.makedirs(emperor_dir)
+        os.makedirs(os.path.join(emperor_dir, "bin"))
+        os.makedirs(os.path.join(emperor_dir, "vassals"))
+    else:
+        print("Cleaning existing executables")
+        shutil.rmtree(os.path.join(emperor_dir, "bin"))
+        os.makedirs(os.path.join(emperor_dir, "bin"))
+
+    print("Building uwsgi")
+    build_uwsgi(os.path.join(emperor_dir, "bin"))
+    sys.exit(0)
 
 ioloop.install()
 loop = IOLoop.instance()
