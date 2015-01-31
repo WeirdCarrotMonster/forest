@@ -17,7 +17,6 @@ import string
 
 import pymysql
 from pymysql import OperationalError
-import subprocess
 import os
 import time
 
@@ -115,7 +114,7 @@ FLUSH PRIVILEGES;
             pass
 
     @coroutine
-    def wait_ready(self, timeout=20):
+    def wait_ready(self, timeout=30):
         t = timeout
         while t >= 0:
             t -= 1
