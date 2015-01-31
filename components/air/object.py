@@ -19,8 +19,6 @@ class Fastrouter(Vassal):
         return """[uwsgi]
 fastrouter=127.0.0.1:{port}
 fastrouter-subscription-server={host}:{fastrouter}
-master=true
-processes=4
 subscriptions-sign-check=SHA1:{keydir}
 """.format(port=self.port, host=self.host, fastrouter=self.fastrouter, keydir=self.keydir)
 

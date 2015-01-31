@@ -49,6 +49,7 @@ emperor
 keys
 species
 vassals
+roots
 *.pid
 
 docs/_*

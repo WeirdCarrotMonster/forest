@@ -17,6 +17,7 @@ class Trunk(tornado.web.Application):
         self.database = settings_dict["db"]
         self.name = settings_dict["name"]
         self.root = settings_dict["root"]
+        self.host = settings_dict["host"]
         self.secret = settings_dict["secret"]
         self.emperor_dir = settings_dict.get("emperor", os.path.join(self.forest_root, "emperor"))
 

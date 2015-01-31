@@ -13,7 +13,7 @@ import cmd
 
 def asyncloop(f):
     def wraps(*args, **kwargs):
-        IOLoop.instance().run_sync(f)
+        IOLoop.instance().run_sync(coroutine(f))
 
     wraps()
 
@@ -38,8 +38,8 @@ class ShellTool(cmd.Cmd):
         self.leaves = []
         self.branches = []
         self.species = []
-        self.do_set_host(host or "127.0.0.1:1234")
         self.token = token or ""
+        self.do_set_host(host or "127.0.0.1:1234")
 
     def set_prompt(self, leaf=None):
         self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
@@ -49,7 +49,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request_leaves():
-            print("Preloading leaves...", end="")
+            print("Preloading leaves... ", end="")
             try:
                 leaves = yield async_client_wrapper(
                     "http://{}/api/druid/leaf".format(self.host),
@@ -59,12 +59,12 @@ class ShellTool(cmd.Cmd):
                 )
                 self.leaves = json.loads(leaves)
                 print("done, {} elements".format(len(self.leaves)))
-            except:
-                print("failed")
+            except Exception as e:
+                print("Failed: {}".format(e))
 
         @asyncloop
         def async_request_branches():
-            print("Preloading branches...", end="")
+            print("Preloading branches... ", end="")
             try:
                 branches = yield async_client_wrapper(
                     "http://{}/api/druid/branch".format(self.host),
@@ -79,7 +79,7 @@ class ShellTool(cmd.Cmd):
 
         @asyncloop
         def async_request_species():
-            print("Preloading species...", end="")
+            print("Preloading species... ", end="")
             try:
                 branches = yield async_client_wrapper(
                     "http://{}/api/druid/species".format(self.host),

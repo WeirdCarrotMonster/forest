@@ -6,6 +6,7 @@ from tornado.gen import coroutine, Return, Task
 
 from tornado.ioloop import IOLoop
 
+from components.emperor import Vassal
 from components.common import log_message
 from components.cmdrunner import call_subprocess
 from components.database import get_settings_connection_async
@@ -26,7 +27,7 @@ except ImportError:
     DEVNULL = open(os.devnull, 'wb')
 
 
-class Battery(object):
+class Battery(Vassal):
 
     def __init__(
             self,
@@ -53,8 +54,9 @@ class Battery(object):
 
     @property
     def owner(self):
-        return self.owner
+        return self.__owner__
 
+    @property
     def config(self):
         return {
             "path": self.__path__,
@@ -66,29 +68,16 @@ class Battery(object):
         }
 
     @property
-    def uwsgi_config(self):
-        raise NotImplementedError
-
-    @property
     def config_ext(self):
-        raise NotImplementedError
-
-    def start(self):
-        raise NotImplementedError
-
-    def stop(self):
         raise NotImplementedError
 
     @coroutine
     def wait(self):
         raise NotImplementedError
 
-    def update(self):
-        raise NotImplementedError
-
 
 class MySQL(Battery):
-    """docstring for MySQL"""
+
     def __init__(self, **kwargs):
         super(MySQL, self).__init__(**kwargs)
         self.__server__ = None
@@ -99,18 +88,20 @@ class MySQL(Battery):
 
     @coroutine
     def initialize(self):
-        log_message("Initializing database")
-        os.makedirs(self.__path__)
-        result, error = yield call_subprocess(
-            [
-                "mysql_install_db",
-                "--no-defaults",
-                "--datadir={}".format(self.__path__)
-            ]
-        )
+        if not os.path.exists(self.__path__):
+            log_message("Initializing database directory")
+            os.makedirs(self.__path__)
+            result, error = yield call_subprocess(
+                [
+                    "mysql_install_db",
+                    "--no-defaults",
+                    "--datadir={}".format(self.__path__),
+                    "--basedir=/usr"
+                ]
+            )
 
-        with open(os.path.join(self.__path__, "firstrun.sql"), "w") as config:
-            config.write("""
+            with open(os.path.join(self.__path__, "firstrun.sql"), "w") as config:
+                config.write("""
 DELETE FROM mysql.user;
 CREATE USER 'root'@'%' IDENTIFIED BY '{0}';
 GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
@@ -119,24 +110,9 @@ CREATE DATABASE `{1}` CHARACTER SET utf8 COLLATE utf8_general_ci;
 GRANT ALL PRIVILEGES ON {1}.* TO '{2}'@'%' IDENTIFIED BY '{3}' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 """.format(self.__rootpass__, self.__database__, self.__username__, self.__password__)
-            )
-
-    def __start_process__(self, firstrun=True):
-        cmd = [
-            "mysqld",
-            "--no-defaults",
-            "--datadir={}".format(self.__path__),
-            "--port={}".format(self.__port__),
-            "--socket={}".format(os.path.join(self.__path__, "socket")),
-            "--skip-name-resolve",
-            "--init-file={}".format(os.path.join(self.__path__, "firstrun.sql"))
-        ]
-
-        self.__server__ = subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
-
-    def __stop_process__(self):
-        self.__server__.kill()
-        self.__server__.wait()
+                )
+        else:
+            pass
 
     @coroutine
     def wait_ready(self, timeout=20):
@@ -150,7 +126,7 @@ FLUSH PRIVILEGES;
                     port=self.__port__
                 )
                 raise Return(True)
-            except OperationalError, e:
+            except OperationalError as e:
                 if "Access denied for user" in e.args[1]:
                     raise Return(True)
 
@@ -158,15 +134,11 @@ FLUSH PRIVILEGES;
 
         raise Return(False)
 
-    @coroutine
-    def start(self):
-        if not os.path.exists(self.__path__):
-            yield self.initialize()
-
-        self.__start_process__()
-        result = yield self.wait_ready()
-        print("server ready")
-        raise Return(result)
+    def __get_config__(self):
+        return """[uwsgi]
+master=true
+attach-daemon=mysqld --no-defaults --datadir={0} --port={1} --socket={0}/socket --skip-name-resolve --init-file={0}/firstrun.sql
+""".format(self.__path__, self.__port__)
 
 
 class Mongo(Battery):

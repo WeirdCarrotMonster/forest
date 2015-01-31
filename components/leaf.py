@@ -16,7 +16,6 @@ class Leaf(Vassal):
                  workers=4,
                  threads=False,
                  species=None,
-                 emperor=None,
                  branch=None,
                  active=False,
                  modified=None,
@@ -27,7 +26,6 @@ class Leaf(Vassal):
         super(Leaf, self).__init__(**kwargs)
         self.__keyfile = keyfile
         self.fastrouters = fastrouters or []
-        self.emperor_dir = None
         self.__species__ = species
         self.batteries = batteries
         self._log_port = None
@@ -43,7 +41,6 @@ class Leaf(Vassal):
         self.paused = False
 
         self.__status__ = "stopped"
-        self.__emperor__ = emperor
 
     def __ne__(self, other):
         r1 = self.address == other.address
@@ -77,14 +74,6 @@ class Leaf(Vassal):
     @property
     def status(self):
         return self.__status__
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def name(self):
-        return self.__name
 
     @property
     def keyfile(self):
@@ -144,6 +133,7 @@ class Leaf(Vassal):
         }
 
         config = """[uwsgi]
+master=1
 socket={leaf_host}:0
 logger=zeromq:tcp://127.0.0.1:{log_port}
 req-logger=zeromq:tcp://127.0.0.1:{log_port}

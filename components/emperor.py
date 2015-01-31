@@ -21,10 +21,12 @@ class Vassal(object):
             self,
             name=None,
             _id=None,
+            emperor=None,
             **kwargs
     ):
         self.__name__ = name
         self.__id__ = _id
+        self.__emperor__ = emperor
 
     @property
     def id(self):
@@ -84,7 +86,6 @@ class Emperor(object):
                     "--vassal-set", "plugins-dir=%s" % self.binary_dir,
                     "--vassal-set", "buffer-size=65535",
                     "--vassal-set", "heartbeat=10",
-                    "--vassal-set", "master=1",
                     "--vassal-set", "strict=1"
                 ],
                 bufsize=1,

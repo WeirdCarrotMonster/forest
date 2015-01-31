@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
 
-from components.batteries import Mongo, MySQL
+from components.batteries import MySQL
 from components.common import log_message
 from tornado.gen import Return, coroutine
 import simplejson as json
@@ -21,6 +21,7 @@ class Roots():
 
         self.batteries_mysql = {}
         self.batteries_mongo = {}
+        self.port_range = set(range(30000, 35000))
 
     @property
     def root(self):
@@ -53,7 +54,9 @@ class Roots():
         cfg_name = "{}.{}".format(battery.owner, battery.config_ext)
 
         with open(os.path.join(self.metaroot, cfg_name), "w") as config:
-            config.write(json.dumps(battery.config), default=json_util.default, indent=2)
+            config.write(
+                json.dumps(battery.config, default=json_util.default, indent=2)
+            )
 
     def cleanup(self):
         for key, value in self.batteries_mysql.items():
@@ -63,5 +66,21 @@ class Roots():
     def create_db(self, name, db_type):
         credentials = {}
         if "mysql" in db_type:
-            credentials["mysql"] = yield MySQL(self.settings["mysql"], self.trunk).prepare_leaf(name)
+            db = MySQL(
+                emperor=self.trunk.emperor,
+                owner=str(name),
+                port=self.port_range.pop(),
+                path=os.path.join(self.dataroot, "{}_mysql".format(name))
+            )
+            yield db.initialize()
+            db.start()
+            self.save_config(db)
+            yield db.wait_ready()
+            credentials["mysql"] = {
+                "host": self.trunk.host,
+                "port": db.__port__,
+                "name": db.__database__,
+                "user": db.__username__,
+                "pass": db.__password__
+            }
         raise Return(credentials)
