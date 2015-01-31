@@ -3,6 +3,9 @@ import tornado.httpclient
 import tornado.template
 import tornado.web
 
+import os
+
+from components.emperor import Emperor
 from components.database import get_default_database
 
 
@@ -13,7 +16,11 @@ class Trunk(tornado.web.Application):
         self.settings["cookie_secret"] = "asdasd"
         self.database = settings_dict["db"]
         self.name = settings_dict["name"]
+        self.root = settings_dict["root"]
         self.secret = settings_dict["secret"]
+        self.emperor_dir = settings_dict.get("emperor", os.path.join(self.forest_root, "emperor"))
+
+        self.emperor = Emperor(self.emperor_dir)
 
         self.async_db = get_default_database(self.database, async=True)
         self.sync_db = get_default_database(self.database)
@@ -22,7 +29,6 @@ class Trunk(tornado.web.Application):
         self.roots = None
         self.druid = None
         self.air = None
-        self.root = settings_dict["root"]
 
     @property
     def id(self):
@@ -33,9 +39,4 @@ class Trunk(tornado.web.Application):
         return self.root
 
     def cleanup(self):
-        if self.branch:
-            self.branch.cleanup()
-        if self.air:
-            self.air.cleanup()
-        if self.roots:
-            self.roots.cleanup()
+        self.emperor.stop()

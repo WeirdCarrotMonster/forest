@@ -18,7 +18,6 @@ from tornado.ioloop import IOLoop
 import zmq
 
 from components.common import log_message, send_post_request
-from components.emperor import Emperor
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
@@ -40,11 +39,6 @@ class Branch(object):
 
         self.__loggers__ = settings.get("loggers")
         self.batteries = defaultdict(list)
-
-        if self.trunk.roots:
-            self.emperor = self.trunk.roots.emperor
-        else:
-            self.emperor = Emperor(self.trunk.forest_root)
 
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
@@ -172,7 +166,7 @@ class Branch(object):
             raise Return(None)
         l = Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
-            emperor=self.emperor,
+            emperor=self.trunk.emperor,
             species=species,
             log_port=5122,
             leaf_host=self.__host__,
@@ -192,9 +186,3 @@ class Branch(object):
         leaf.stop()
         if leaf.id in self.leaves:
             del self.leaves[leaf.id]
-
-    def cleanup(self):
-        """
-        Принудительно выключает emperor-сервер при остановке
-        """
-        self.emperor.stop_emperor()

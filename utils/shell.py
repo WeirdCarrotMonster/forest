@@ -13,17 +13,8 @@ import cmd
 
 def asyncloop(f):
     def wraps(*args, **kwargs):
-        loop = IOLoop.instance()
+        IOLoop.instance().run_sync(f)
 
-        try:
-            coroutine(f)(loop, *args, **kwargs)
-        except Exception, e:
-            print(e)
-
-        try:
-            loop.start()
-        except:
-            print("", end="\r")
     wraps()
 
 
@@ -39,15 +30,16 @@ def async_client_wrapper(*args, **kwargs):
 
 
 class ShellTool(cmd.Cmd):
-    def __init__(self, *args, **kwargs):
-        self.leaf_name = None
+
+    def __init__(self, host=None, token=None, *args, **kwargs):
         cmd.Cmd.__init__(self, *args, **kwargs)
+        self.leaf_name = None
         self.set_prompt()
         self.leaves = []
         self.branches = []
         self.species = []
-        self.do_set_host("127.0.0.1:1234")
-        self.token = ""
+        self.do_set_host(host or "127.0.0.1:1234")
+        self.token = token or ""
 
     def set_prompt(self, leaf=None):
         self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
@@ -56,7 +48,7 @@ class ShellTool(cmd.Cmd):
         self.host = host
 
         @asyncloop
-        def async_request_leaves(loop):
+        def async_request_leaves():
             print("Preloading leaves...", end="")
             try:
                 leaves = yield async_client_wrapper(
@@ -69,11 +61,9 @@ class ShellTool(cmd.Cmd):
                 print("done, {} elements".format(len(self.leaves)))
             except:
                 print("failed")
-            finally:
-                loop.stop()
 
         @asyncloop
-        def async_request_branches(loop):
+        def async_request_branches():
             print("Preloading branches...", end="")
             try:
                 branches = yield async_client_wrapper(
@@ -86,11 +76,9 @@ class ShellTool(cmd.Cmd):
                 print("done, {} elements".format(len(self.branches)))
             except:
                 print("failed")
-            finally:
-                loop.stop()
 
         @asyncloop
-        def async_request_species(loop):
+        def async_request_species():
             print("Preloading species...", end="")
             try:
                 branches = yield async_client_wrapper(
@@ -103,8 +91,6 @@ class ShellTool(cmd.Cmd):
                 print("done, {} elements".format(len(self.species)))
             except:
                 print("failed")
-            finally:
-                loop.stop()
 
     def do_exit(self):
         sys.exit(0)
@@ -129,7 +115,7 @@ class ShellTool(cmd.Cmd):
         leaf_name = leaf_name or self.leaf_name
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
@@ -138,13 +124,12 @@ class ShellTool(cmd.Cmd):
                 request_timeout=0,
                 body=json.dumps({"active": False})
             )
-            loop.stop()
 
     def do_start_leaf(self, leaf_name=None):
         leaf_name = leaf_name or self.leaf_name
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="PATCH",
@@ -153,7 +138,6 @@ class ShellTool(cmd.Cmd):
                 request_timeout=0,
                 body=json.dumps({"active": True})
             )
-            loop.stop()
 
     def do_watch(self, *args):
         if not self.leaf_name:
@@ -171,7 +155,7 @@ class ShellTool(cmd.Cmd):
                 print(data)
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/logs/{}".format(self.host, self.leaf_name),
                 method="GET",
@@ -179,7 +163,6 @@ class ShellTool(cmd.Cmd):
                 headers={"Interactive": "True", "Token": self.token},
                 request_timeout=0
             )
-            loop.stop()
 
     def do_info(self, leaf_name=None):
         leaf_name = leaf_name or self.leaf_name
@@ -197,14 +180,13 @@ class ShellTool(cmd.Cmd):
                     print("{}{}: {}".format(" " * ident, key, value))
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             leaf_data = yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
                 method="GET",
                 headers={"Token": self.token}
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
-            loop.stop()
 
     def do_status(self, leaf_name=None):
         leaf_name = leaf_name or self.leaf_name
@@ -222,14 +204,13 @@ class ShellTool(cmd.Cmd):
                     print("{}{}: {}".format(" " * ident, key, value))
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             leaf_data = yield async_client_wrapper(
                 "http://{}/api/druid/leaf/{}/status".format(self.host, leaf_name),
                 method="GET",
                 headers={"Token": self.token}
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
-            loop.stop()
 
     def do_check_branch(self, branch):
         if not branch:
@@ -237,7 +218,7 @@ class ShellTool(cmd.Cmd):
             return
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/branch/{}".format(self.host, branch),
                 method="PUT",
@@ -246,7 +227,6 @@ class ShellTool(cmd.Cmd):
                 request_timeout=0,
                 body=""
             )
-            loop.stop()
 
     def complete_check_branch(self, text, line, begidx, endidx):
         if not text:
@@ -262,14 +242,13 @@ class ShellTool(cmd.Cmd):
         print(species)
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/species/{}".format(self.host, species["_id"]),
                 method="PATCH",
                 headers={"Interactive": "True", "Token": self.token},
                 body=""
             )
-            loop.stop()
 
     def complete_update_species(self, text, line, begidx, endidx):
         if not text:
@@ -287,7 +266,7 @@ class ShellTool(cmd.Cmd):
             return
 
         @asyncloop
-        def async_request(loop):
+        def async_request():
             yield async_client_wrapper(
                 "http://{}/api/druid/leaf".format(self.host),
                 method="POST",
@@ -300,7 +279,6 @@ class ShellTool(cmd.Cmd):
                     "address": leaf_address
                 })
             )
-            loop.stop()
 
     def do_set_token(self, token):
         self.token = token

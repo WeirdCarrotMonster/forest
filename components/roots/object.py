@@ -2,7 +2,6 @@
 from __future__ import print_function, unicode_literals
 
 from components.batteries import Mongo, MySQL
-from components.emperor import Emperor
 from components.common import log_message
 from tornado.gen import Return, coroutine
 import simplejson as json
@@ -16,11 +15,6 @@ class Roots():
     def __init__(self, trunk, settings):
         self.settings = settings
         self.trunk = trunk
-
-        if self.trunk.branch:
-            self.emperor = self.trunk.branch.emperor
-        else:
-            self.emperor = Emperor(self.trunk.forest_root)
 
         self.__roots_dir__ = self.settings.get("roots_dir") or os.path.join(self.trunk.forest_root, "roots")
         log_message("Started roots", component="Roots")

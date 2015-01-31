@@ -119,24 +119,10 @@ class Emperor(object):
 
     @property
     def vassal_names(self):
-        """
-        Получает список имен вассалов, запущенных в данный момент на emperor-сервере.
-        Список генерируется получанием имен конфигурационных файлов, размещенных в директории, которую мониторит
-        emperor. От имени файла отбрасывается расширение, оставшаяся часть (в случае, если файл был создан через
-        Forest), является строковым представлением ObjectId.
-
-        :return: Список имен запущенных вассалов
-        :rtype: list
-        """
         raw_names = os.listdir(self.vassal_dir)
         return [name[:-4] for name in raw_names]
 
-    def stop_emperor(self):
-        """
-        Выполняет остановку emperor-сервера, убивая процесс с pid, указанным в `self.pidfile`, а так же очищает
-        директорию вассалов для.
-
-        """
+    def stop(self):
         log_message("Stopping uwsgi emperor", component="Branch")
         subprocess.call([self.uwsgi_binary, "--stop", self.pidfile])
         os.remove(self.pidfile)
@@ -144,55 +130,33 @@ class Emperor(object):
         for name in os.listdir(self.vassal_dir):
             os.remove(os.path.join(self.vassal_dir, name))
 
-    def start_leaf(self, leaf):
-        """
-        Запускает лист через uwsgi-emperor в качестве вассала
-
-        При запуске листа его конфигурационный файл размещается в директории, сохраненной в `self.vassal_dir`.
-
-        :param leaf: Запускаемый лист
-        :type leaf: Leaf
-        """
-        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
+    def start_vassal(self, vassal):
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
         if os.path.exists(cfg_path):
             with open(cfg_path, "r") as cfg:
                 data = cfg.read()
 
-            if data == leaf.get_config():
+            if data == vassal.get_config():
                 return
 
-            log_message("Leaf {} have stale configuration, will restart".format(leaf.name))
+            log_message("Leaf {} have stale configuration, will restart".format(vassal.name))
 
         with open(cfg_path, "w") as cfg:
-            cfg.write(leaf.get_config())
+            cfg.write(vassal.get_config())
 
-    def stop_leaf(self, leaf):
-        """
-        Останавливает лист через uwsgi emperor
-
-        :param leaf: Останавливаемый лист
-        :type leaf: Leaf
-        """
-        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
+    def stop_vassal(self, vassal):
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
 
         if os.path.exists(cfg_path):
             os.remove(cfg_path)
 
-    def soft_restart_leaf(self, leaf):
-        """
-        Выполняет плавный перезапуск листа.
-
-        TODO: оттестировать
-
-        :param leaf: Перезапускаемый лист
-        :type leaf: Leaf
-        """
-        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(leaf.id))
+    def soft_restart_vassal(self, vassal):
+        cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
 
         if os.path.exists(cfg_path):
             os.utime(cfg_path, None)
 
-    def stats(self, leaf):
+    def stats(self, vassal):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("127.0.0.1", 1777))
 
@@ -207,7 +171,7 @@ class Emperor(object):
         data = json.loads(data)
 
         for l in data["vassals"]:
-            if l["id"] == "{}.ini".format(leaf):
+            if l["id"] == "{}.ini".format(vassal):
                 return l
 
         return {}
