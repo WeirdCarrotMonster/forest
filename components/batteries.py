@@ -81,7 +81,6 @@ class MySQL(Battery):
 
     def __init__(self, **kwargs):
         super(MySQL, self).__init__(**kwargs)
-        self.__server__ = None
 
     @property
     def config_ext(self):
