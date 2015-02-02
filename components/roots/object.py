@@ -23,6 +23,8 @@ class Roots():
         self.batteries_mongo = {}
         self.port_range = set(range(30000, 35000))
 
+        self.initialize()
+
     @property
     def root(self):
         return self.__roots_dir__
@@ -35,7 +37,6 @@ class Roots():
     def dataroot(self):
         return os.path.join(self.root, "data")
 
-    @coroutine
     def initialize(self):
         for f in os.listdir(self.metaroot):
             if not os.path.isfile(os.path.join(self.metaroot, f)):
@@ -43,12 +44,20 @@ class Roots():
 
             name, ext = os.path.splitext(f)
 
-            if ext == "mysql":
-                with open(os.path.join(self.metaroot, f)) as config:
-                    config = json.load(f.read(), object_hook=json_util.object_hook)
+            with open(os.path.join(self.metaroot, f)) as config:
+                config = json.load(config, object_hook=json_util.object_hook)
+                if not "username" and "password" and "rootpass" and "database" and "path" and "port" and "owner" in config:
+                    log_message("Malformed config for {name}{ext}, skipping".format(**locals()))
+                    continue
 
-                    self.batteries_mysql[config["owner"]] = MySQL(**config)
-                    yield self.batteries_mysql[config["owner"]].start()
+                if ext == ".mysql":
+                    log_message("Starting mysql server for {}".format(config["owner"]), component="Roots")
+
+                    self.port_range -= {config["port"]}
+
+                    self.batteries_mysql[config["owner"]] = MySQL(emperor=self.trunk.emperor, **config)
+                    self.batteries_mysql[config["owner"]].start()
+
 
     def save_config(self, battery):
         cfg_name = "{}.{}".format(battery.owner, battery.config_ext)
@@ -75,7 +84,7 @@ class Roots():
             yield db.initialize()
             db.start()
             self.save_config(db)
-            yield db.wait_ready()
+            yield db.wait()
             credentials["mysql"] = {
                 "host": self.trunk.host,
                 "port": db.__port__,

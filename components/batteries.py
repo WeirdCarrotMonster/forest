@@ -60,6 +60,7 @@ class Battery(Vassal):
         return {
             "path": self.__path__,
             "port": self.__port__,
+            "owner": self.__owner__,
             "rootpass": self.__rootpass__,
             "username": self.__username__,
             "password": self.__password__,
@@ -105,7 +106,7 @@ DELETE FROM mysql.user;
 CREATE USER 'root'@'%' IDENTIFIED BY '{0}';
 GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
 DROP DATABASE IF EXISTS test;
-CREATE DATABASE `{1}` CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE DATABASE IF NOT EXISTS `{1}` CHARACTER SET utf8 COLLATE utf8_general_ci;
 GRANT ALL PRIVILEGES ON {1}.* TO '{2}'@'%' IDENTIFIED BY '{3}' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 """.format(self.__rootpass__, self.__database__, self.__username__, self.__password__)
@@ -114,7 +115,7 @@ FLUSH PRIVILEGES;
             pass
 
     @coroutine
-    def wait_ready(self, timeout=30):
+    def wait(self, timeout=30):
         t = timeout
         while t >= 0:
             t -= 1
