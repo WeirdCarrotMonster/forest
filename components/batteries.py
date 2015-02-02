@@ -44,6 +44,10 @@ class Battery(Vassal):
         self.__password__ = password or self.string_generator()
         self.__database__ = database or self.string_generator()
 
+    @property
+    def id(self):
+        return "{}.{}".format(self.owner, self.config_ext)
+
     @staticmethod
     def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
         return ''.join(random.choice(chars) for _ in range(size))
