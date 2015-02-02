@@ -6,16 +6,17 @@ import random
 import string
 import os
 import time
+import subprocess
 
 from tornado.gen import coroutine, Return, Task
 from tornado.ioloop import IOLoop
 import pymysql
+import motor
 from pymysql import OperationalError
 
 from components.emperor import Vassal
 from components.common import log_message
 from components.cmdrunner import call_subprocess
-from components.database import get_settings_connection_async
 
 try:
     from subprocess import DEVNULL
@@ -79,9 +80,6 @@ class Battery(Vassal):
 
 class MySQL(Battery):
 
-    def __init__(self, **kwargs):
-        super(MySQL, self).__init__(**kwargs)
-
     @property
     def config_ext(self):
         return "mysql"
@@ -143,41 +141,47 @@ attach-daemon=mysqld --no-defaults --datadir={0} --port={1} --socket={0}/socket 
 
 class Mongo(Battery):
 
-    def __init__(self, settings, trunk):
-        Battery.__init__(self)
-        self.settings = settings
-        self.trunk = trunk
+    @property
+    def config_ext(self):
+        return "mongo"
 
     @coroutine
-    def prepare_leaf(self, name):
-        log_message(
-            "Preparing Mongo for {0}".format(name),
-            component="Roots"
-        )
+    def initialize(self):
+        if not os.path.exists(self.__path__):
+            os.makedirs(self.__path__)
 
-        self.settings["database"] = "admin"
-        con = get_settings_connection_async(self.settings)
+            proc = subprocess.Popen([
+                "mongod",
+                "--dbpath={}".format(self.__path__),
+                "--port={}".format(self.__port__),
+                "--bind_ip=127.0.0.1",
+                "--noauth"
+            ], stdout=DEVNULL, stderr=DEVNULL)
 
-        db_names = yield con.database_names()
+            yield self.wait()
 
-        while name in db_names:
-            name = Mongo.string_generator()
+            client = motor.MotorClient("127.0.0.1", self.__port__)
+            yield client[self.__database__].add_user(name=self.__username__, password=self.__password__, roles=["readWrite"])
 
-        db = con[name]
+            proc.terminate()
+            proc.wait()
 
-        username = Mongo.string_generator()
-        password = Mongo.string_generator()
 
-        yield db.add_user(username, password, roles=["readWrite"])
+    @coroutine
+    def wait(self, timeout=30):
+        t = timeout
+        client = motor.MotorClient("127.0.0.1", self.__port__)
+        while t >= 0:
+            t -= 1
+            alive = yield client.alive()
+            if alive:
+                raise Return(True)
+            yield Task(IOLoop.current().add_timeout, time.time() + 1)
 
-        raise Return({
-            "name": name,
-            "user": username,
-            "pass": password,
-            "host": self.settings.get("host", "127.0.0.1"),
-            "port": self.settings["port"]
-        })
+        raise Return(False)
 
-    @staticmethod
-    def string_generator(size=8, chars=string.ascii_uppercase + string.digits):
-        return ''.join(random.choice(chars) for _ in range(size))
+    def __get_config__(self):
+        return """[uwsgi]
+master=true
+attach-daemon=mongod --dbpath={0} --port={1} --auth
+""".format(self.__path__, self.__port__)
