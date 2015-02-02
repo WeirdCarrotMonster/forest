@@ -16,12 +16,13 @@ from bson import ObjectId
 from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import zmq
+from toro import Lock
 
 from components.common import log_message, send_post_request
+
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
-from toro import Lock
 
 
 class Branch(object):

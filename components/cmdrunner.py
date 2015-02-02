@@ -1,7 +1,10 @@
+# coding=utf-8
+
 from __future__ import print_function
+import subprocess
+
 from tornado.gen import Task, Return, coroutine
 import tornado.process
-import subprocess
 
 
 STREAM = tornado.process.Subprocess.STREAM

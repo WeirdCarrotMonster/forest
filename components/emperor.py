@@ -4,6 +4,7 @@
 
 В качестве монитора вассалов используется стандартный glob://, а конфигурационные файлы хранятся в формате ini.
 """
+
 from __future__ import print_function, unicode_literals
 
 import os

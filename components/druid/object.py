@@ -1,7 +1,8 @@
 # coding=utf-8
 
-from toro import Queue
 from collections import defaultdict
+
+from toro import Queue
 from tornado import gen
 
 

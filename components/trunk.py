@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+
+import os
+
 import tornado.httpclient
 import tornado.template
 import tornado.web
-
-import os
 
 from components.emperor import Emperor
 from components.database import get_default_database

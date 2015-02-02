@@ -4,9 +4,9 @@ from __future__ import unicode_literals, print_function
 
 from tornado import gen
 import simplejson as json
+from bson import json_util
 
 from components.api.handler import Handler
-from bson import json_util
 
 
 class DatabaseHandler(Handler):

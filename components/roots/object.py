@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals
 
-from components.batteries import MySQL
-from components.common import log_message
+import os
+
 from tornado.gen import Return, coroutine
 import simplejson as json
 from bson import json_util
 
-import os
+from components.batteries import MySQL
+from components.common import log_message
 
 
 class Roots():
@@ -57,7 +58,6 @@ class Roots():
 
                     self.batteries_mysql[config["owner"]] = MySQL(emperor=self.trunk.emperor, **config)
                     self.batteries_mysql[config["owner"]].start()
-
 
     def save_config(self, battery):
         cfg_name = "{}.{}".format(battery.owner, battery.config_ext)

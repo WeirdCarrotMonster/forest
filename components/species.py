@@ -4,14 +4,15 @@
 подготовку виртуального окружения питона, обновление репозитория и
 автоматическое развертывание
 """
+
 from __future__ import print_function, unicode_literals
 
 import os
 from os.path import join
 import shutil
 import shlex
-from bson import ObjectId, json_util
 
+from bson import ObjectId, json_util
 import tornado
 from tornado.gen import coroutine, Task, Return
 import simplejson as json

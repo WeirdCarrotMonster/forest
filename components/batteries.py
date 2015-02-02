@@ -2,23 +2,20 @@
 
 from __future__ import unicode_literals, print_function
 
-from tornado.gen import coroutine, Return, Task
+import random
+import string
+import os
+import time
 
+from tornado.gen import coroutine, Return, Task
 from tornado.ioloop import IOLoop
+import pymysql
+from pymysql import OperationalError
 
 from components.emperor import Vassal
 from components.common import log_message
 from components.cmdrunner import call_subprocess
 from components.database import get_settings_connection_async
-
-
-import random
-import string
-
-import pymysql
-from pymysql import OperationalError
-import os
-import time
 
 try:
     from subprocess import DEVNULL
