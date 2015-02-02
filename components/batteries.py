@@ -157,7 +157,8 @@ class Mongo(Battery):
                 "--port={}".format(self.__port__),
                 "--bind_ip=127.0.0.1",
                 "--noauth",
-                "--logappend={}".format(os.path.join(self.__path__, "log.txt"))
+                "--logpath={}".format(os.path.join(self.__path__, "log.txt")),
+                "--logappend"
             ])
 
             yield self.wait(auth=False)
@@ -172,15 +173,10 @@ class Mongo(Battery):
     @coroutine
     def wait(self, timeout=60, auth=True):
         t = timeout
-        if not auth:
-            client = motor.MotorClient("mongodb://127.0.0.1:{}".format(self.__port__), connectTimeoutMS=500)
-        else:
-            client = motor.MotorClient("mongodb://{}:{}@127.0.0.1:{}/{}".format(
-                self.__username__,
-                self.__password__,
-                self.__port__,
-                self.__database__
-            ), connectTimeoutMS=500)
+        client = motor.MotorClient("mongodb://127.0.0.1:{}".format(self.__port__), connectTimeoutMS=500)
+
+        if auth:
+            client[self.__database__].authenticate(self.__username__, self.__password__)
         while t >= 0:
             t -= 1
             try:
@@ -188,12 +184,14 @@ class Mongo(Battery):
                 raise Return(True)
             except motor.pymongo.errors.AutoReconnect:
                 pass
-            yield Task(IOLoop.current().add_timeout, time.time() + 1)
+            except motor.pymongo.errors.OperationFailure:
+                raise Return(True)
+            yield Task(IOLoop.current().add_timeout, time.time() + 2)
 
         raise Return(False)
 
     def __get_config__(self):
         return """[uwsgi]
 master=true
-attach-daemon=mongod --dbpath={0} --port={1} --auth --logappend={2}
+attach-daemon=mongod --dbpath={0} --port={1} --auth --logpath={2} --logappend
 """.format(self.__path__, self.__port__, os.path.join(self.__path__, "log.txt"))
