@@ -7,7 +7,7 @@ from tornado.gen import Return, coroutine
 import simplejson as json
 from bson import json_util
 
-from components.batteries import MySQL
+from components.batteries import MySQL, Mongo
 from components.common import log_message
 
 
@@ -59,6 +59,14 @@ class Roots():
                     self.batteries_mysql[config["owner"]] = MySQL(emperor=self.trunk.emperor, **config)
                     self.batteries_mysql[config["owner"]].start()
 
+                if ext == ".mongo":
+                    log_message("Starting mongo server for {}".format(config["owner"]), component="Roots")
+
+                    self.port_range -= {config["port"]}
+
+                    self.batteries_mongo[config["owner"]] = Mongo(emperor=self.trunk.emperor, **config)
+                    self.batteries_mongo[config["owner"]].start()
+
     def save_config(self, battery):
         cfg_name = "{}.{}".format(battery.owner, battery.config_ext)
 
@@ -70,22 +78,46 @@ class Roots():
     def cleanup(self):
         for key, value in self.batteries_mysql.items():
             value.stop()
+        for key, value in self.batteries_mongo.items():
+            value.stop()
 
     @coroutine
     def create_db(self, name, db_type):
         credentials = {}
         if "mysql" in db_type:
+            log_message("Creating mysql for {}".format(name), component="Roots")
             db = MySQL(
                 emperor=self.trunk.emperor,
                 owner=str(name),
                 port=self.port_range.pop(),
                 path=os.path.join(self.dataroot, "{}_mysql".format(name))
             )
+            self.batteries_mysql[name] = db
             yield db.initialize()
             db.start()
             self.save_config(db)
             yield db.wait()
             credentials["mysql"] = {
+                "host": self.trunk.host,
+                "port": db.__port__,
+                "name": db.__database__,
+                "user": db.__username__,
+                "pass": db.__password__
+            }
+        if "mongo" in db_type:
+            log_message("Creating mongodb for {}".format(name), component="Roots")
+            db = Mongo(
+                emperor=self.trunk.emperor,
+                owner=str(name),
+                port=self.port_range.pop(),
+                path=os.path.join(self.dataroot, "{}_mongo".format(name))
+            )
+            self.batteries_mongo[name] = db
+            yield db.initialize()
+            db.start()
+            self.save_config(db)
+            yield db.wait()
+            credentials["mongo"] = {
                 "host": self.trunk.host,
                 "port": db.__port__,
                 "name": db.__database__,

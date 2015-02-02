@@ -58,6 +58,7 @@ def send_post_request(host, resource, data):
             body=dumps(data, default=json_util.default),
             method="POST",
             headers={"Token": host["secret"]},
+            request_timeout=0
         )
         data = response.body
         code = response.code

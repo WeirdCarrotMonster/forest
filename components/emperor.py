@@ -141,7 +141,7 @@ class Emperor(object):
             if data == vassal.get_config():
                 return
 
-            log_message("Leaf {} have stale configuration, will restart".format(vassal.name))
+            log_message("Leaf {} have stale configuration, will restart".format(vassal.id))
 
         with open(cfg_path, "w") as cfg:
             cfg.write(vassal.get_config())

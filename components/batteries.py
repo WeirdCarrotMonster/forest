@@ -148,6 +148,7 @@ class Mongo(Battery):
     @coroutine
     def initialize(self):
         if not os.path.exists(self.__path__):
+            log_message("Creating directory for {}".format(self.__owner__), component="Roots")
             os.makedirs(self.__path__)
 
             proc = subprocess.Popen([
@@ -155,10 +156,11 @@ class Mongo(Battery):
                 "--dbpath={}".format(self.__path__),
                 "--port={}".format(self.__port__),
                 "--bind_ip=127.0.0.1",
-                "--noauth"
-            ], stdout=DEVNULL, stderr=DEVNULL)
+                "--noauth",
+                "--logappend={}".format(os.path.join(self.__path__, "log.txt"))
+            ])
 
-            yield self.wait()
+            yield self.wait(auth=False)
 
             client = motor.MotorClient("127.0.0.1", self.__port__)
             yield client[self.__database__].add_user(name=self.__username__, password=self.__password__, roles=["readWrite"])
@@ -168,14 +170,24 @@ class Mongo(Battery):
 
 
     @coroutine
-    def wait(self, timeout=30):
+    def wait(self, timeout=60, auth=True):
         t = timeout
-        client = motor.MotorClient("127.0.0.1", self.__port__)
+        if not auth:
+            client = motor.MotorClient("mongodb://127.0.0.1:{}".format(self.__port__), connectTimeoutMS=500)
+        else:
+            client = motor.MotorClient("mongodb://{}:{}@127.0.0.1:{}/{}".format(
+                self.__username__,
+                self.__password__,
+                self.__port__,
+                self.__database__
+            ), connectTimeoutMS=500)
         while t >= 0:
             t -= 1
-            alive = yield client.alive()
-            if alive:
+            try:
+                yield client[self.__database__].eval("help")
                 raise Return(True)
+            except motor.pymongo.errors.AutoReconnect:
+                pass
             yield Task(IOLoop.current().add_timeout, time.time() + 1)
 
         raise Return(False)
@@ -183,5 +195,5 @@ class Mongo(Battery):
     def __get_config__(self):
         return """[uwsgi]
 master=true
-attach-daemon=mongod --dbpath={0} --port={1} --auth
-""".format(self.__path__, self.__port__)
+attach-daemon=mongod --dbpath={0} --port={1} --auth --logappend={2}
+""".format(self.__path__, self.__port__, os.path.join(self.__path__, "log.txt"))
