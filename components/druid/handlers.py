@@ -11,7 +11,7 @@ from bson import ObjectId, json_util
 
 from components.api.handler import Handler
 from components.api.decorators import token_auth
-from components.common import send_post_request, send_request
+from components.common import send_request
 
 
 class LeavesHandler(Handler):
@@ -116,7 +116,7 @@ class LeavesHandler(Handler):
 
         self.note("Asking air to enable host...")
         for air in self.application.druid.air:
-            yield send_post_request(air, "air/hosts", {"host": leaf_address})
+            yield send_request(air, "air/hosts", "POST", {"host": leaf_address})
 
         if species.get("requires", []):
             self.note("Species {} requires following batteries: {}".format(
@@ -127,11 +127,15 @@ class LeavesHandler(Handler):
 
             roots = self.application.druid.roots[0]
             self.note("Using roots server at {}".format(roots["host"]))
-            credentials = yield send_post_request(roots, "roots/db", {
-                "name": leaf_name,
-                "db_type": species["requires"]
-            })
-            db_settings = credentials["data"]
+            db_settings, code = yield send_request(
+                roots,
+                "roots/db",
+                "POST",
+                {
+                    "name": leaf_name,
+                    "db_type": species["requires"]
+                }
+            )
 
             yield self.application.async_db.leaves.update(
                 {"_id": leaf_id},
@@ -180,10 +184,10 @@ class LeavesHandler(Handler):
                 species
             )
 
-        result = yield send_post_request(branch, "branch/leaf", leaf_config)
-        if result["data"]["result"] == "started":
+        result, code = yield send_request(branch, "branch/leaf", "POST", leaf_config)
+        if result["result"] == "started":
             self.note("Successfully started leaf")
-        elif result["data"]["result"] == "queued":
+        elif result["result"] == "queued":
             self.note("Leaf queued")
         else:
             self.note("Leaf start failed")
@@ -255,11 +259,11 @@ class LeafHandler(Handler):
                         species
                     )
 
-                result = yield send_post_request(branch, "branch/leaf", leaf_data)
+                result, code = yield send_request(branch, "branch/leaf", "POST", leaf_data)
 
-                if result["data"]["result"] == "started":
+                if result["result"] == "started":
                     self.note("Successfully started leaf")
-                elif result["data"]["result"] == "queued":
+                elif result["result"] == "queued":
                     self.note("Leaf queued")
                 else:
                     self.note("Leaf start failed")
@@ -403,7 +407,7 @@ class BranchHandler(Handler):
                     )
                 verified_species.add(leaf["type"])
 
-            yield send_post_request(branch, "branch/leaf", leaf)
+            yield send_request(branch, "branch/leaf", "POST", leaf)
 
         self.finish(json.dumps({"result": "success"}))
 

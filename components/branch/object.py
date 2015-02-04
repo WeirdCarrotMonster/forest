@@ -18,7 +18,7 @@ from tornado.ioloop import IOLoop
 import zmq
 from toro import Lock
 
-from components.common import log_message, send_post_request
+from components.common import log_message, send_request
 
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -88,9 +88,10 @@ class Branch(object):
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
             for logger in self.__loggers__:
-                yield send_post_request(
+                yield send_request(
                     logger,
                     logger["resource"],
+                    "POST",
                     data_parsed
                 )
 
