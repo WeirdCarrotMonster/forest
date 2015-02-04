@@ -7,7 +7,7 @@ from tornado.gen import Return, coroutine
 import simplejson as json
 from bson import json_util
 
-from components.batteries import MySQL, Mongo
+from components.batteries import MySQL, Mongo, MongoShared
 from components.common import log_message
 
 
@@ -81,18 +81,33 @@ class Roots():
         for key, value in self.batteries_mongo.items():
             value.stop()
 
-    @coroutine
-    def create_db(self, name, db_type):
-        credentials = {}
-        if "mysql" in db_type:
-            log_message("Creating mysql for {}".format(name), component="Roots")
-            db = MySQL(
+    def __get_mongo__(self, name):
+        if True:
+            return Mongo(
                 emperor=self.trunk.emperor,
                 owner=str(name),
                 port=self.port_range.pop(),
-                path=os.path.join(self.dataroot, "{}_mysql".format(name))
+                path=os.path.join(self.dataroot, "{}_mongo".format(name))
             )
-            self.batteries_mysql[name] = db
+        else:
+            return MongoShared(
+                owner=str(name),
+                rootpass=None,
+                database=name
+            )
+
+    @coroutine
+    def create_db(self, _id, db_type):
+        credentials = {}
+        if "mysql" in db_type:
+            log_message("Creating mysql for {}".format(_id), component="Roots")
+            db = MySQL(
+                emperor=self.trunk.emperor,
+                owner=str(_id),
+                port=self.port_range.pop(),
+                path=os.path.join(self.dataroot, "{}_mysql".format(_id))
+            )
+            self.batteries_mysql[_id] = db
             yield db.initialize()
             db.start()
             self.save_config(db)
@@ -105,14 +120,9 @@ class Roots():
                 "pass": db.__password__
             }
         if "mongo" in db_type:
-            log_message("Creating mongodb for {}".format(name), component="Roots")
-            db = Mongo(
-                emperor=self.trunk.emperor,
-                owner=str(name),
-                port=self.port_range.pop(),
-                path=os.path.join(self.dataroot, "{}_mongo".format(name))
-            )
-            self.batteries_mongo[name] = db
+            log_message("Creating mongodb for {}".format(_id), component="Roots")
+            db = self.__get_mongo__(_id)
+            self.batteries_mongo[_id] = db
             yield db.initialize()
             db.start()
             self.save_config(db)

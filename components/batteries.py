@@ -195,3 +195,26 @@ class Mongo(Battery):
 master=true
 attach-daemon=mongod --dbpath={0} --port={1} --auth --logpath={2} --logappend
 """.format(self.__path__, self.__port__, os.path.join(self.__path__, "log.txt"))
+
+
+class MongoShared(Battery):
+
+    @property
+    def config_ext(self):
+        return "mongo_shared"
+
+    @coroutine
+    def initialize(self):
+        client = motor.MotorClient("127.0.0.1", self.__port__)
+        client[self.__database__].authenticate(self.__username__, self.__rootpass__)
+        yield client[self.__database__].add_user(name=self.__username__, password=self.__password__, roles=["readWrite"])
+
+    @coroutine
+    def wait(self):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
