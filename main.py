@@ -32,7 +32,6 @@ parser_run.add_argument(
 parser_check = subparsers.add_parser(
     'check', help="check Forest configuration and exit"
 )
-
 parser_check.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
@@ -41,12 +40,10 @@ parser_check.add_argument(
 parser_prepare = subparsers.add_parser(
     'prepare', help="prepare directories and binaries as specified in configuration file"
 )
-
 parser_prepare.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
 )
-
 parser_prepare.add_argument(
     '--force', '-f',
     dest='force', action='store_true', help="force rewrite uwsgi binary and plugins"
@@ -55,10 +52,17 @@ parser_prepare.add_argument(
 parser_shell = subparsers.add_parser(
     'shell', help="run Forest shell"
 )
-
 parser_shell.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest_shell.json"), help="use specified Forest connection file"
+)
+
+parser_genconf = subparsers.add_parser(
+    'genconf', help="generate Forest server configuration file"
+)
+parser_shell.add_argument(
+    '--config', '-c', type=argparse.FileType('w'),
+    default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
 )
 
 args = parser.parse_args()
@@ -89,6 +93,8 @@ elif args.command == "check":
 elif args.command == "shell":
     from utils.shell import ShellTool
     ShellTool(**settings).cmdloop()
+    sys.exit(0)
+elif args.command == "genconf":
     sys.exit(0)
 
 ioloop.install()
