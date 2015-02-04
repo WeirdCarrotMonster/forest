@@ -132,7 +132,7 @@ class LeavesHandler(Handler):
                 "roots/db",
                 "POST",
                 {
-                    "name": leaf_name,
+                    "name": leaf_id,
                     "db_type": species["requires"]
                 }
             )
