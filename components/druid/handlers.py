@@ -12,6 +12,7 @@ from bson import ObjectId, json_util
 from components.api.handler import Handler
 from components.api.decorators import token_auth
 from components.common import send_request
+from components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, branch_stop_leaf
 
 
 class LeavesHandler(Handler):
@@ -57,7 +58,6 @@ class LeavesHandler(Handler):
         leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
 
         if leaf_address_check:
-            self.note("Leaf with address {} already exists, pick another name".format(leaf_address))
             self.set_status(400)
             self.finish(json.dumps({
                 "result": "error",
@@ -73,7 +73,6 @@ class LeavesHandler(Handler):
         )
 
         if leaf["updatedExisting"]:
-            self.note("Leaf with name {} already exists, pick another name".format(leaf_name))
             self.set_status(400)
             self.finish(json.dumps({
                 "result": "error",
@@ -83,7 +82,6 @@ class LeavesHandler(Handler):
 
         leaf_id = leaf["upserted"]
 
-        self.note("Looking up species settings")
         try:
             query = {"_id": ObjectId(leaf_type)}
         except:
@@ -92,15 +90,12 @@ class LeavesHandler(Handler):
         species = yield self.application.async_db.species.find_one(query)
 
         if not species:
-            self.note("Unknown species specified, verify forest settings")
             self.set_status(400)
             self.finish(json.dumps({
                 "result": "error",
                 "message": "Unknown species"
             }))
             raise gen.Return()
-        else:
-            self.note("Using species {}[{}]".format(species["name"], species["_id"]))
 
         yield self.application.async_db.leaves.update(
             {"_id": leaf_id},
@@ -114,19 +109,11 @@ class LeavesHandler(Handler):
             }}
         )
 
-        self.note("Asking air to enable host...")
         for air in self.application.druid.air:
-            yield send_request(air, "air/hosts", "POST", {"host": leaf_address})
+            yield air_enable_host(air, leaf_address)
 
         if species.get("requires", []):
-            self.note("Species {} requires following batteries: {}".format(
-                species["name"],
-                ", ".join(species["requires"]))
-            )
-            self.note("Asking roots to prepare databases...")
-
             roots = self.application.druid.roots[0]
-            self.note("Using roots server at {}".format(roots["host"]))
             db_settings, code = yield send_request(
                 roots,
                 "roots/db",
@@ -137,31 +124,13 @@ class LeavesHandler(Handler):
                 }
             )
 
-            yield self.application.async_db.leaves.update(
-                {"_id": leaf_id},
-                {"$set": {
-                    "batteries": db_settings
-                }}
-            )
-
-            response = "\n"
-            for key, value in db_settings.items():
-                response += "Settings for {}\n".format(key)
-                response += "    User: {}\n".format(value["user"])
-                response += "    Pass: {}\n".format(value["pass"])
-                response += "    Name: {}\n".format(value["name"])
-            self.note(response)
+            yield self.application.async_db.leaves.update({"_id": leaf_id}, {"$set": {"batteries": db_settings}})
         else:
             db_settings = {}
 
-        self.note("Asking branch to host leaf")
         branch = random.choice(self.application.druid.branch)
-        self.note("Randomly chosen branch server at {}".format(branch["host"]))
 
-        yield self.application.async_db.leaves.update(
-            {"_id": leaf_id},
-            {"$set": {"branch": branch["name"]}}
-        )
+        yield self.application.async_db.leaves.update({"_id": leaf_id}, {"$set": {"branch": branch["name"]}})
 
         leaf_config = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
         leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
@@ -170,27 +139,9 @@ class LeavesHandler(Handler):
         # Проверяем наличие искомого типа на ветви
         # ==============
 
-        response, code = yield send_request(
-            branch,
-            "branch/species/{}".format(species["_id"]),
-            "GET"
-        )
+        yield branch_prepare_species(branch, species)
+        yield branch_start_leaf(branch, leaf_config)
 
-        if code == 404:
-            response, code = yield send_request(
-                branch,
-                "branch/species",
-                "POST",
-                species
-            )
-
-        result, code = yield send_request(branch, "branch/leaf", "POST", leaf_config)
-        if result["result"] == "started":
-            self.note("Successfully started leaf")
-        elif result["result"] == "queued":
-            self.note("Leaf queued")
-        else:
-            self.note("Leaf start failed")
         self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
@@ -222,7 +173,6 @@ class LeafHandler(Handler):
 
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
-            self.note("Unknown leaf specified")
             self.set_status(404)
             self.finish(json.dumps({"result": "success", "message": "Unknown leaf"}))
             raise gen.Return()
@@ -238,39 +188,21 @@ class LeafHandler(Handler):
             if leaf_data["active"]:
                 branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
 
-                self.note("Starting leaf {}".format(leaf_name))
                 leaf_data["fastrouters"] = [
                     "{host}:{fastrouter}".format(**a) for a in self.application.druid.air
                 ]
 
                 species = yield self.application.async_db.species.find_one({"_id": leaf_data["type"]})
 
-                response, code = yield send_request(
-                    branch,
-                    "branch/species/{}".format(species["_id"]),
-                    "GET"
-                )
+                yield branch_prepare_species(branch, species)
+                yield branch_start_leaf(branch, leaf_data)
 
-                if code == 404:
-                    response, code = yield send_request(
-                        branch,
-                        "branch/species",
-                        "POST",
-                        species
-                    )
-
-                result, code = yield send_request(branch, "branch/leaf", "POST", leaf_data)
-
-                if result["result"] == "started":
-                    self.note("Successfully started leaf")
-                elif result["result"] == "queued":
-                    self.note("Leaf queued")
-                else:
-                    self.note("Leaf start failed")
+                for air in self.application.druid.air:
+                    for address in leaf_data["address"]:
+                        yield air_enable_host(air, address)
             else:
                 branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
-                self.note("Stopping leaf {}".format(leaf_name))
-                yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "DELETE")
+                yield branch_stop_leaf(branch, leaf_data)
         self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
@@ -346,7 +278,7 @@ class SpeciesHandler(Handler):
         species = yield self.application.async_db.species.find_one({"_id": _id})
 
         for branch in self.application.druid.branch:
-            response, code = yield send_request(
+            yield send_request(
                 branch,
                 "branch/species/{}".format(species["_id"]),
                 "PATCH",
@@ -373,12 +305,10 @@ class BranchHandler(Handler):
         try:
             branch = next(x for x in self.application.druid.branch if x["name"] == branch_name)
         except:
-            self.note("Unknown branch '{}'".format(branch_name))
             self.set_status(404)
             self.finish()
             raise gen.Return()
 
-        self.note("Updating branch {} status...".format(branch["name"]))
         cursor = self.application.async_db.leaves.find({"branch": branch_name, "active": True})
 
         verified_species = set()
@@ -386,28 +316,14 @@ class BranchHandler(Handler):
         while (yield cursor.fetch_next):
             leaf = cursor.next_object()
 
-            self.note("Starting leaf {}".format(leaf["name"]))
             leaf["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
 
             if leaf["type"] not in verified_species:
-                response, code = yield send_request(
-                    branch,
-                    "branch/species/{}".format(leaf["type"]),
-                    "GET"
-                )
-
-                if code == 404:
-                    species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
-
-                    response, code = yield send_request(
-                        branch,
-                        "branch/species",
-                        "POST",
-                        species
-                    )
+                species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
+                yield branch_prepare_species(branch, species)
                 verified_species.add(leaf["type"])
 
-            yield send_request(branch, "branch/leaf", "POST", leaf)
+            yield branch_start_leaf(branch, leaf)
 
         self.finish(json.dumps({"result": "success"}))
 
