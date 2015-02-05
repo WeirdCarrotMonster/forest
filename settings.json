@@ -15,7 +15,11 @@
         "secret": "71a9eccb2cedb3dbd850d907d803388f"
     },
     "roots": {
-        "roots_dir": "/home/wcm/coding/forest/roots"
+        "roots_dir": "/home/wcm/coding/forest/roots",
+        "mongo": {
+            "type": "shared",
+            "rootpass": "password"
+        }
     },
     "branch": {
         "host": "127.0.0.1",
