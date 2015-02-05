@@ -20,15 +20,20 @@ from components.common import log_message
 parser = argparse.ArgumentParser(description='Run your own Forest')
 subparsers = parser.add_subparsers(dest="command")
 
+# ===========
+# Парсер запуска
 parser_run = subparsers.add_parser(
     'run', help="Forest launch mode"
 )
-
 parser_run.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
 )
+# ===========
 
+
+# ===========
+# Парсер проверки
 parser_check = subparsers.add_parser(
     'check', help="check Forest configuration and exit"
 )
@@ -36,7 +41,11 @@ parser_check.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
 )
+# ===========
 
+
+# ===========
+# Парсер подготовки
 parser_prepare = subparsers.add_parser(
     'prepare', help="prepare directories and binaries as specified in configuration file"
 )
@@ -48,7 +57,11 @@ parser_prepare.add_argument(
     '--force', '-f',
     dest='force', action='store_true', help="force rewrite uwsgi binary and plugins"
 )
+# ==========
 
+
+# ==========
+# Парсер утилиты
 parser_shell = subparsers.add_parser(
     'shell', help="run Forest shell"
 )
@@ -56,14 +69,19 @@ parser_shell.add_argument(
     '--config', '-c', type=argparse.FileType('r'),
     default=os.path.join(os.path.expanduser("~"), ".forest_shell.json"), help="use specified Forest connection file"
 )
+# ==========
 
+
+# ==========
+# Парсер генерации конфига
 parser_genconf = subparsers.add_parser(
     'genconf', help="generate Forest server configuration file"
 )
-parser_shell.add_argument(
+parser_genconf.add_argument(
     '--config', '-c', type=argparse.FileType('w'),
     default=os.path.join(os.path.expanduser("~"), ".forest.json"), help="use specified Forest configuration file"
 )
+# ==========
 
 args = parser.parse_args()
 settings = json.load(args.config)

@@ -2,12 +2,13 @@
 from __future__ import print_function, unicode_literals
 
 import os
+import sys
+from bson import json_util
 
 from tornado.gen import Return, coroutine
 import simplejson as json
-from bson import json_util
 
-from components.batteries import MySQL, Mongo, MongoShared
+from components.roots.batteries import MySQL, Mongo, MongoShared
 from components.common import log_message
 
 
@@ -16,6 +17,7 @@ class Roots():
     def __init__(self, trunk, settings):
         self.settings = settings
         self.trunk = trunk
+        self.__mongo_settings__ = self.settings.get("mongo")
 
         self.__roots_dir__ = self.settings.get("roots_dir") or os.path.join(self.trunk.forest_root, "roots")
         log_message("Started roots", component="Roots")
@@ -82,19 +84,23 @@ class Roots():
             value.stop()
 
     def __get_mongo__(self, name):
-        if True:
+        mongo_type = self.__mongo_settings__.get("type", "standalone")
+        if mongo_type == "standalone":
             return Mongo(
                 emperor=self.trunk.emperor,
                 owner=str(name),
                 port=self.port_range.pop(),
                 path=os.path.join(self.dataroot, "{}_mongo".format(name))
             )
-        else:
+        elif mongo_type == "shared":
             return MongoShared(
                 owner=str(name),
-                rootpass=None,
+                rootpass=self.__mongo_settings__.get("rootpass", "password"),
                 database=name
             )
+        else:
+            log_message("Unknown configuration specified for roots.mongo.type: {}".format(mongo_type))
+            sys.exit(0)
 
     @coroutine
     def create_db(self, _id, db_type):

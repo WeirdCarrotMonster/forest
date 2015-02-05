@@ -13,7 +13,7 @@ import simplejson as json
 
 
 def asyncloop(f):
-    def wraps(*args, **kwargs):
+    def wraps():
         try:
             IOLoop.instance().run_sync(coroutine(f))
         except KeyboardInterrupt:
