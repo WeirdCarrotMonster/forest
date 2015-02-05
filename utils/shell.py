@@ -13,7 +13,10 @@ import cmd
 
 def asyncloop(f):
     def wraps(*args, **kwargs):
-        IOLoop.instance().run_sync(coroutine(f))
+        try:
+            IOLoop.instance().run_sync(coroutine(f))
+        except KeyboardInterrupt:
+            pass
 
     wraps()
 
