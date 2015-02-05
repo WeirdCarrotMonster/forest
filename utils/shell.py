@@ -2,13 +2,14 @@
 # coding=utf-8
 
 from __future__ import unicode_literals, print_function
+import sys
+from bson import json_util
+import cmd
+
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 from tornado.gen import coroutine, Return
-import sys
 import simplejson as json
-from bson import json_util
-import cmd
 
 
 def asyncloop(f):
