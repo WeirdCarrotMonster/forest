@@ -169,7 +169,6 @@ class Mongo(Battery):
             proc.terminate()
             proc.wait()
 
-
     @coroutine
     def wait(self, timeout=60, auth=True):
         t = timeout
@@ -205,9 +204,15 @@ class MongoShared(Battery):
 
     @coroutine
     def initialize(self):
-        client = motor.MotorClient("127.0.0.1", self.__port__)
-        client[self.__database__].authenticate(self.__username__, self.__rootpass__)
-        yield client[self.__database__].add_user(name=self.__username__, password=self.__password__, roles=["readWrite"])
+        client = motor.MotorClient(
+            "mongodb://{}:{}@127.0.0.1:{}/admin".format(
+                "admin",
+                self.__rootpass__,
+                self.__port__
+            )
+        )
+        db = client[str(self.__database__)]
+        yield db.add_user(self.__username__, self.__password__, roles=["readWrite"])
 
     @coroutine
     def wait(self):

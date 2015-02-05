@@ -18,8 +18,8 @@ class DatabaseHandler(Handler):
         Имя хоста, указанное в поле host, будет добавлено в список разрешенных для подключения к
         uwsgi-router.
         """
-        data = json.loads(self.request.body)
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
         assert "name" and "db_type" in data
 
-        credentials = yield self.application.roots.create_db(data["name"], data["db_type"])
+        credentials = yield self.application.roots.create_db(str(data["name"]), data["db_type"])
         self.finish(json.dumps(credentials, default=json_util.default))

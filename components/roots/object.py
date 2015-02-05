@@ -95,6 +95,7 @@ class Roots():
         elif mongo_type == "shared":
             return MongoShared(
                 owner=str(name),
+                port=27017,
                 rootpass=self.__mongo_settings__.get("rootpass", "password"),
                 database=name
             )
