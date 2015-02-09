@@ -121,15 +121,17 @@ class Leaf(Vassal):
     def __get_config__(self):
         logs_format = {
             "uri": "%(uri)",
-            "method": "%(method)",
             "addr": "%(addr)",
             "host": "%(host)",
-            "proto": "%(proto)",
-            "status": "%(status)",
-            "msecs": "%(msecs)",
             "time": "%(ltime)",
-            "response_size": "%(size)",
+            "proto": "%(proto)",
+            "msecs": "%(msecs)",
+            "method": "%(method)",
+            "status": "%(status)",
             "request_size": "%(cl)",
+            "warnings": "%(warnings)",
+            "response_size": "%(size)",
+            "traceback": "%(traceback)",
             "log_source": str(self.id)
         }
 
