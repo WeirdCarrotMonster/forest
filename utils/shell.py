@@ -48,6 +48,9 @@ class ShellTool(cmd.Cmd):
         self.token = token or ""
         self.do_set_host(host or "127.0.0.1:1234")
 
+    def emptyline(self):
+        pass
+
     def set_prompt(self, leaf=None):
         self.prompt = "[Forest{}] ".format(": {}".format(leaf) if leaf else "")
 
