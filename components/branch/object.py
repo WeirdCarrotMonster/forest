@@ -18,11 +18,12 @@ from tornado.ioloop import IOLoop
 import zmq
 from toro import Lock
 
-from components.common import log_message, send_request
+from components.common import log_message
 
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
+from components.branch.loggers import POSTLogger, POSTLoggerMinimal
 
 
 class Branch(object):
@@ -37,8 +38,16 @@ class Branch(object):
 
         self.leaves = {}
         self.species = {}
+        self.__loggers__ = []
 
-        self.__loggers__ = settings.get("loggers")
+        for logger in settings.get("loggers", []):
+            if logger.get("type") == "POSTLogger":
+                self.__loggers__.append(POSTLogger(**logger))
+            elif logger.get("type") == "POSTLoggerMinimal":
+                self.__loggers__.append(POSTLoggerMinimal(**logger))
+            else:
+                log_message("Unknown logger type '{}', skipping".format(logger.get("type")), component="Branch")
+
         self.batteries = defaultdict(list)
 
         ctx = zmq.Context()
@@ -67,34 +76,36 @@ class Branch(object):
 
             add_info = {
                 "component_name": self.trunk.name,
-                "component_type": "branch",
-                "log_type": "leaf.event"
+                "component_type": "branch"
             }
 
             try:
                 data_parsed = json.loads(data)
-                data_parsed.update(add_info)
                 data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["status"] = int(data_parsed["status"])
+                data_parsed["log_type"] = "leaf.event"
                 data_parsed["request_size"] = int(data_parsed["request_size"])
                 data_parsed["response_size"] = int(data_parsed["response_size"])
-
             except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
                 data_parsed["time"] = datetime.datetime.utcnow()
 
-            data_parsed["component_type"] = "branch"
+            data_parsed.update(add_info)
+
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
-            for logger in self.__loggers__:
-                yield send_request(
-                    logger,
-                    logger["resource"],
-                    "POST",
-                    data_parsed
-                )
+            try:
+                yield [logger.log(data_parsed) for logger in self.__loggers__ if logger.suitable(data_parsed)]
+            except:
+                import traceback
+                print(traceback.format_exc())
+
+        failed_loggers = [logger for logger in self.__loggers__ if logger.failed]
+
+        for logger in failed_loggers:
+            self.__loggers__.remove(logger)
 
     def get_species(self, species_id):
         """
