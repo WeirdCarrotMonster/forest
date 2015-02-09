@@ -15,7 +15,6 @@ class Trunk(tornado.web.Application):
     def __init__(self, settings_dict, **settings):
         super(Trunk, self).__init__(**settings)
         self.settings["cookie_secret"] = "asdasd"
-        self.database = settings_dict["db"]
         self.name = settings_dict["name"]
         self.root = settings_dict["root"]
         self.host = settings_dict["host"]
@@ -24,8 +23,10 @@ class Trunk(tornado.web.Application):
 
         self.emperor = Emperor(self.emperor_dir)
 
-        self.async_db = get_default_database(self.database, async=True)
-        self.sync_db = get_default_database(self.database)
+        self.database = settings_dict.get("db")
+        if self.database:
+            self.async_db = get_default_database(self.database, async=True)
+            self.sync_db = get_default_database(self.database)
 
         self.branch = None
         self.roots = None
