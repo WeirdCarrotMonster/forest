@@ -18,7 +18,7 @@ class Roots():
         self.settings = settings
         self.trunk = trunk
         self.__mongo_settings__ = self.settings.get("mongo", {})
-        self.__mongo_settings__ = self.settings.get("mysql", {})
+        self.__mysql_settings__ = self.settings.get("mysql", {})
 
         self.__roots_dir__ = self.settings.get("roots_dir") or os.path.join(self.trunk.forest_root, "roots")
         log_message("Started roots", component="Roots")
@@ -42,6 +42,9 @@ class Roots():
         return os.path.join(self.root, "data")
 
     def initialize(self):
+        if not self.__mysql_settings__.get("type", "standalone") == "standalone":
+            return
+
         for f in os.listdir(self.metaroot):
             if not os.path.isfile(os.path.join(self.metaroot, f)):
                 continue
@@ -129,7 +132,7 @@ class Roots():
         credentials = {}
         if "mysql" in db_type:
             log_message("Creating mysql for {}".format(_id), component="Roots")
-            db = self.__get_mongo__(_id)
+            db = self.__get_mysql__(_id)
             self.batteries_mysql[_id] = db
             yield db.initialize()
             db.start()

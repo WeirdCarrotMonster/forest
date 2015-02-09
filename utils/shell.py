@@ -14,10 +14,11 @@ import simplejson as json
 
 def asyncloop(f):
     def wraps():
+        loop = IOLoop.instance()
         try:
-            IOLoop.instance().run_sync(coroutine(f))
+            loop.run_sync(coroutine(f))
         except KeyboardInterrupt:
-            pass
+            loop.stop()
 
     wraps()
 
@@ -152,11 +153,11 @@ class ShellTool(cmd.Cmd):
             try:
                 data = json.loads(data, object_hook=json_util.object_hook)
                 if data["log_type"] == "leaf.event":
-                    print("[{added}] {method} - {uri}".format(**data))
+                    print("[{time}] {method} - {uri}".format(**data))
                 elif data["log_type"] == "leaf.stdout_stderr":
-                    print("[{added}] {raw}".format(**data))
-            except:
-                print(data)
+                    print("[{time}] {raw}".format(**data))
+            except Exception as e:
+                print(e)
 
         @asyncloop
         def async_request():

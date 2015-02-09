@@ -13,6 +13,7 @@ from tornado.ioloop import IOLoop
 import pymysql
 import motor
 from pymysql import OperationalError
+import traceback
 
 from components.emperor import Vassal
 from components.common import log_message
@@ -241,13 +242,14 @@ class MysqlShared(Battery):
 
     @coroutine
     def initialize(self):
-        db = MySQLdb.connect(
-            host="127.0.0.1",
-            port=self.__port__,
-            user="root",
-            passwd=self.__rootpass__
-        )
         try:
+            db = pymysql.connect(
+                host="127.0.0.1",
+                port=self.__port__,
+                user="root",
+                passwd=self.__rootpass__
+            )
+
             cur = db.cursor()
             cur.execute("""
 CREATE DATABASE `{0}` CHARACTER SET utf8
@@ -259,7 +261,7 @@ FLUSH PRIVILEGES;
             )
             db.close()
         except:
-            pass
+            print(traceback.format_exc())
 
     @coroutine
     def wait(self):
