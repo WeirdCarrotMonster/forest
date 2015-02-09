@@ -41,12 +41,9 @@ class Branch(object):
         self.__loggers__ = []
 
         for logger in settings.get("loggers", []):
-            if logger.get("type") == "POSTLogger":
-                self.__loggers__.append(POSTLogger(**logger))
-            elif logger.get("type") == "POSTLoggerMinimal":
-                self.__loggers__.append(POSTLoggerMinimal(**logger))
-            else:
-                log_message("Unknown logger type '{}', skipping".format(logger.get("type")), component="Branch")
+            result, message = self.add_logger(logger)
+            if not result:
+                log_message("Error adding '{}': {}".format(logger.get("identifier"), message), component="Branch")
 
         self.batteries = defaultdict(list)
 
@@ -106,6 +103,22 @@ class Branch(object):
 
         for logger in failed_loggers:
             self.__loggers__.remove(logger)
+
+    def add_logger(self, configuration):
+        try:
+            for logger in self.__loggers__:
+                if logger.identifier == configuration["identifier"]:
+                    return False, "Duplicate identifier"
+
+            if configuration.get("type") == "POSTLogger":
+                self.__loggers__.append(POSTLogger(**configuration))
+            elif configuration.get("type") == "POSTLoggerMinimal":
+                self.__loggers__.append(POSTLoggerMinimal(**configuration))
+            else:
+                return False, "Unknown logger type"
+        except Exception as e:
+            return False, str(e)
+        return True, None
 
     def get_species(self, species_id):
         """

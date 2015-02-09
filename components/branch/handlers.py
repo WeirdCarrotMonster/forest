@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import tornado.web
 import tornado.gen
 import simplejson as json
+from components.api.decorators import token_auth
 from bson import ObjectId, json_util
 
 
@@ -13,6 +14,7 @@ class LeavesHandler(tornado.web.RequestHandler):
     Выполняет управление каждым отдельно взятым листом
     """
     @tornado.gen.coroutine
+    @token_auth
     def get(self):
         """
         Возвращает список всех известных листьев
@@ -20,6 +22,7 @@ class LeavesHandler(tornado.web.RequestHandler):
         pass
 
     @tornado.gen.coroutine
+    @token_auth
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
@@ -39,6 +42,7 @@ class LeafHandler(tornado.web.RequestHandler):
     Выполняет управление каждым отдельно взятым листом
     """
     @tornado.gen.coroutine
+    @token_auth
     def get(self, _id):
         """
         Получает информацию о листе с указанным id
@@ -46,6 +50,7 @@ class LeafHandler(tornado.web.RequestHandler):
         self.finish(json.dumps(self.application.emperor.stats(_id)))
 
     @tornado.gen.coroutine
+    @token_auth
     def post(self):
         """
         Перезаписывает настройки листа
@@ -53,6 +58,7 @@ class LeafHandler(tornado.web.RequestHandler):
         pass
 
     @tornado.gen.coroutine
+    @token_auth
     def delete(self, leaf_id):
         leaf_id = ObjectId(leaf_id)
 
@@ -66,6 +72,7 @@ class LeafHandler(tornado.web.RequestHandler):
 class SpeciesListHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
+    @token_auth
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
@@ -77,6 +84,7 @@ class SpeciesListHandler(tornado.web.RequestHandler):
 class SpeciesHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
+    @token_auth
     def get(self, _id):
         _id = ObjectId(_id)
 
@@ -89,9 +97,35 @@ class SpeciesHandler(tornado.web.RequestHandler):
             self.finish()
 
     @tornado.gen.coroutine
+    @token_auth
     def patch(self, _id):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
         self.application.branch.create_species(data)
 
         self.finish(json.dumps({"result": "success", "message": "OK"}))
+
+
+class LoggersListHandler(tornado.web.RequestHandler):
+
+    @tornado.gen.coroutine
+    @token_auth
+    def get(self):
+        self.finish(json.dumps([
+            {
+                "identifier": logger.identifier,
+                "type": logger.__class__.__name__
+            } for logger in self.application.branch.__loggers__
+        ]))
+
+    @tornado.gen.coroutine
+    @token_auth
+    def post(self):
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+
+        result, message = self.application.branch.add_logger(data)
+        if not result:
+            self.set_status(400)
+            self.finish(json.dumps({"result": "failure", "message": message}))
+        else:
+            self.finish(json.dumps({"result": "success"}))

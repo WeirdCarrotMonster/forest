@@ -9,7 +9,7 @@ from tornado.httpclient import AsyncHTTPClient
 
 class Logger(object):
 
-    def __init__(self, max_failures=0, filters=None, identifier=None, *args, **kwargs):
+    def __init__(self, identifier, max_failures=0, filters=None, *args, **kwargs):
         self.__max_failures__ = max_failures
         self.__filters__ = filters or {}
         self.__failures__ = 0

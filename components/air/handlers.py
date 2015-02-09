@@ -6,12 +6,14 @@ from tornado import gen
 import simplejson as json
 from bson import json_util
 
+from components.api.decorators import token_auth
 from components.api.handler import Handler
 
 
 class HostHandler(Handler):
 
     @gen.coroutine
+    @token_auth
     def post(self):
         """
         POST-запросы, поступающие на апи обработки хостов, должны содержать информацию о добавляемом хосте.
