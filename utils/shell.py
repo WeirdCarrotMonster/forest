@@ -20,6 +20,7 @@ def asyncloop(f):
             loop.run_sync(coroutine(f))
         except KeyboardInterrupt:
             loop.stop()
+            print("", end="\r")
 
     wraps()
 
