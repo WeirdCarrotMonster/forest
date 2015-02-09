@@ -106,7 +106,7 @@ class SpeciesHandler(tornado.web.RequestHandler):
         self.finish(json.dumps({"result": "success", "message": "OK"}))
 
 
-class LoggersListHandler(tornado.web.RequestHandler):
+class LoggerListHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     @token_auth
@@ -126,6 +126,19 @@ class LoggersListHandler(tornado.web.RequestHandler):
         result, message = self.application.branch.add_logger(data)
         if not result:
             self.set_status(400)
+            self.finish(json.dumps({"result": "failure", "message": message}))
+        else:
+            self.finish(json.dumps({"result": "success"}))
+
+
+class LoggerHandler(tornado.web.RequestHandler):
+
+    @tornado.gen.coroutine
+    @token_auth
+    def delete(self, identifier):
+        result, code, message = self.application.branch.delete_logger(identifier)
+        if not result:
+            self.set_status(code)
             self.finish(json.dumps({"result": "failure", "message": message}))
         else:
             self.finish(json.dumps({"result": "success"}))

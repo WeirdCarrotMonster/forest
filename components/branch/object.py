@@ -120,6 +120,17 @@ class Branch(object):
             return False, str(e)
         return True, None
 
+    def delete_logger(self, identifier):
+        try:
+            logger = next(x for x in self.__loggers__ if x.identifier == identifier)
+            self.__loggers__.remove(logger)
+        except StopIteration:
+            return False, 404, "Not found"
+        except Exception as e:
+            return False, 500, str(e)
+        else:
+            return True, 200, "OK"
+
     def get_species(self, species_id):
         """
         Получает экземпляр класса Species
