@@ -80,7 +80,7 @@ class Branch(object):
                 data_parsed = json.loads(data)
                 try:
                     data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
-                except KeyError:
+                except (KeyError, ValueError):
                     data_parsed["time"] = datetime.datetime.utcnow()
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["status"] = int(data_parsed["status"])
