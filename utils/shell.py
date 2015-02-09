@@ -15,6 +15,7 @@ import simplejson as json
 def asyncloop(f):
     def wraps():
         loop = IOLoop.instance()
+        loop.clear_instance()
         try:
             loop.run_sync(coroutine(f))
         except KeyboardInterrupt:
