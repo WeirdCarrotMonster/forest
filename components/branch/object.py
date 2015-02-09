@@ -81,7 +81,7 @@ class Branch(object):
                 try:
                     data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
                 except KeyError:
-                    pass
+                    data_parsed["time"] = datetime.datetime.utcnow()
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["log_type"] = "leaf.event"
