@@ -74,16 +74,17 @@ class Branch(object):
             try:
                 data_parsed = json.loads(data)
                 data_parsed.update(add_info)
-                data_parsed["status"] = int(data_parsed["status"])
+                data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
                 data_parsed["msecs"] = int(data_parsed["msecs"])
+                data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["request_size"] = int(data_parsed["request_size"])
                 data_parsed["response_size"] = int(data_parsed["response_size"])
 
             except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
+                data_parsed["time"] = datetime.datetime.utcnow()
 
             data_parsed["component_type"] = "branch"
-            data_parsed["added"] = datetime.datetime.now()
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
