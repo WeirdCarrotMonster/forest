@@ -164,7 +164,11 @@ class Mongo(Battery):
             yield self.wait(auth=False)
 
             client = motor.MotorClient("127.0.0.1", self.__port__)
-            yield client[self.__database__].add_user(name=self.__username__, password=self.__password__, roles=["readWrite"])
+            yield client[self.__database__].add_user(
+                name=self.__username__,
+                password=self.__password__,
+                roles=["readWrite"]
+            )
 
             proc.terminate()
             proc.wait()
@@ -213,6 +217,49 @@ class MongoShared(Battery):
         )
         db = client[str(self.__database__)]
         yield db.add_user(self.__username__, self.__password__, roles=["readWrite"])
+
+    @coroutine
+    def wait(self):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+
+class MysqlShared(Battery):
+
+    def __init__(self, *args, **kwargs):
+        super(MysqlShared, self).__init__(*args, **kwargs)
+        self.__username__ = self.__database__
+
+    @property
+    def config_ext(self):
+        return "mysql_shared"
+
+    @coroutine
+    def initialize(self):
+        db = MySQLdb.connect(
+            host="127.0.0.1",
+            port=self.__port__,
+            user="root",
+            passwd=self.__rootpass__
+        )
+        try:
+            cur = db.cursor()
+            cur.execute("""
+CREATE DATABASE `{0}` CHARACTER SET utf8
+COLLATE utf8_general_ci;
+GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%'
+IDENTIFIED BY '{2}' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+""".format(self.__database__, self.__username__, self.__password__)
+            )
+            db.close()
+        except:
+            pass
 
     @coroutine
     def wait(self):

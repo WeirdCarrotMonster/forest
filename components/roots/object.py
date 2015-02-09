@@ -8,7 +8,7 @@ from bson import json_util
 from tornado.gen import Return, coroutine
 import simplejson as json
 
-from components.roots.batteries import MySQL, Mongo, MongoShared
+from components.roots.batteries import MySQL, Mongo, MongoShared, MysqlShared
 from components.common import log_message
 
 
@@ -17,7 +17,8 @@ class Roots():
     def __init__(self, trunk, settings):
         self.settings = settings
         self.trunk = trunk
-        self.__mongo_settings__ = self.settings.get("mongo")
+        self.__mongo_settings__ = self.settings.get("mongo", {})
+        self.__mongo_settings__ = self.settings.get("mysql", {})
 
         self.__roots_dir__ = self.settings.get("roots_dir") or os.path.join(self.trunk.forest_root, "roots")
         log_message("Started roots", component="Roots")
@@ -103,17 +104,32 @@ class Roots():
             log_message("Unknown configuration specified for roots.mongo.type: {}".format(mongo_type))
             sys.exit(0)
 
+    def __get_mysql__(self, name):
+        mysql_type = self.__mysql_settings__.get("type", "standalone")
+        if mysql_type == "standalone":
+            return MySQL(
+                emperor=self.trunk.emperor,
+                owner=str(name),
+                port=self.port_range.pop(),
+                path=os.path.join(self.dataroot, "{}_mysql".format(name))
+            )
+        elif mysql_type == "shared":
+            return MysqlShared(
+                owner=str(name),
+                port=3306,
+                rootpass=self.__mysql_settings__.get("rootpass", "password"),
+                database=name
+            )
+        else:
+            log_message("Unknown configuration specified for roots.mysql.type: {}".format(mysql_type))
+            sys.exit(0)
+
     @coroutine
     def create_db(self, _id, db_type):
         credentials = {}
         if "mysql" in db_type:
             log_message("Creating mysql for {}".format(_id), component="Roots")
-            db = MySQL(
-                emperor=self.trunk.emperor,
-                owner=str(_id),
-                port=self.port_range.pop(),
-                path=os.path.join(self.dataroot, "{}_mysql".format(_id))
-            )
+            db = self.__get_mongo__(_id)
             self.batteries_mysql[_id] = db
             yield db.initialize()
             db.start()

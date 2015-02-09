@@ -19,6 +19,10 @@
         "mongo": {
             "type": "shared",
             "rootpass": "password"
+        },
+        "mysql": {
+            "type": "shared",
+            "rootpass": "password"
         }
     },
     "branch": {
