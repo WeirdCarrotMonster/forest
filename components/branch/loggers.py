@@ -9,10 +9,19 @@ from tornado.httpclient import AsyncHTTPClient
 
 class Logger(object):
 
-    def __init__(self, identifier, max_failures=0, filters=None, *args, **kwargs):
+    def __init__(
+            self,
+            identifier,
+            filters=None,
+            max_failures=0,
+            redundant_keys=None,
+            *args,
+            **kwargs
+            ):
         self.__max_failures__ = max_failures
         self.__filters__ = filters or {}
         self.__failures__ = 0
+        self.__redundant_keys__ = redundant_keys or []
         self.identifier = identifier
 
     @property
@@ -50,7 +59,13 @@ class Logger(object):
             self.__success__()
 
     def __prepare_data__(self, data):
-        return data
+        __data__ = dict(data)
+
+        for key in self.__redundant_keys__:
+            if key in __data__:
+                del __data__[key]
+
+        return __data__
 
     @gen.coroutine
     def __log__(self, data):
@@ -65,7 +80,15 @@ class Logger(object):
 
 class POSTLogger(Logger):
 
-    def __init__(self, address, headers=None, connect_timeout=5, request_timeout=5, *args, **kwargs):
+    def __init__(
+            self,
+            address,
+            headers=None,
+            connect_timeout=5,
+            request_timeout=5,
+            *args,
+            **kwargs
+            ):
         super(POSTLogger, self).__init__(*args, **kwargs)
         self.__address__ = address
         self.__headers__ = headers or {}
@@ -82,19 +105,3 @@ class POSTLogger(Logger):
             connect_timeout=self.__ctimeout__,
             request_timeout=self.__rtimeout__
         )
-
-
-class POSTLoggerMinimal(POSTLogger):
-
-    def __init__(self, redundant_keys, *args, **kwargs):
-        super(POSTLoggerMinimal, self).__init__(*args, **kwargs)
-        self.__redundant_keys__ = redundant_keys
-
-    def __prepare_data__(self, data):
-        __data__ = dict(data)
-
-        for key in self.__redundant_keys__:
-            if key in __data__:
-                del __data__[key]
-
-        return __data__

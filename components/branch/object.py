@@ -23,7 +23,7 @@ from components.common import log_message
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
-from components.branch.loggers import POSTLogger, POSTLoggerMinimal
+from components.branch.loggers import POSTLogger
 
 
 class Branch(object):
@@ -82,6 +82,7 @@ class Branch(object):
                     data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
                 except (KeyError, ValueError):
                     data_parsed["time"] = datetime.datetime.utcnow()
+
                 data_parsed["msecs"] = int(data_parsed["msecs"])
                 data_parsed["status"] = int(data_parsed["status"])
                 data_parsed["log_type"] = "leaf.event"
@@ -115,8 +116,6 @@ class Branch(object):
 
             if configuration.get("type") == "POSTLogger":
                 self.__loggers__.append(POSTLogger(**configuration))
-            elif configuration.get("type") == "POSTLoggerMinimal":
-                self.__loggers__.append(POSTLoggerMinimal(**configuration))
             else:
                 return False, "Unknown logger type"
         except Exception as e:
