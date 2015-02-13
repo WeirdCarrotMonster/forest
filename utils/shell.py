@@ -158,10 +158,10 @@ class ShellTool(cmd.Cmd):
             try:
                 data = json.loads(data, object_hook=json_util.object_hook)
                 if data["log_type"] == "leaf.event":
-                    if "traceback" not in data:
-                        print("[{time}] {status} {method} - {uri}".format(**data))
-                    else:
+                    if "traceback" in data and data["traceback"] != "-":
                         print("[{time}] {status} {method} - {uri} [ Traceback id: {traceback} ]".format(**data))
+                    else:
+                        print("[{time}] {status} {method} - {uri}".format(**data))
                 elif data["log_type"] == "leaf.stdout_stderr":
                     print("[{time}] {raw}".format(**data))
             except Exception:
