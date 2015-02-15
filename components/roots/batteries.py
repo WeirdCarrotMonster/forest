@@ -234,7 +234,7 @@ class MysqlShared(Battery):
 
     def __init__(self, *args, **kwargs):
         super(MysqlShared, self).__init__(*args, **kwargs)
-        self.__username__ = self.__database__
+        self.__username__ = self.__database__[len(self.__database__)-16:]
 
     @property
     def config_ext(self):
