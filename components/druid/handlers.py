@@ -251,7 +251,6 @@ class TracebackHandler(Handler):
     @gen.coroutine
     @token_auth
     def get(self, traceback_id):
-        print(traceback_id)
         traceback = yield self.application.async_db.logs.find_one({
             "log_type": "leaf.traceback",
             "traceback_id": traceback_id
