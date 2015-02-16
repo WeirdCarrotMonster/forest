@@ -36,6 +36,108 @@ def async_client_wrapper(*args, **kwargs):
     raise Return(res)
 
 
+class LeafShell(cmd.Cmd):
+
+    def __init__(self, leaf, host, token, *args, **kwargs):
+        cmd.Cmd.__init__(self, *args, **kwargs)
+        self.__leaf__ = leaf
+        self.host = host
+        self.token = token
+
+        self.prompt = "[Leaf '{}'] ".format(leaf)
+
+    def emptyline(self):
+        pass
+
+    def do_exit(self, args):
+        return True
+
+    def do_stop_leaf(self, *args, **kwargs):
+        @asyncloop
+        def async_request():
+            yield async_client_wrapper(
+                "http://{}/api/druid/leaf/{}".format(self.host, self.__leaf__),
+                method="PATCH",
+                streaming_callback=print,
+                headers={"Interactive": "True", "Token": self.token},
+                request_timeout=0,
+                body=json.dumps({"active": False})
+            )
+
+    def do_start_leaf(self, *args, **kwargs):
+        @asyncloop
+        def async_request():
+            yield async_client_wrapper(
+                "http://{}/api/druid/leaf/{}".format(self.host, self.__leaf__),
+                method="PATCH",
+                streaming_callback=print,
+                headers={"Interactive": "True", "Token": self.token},
+                request_timeout=0,
+                body=json.dumps({"active": True})
+            )
+
+    def do_watch(self, *args, **kwargs):
+        def parse_response(data):
+            try:
+                data = json.loads(data, object_hook=json_util.object_hook)
+                if data["log_type"] == "leaf.event":
+                    if "traceback" in data and data["traceback"] != "-":
+                        print("[{time}] {status} {method} - {uri} [ Traceback id: {traceback} ]".format(**data))
+                    else:
+                        print("[{time}] {status} {method} - {uri}".format(**data))
+                elif data["log_type"] == "leaf.stdout_stderr":
+                    print("[{time}] {raw}".format(**data))
+            except Exception:
+                import traceback
+                traceback.print_exc()
+
+        @asyncloop
+        def async_request():
+            yield async_client_wrapper(
+                "http://{}/api/druid/logs/{}".format(self.host, self.__leaf__),
+                method="GET",
+                streaming_callback=parse_response,
+                headers={"Interactive": "True", "Token": self.token},
+                request_timeout=0
+            )
+
+    def do_info(self, *args, **kwargs):
+        def print_dict(data, ident=0):
+            for key, value in data.items():
+                if type(value) == dict:
+                    print("{}{}:".format(" " * ident, key))
+                    print_dict(value, ident + 2)
+                else:
+                    print("{}{}: {}".format(" " * ident, key, value))
+
+        @asyncloop
+        def async_request():
+            leaf_data = yield async_client_wrapper(
+                "http://{}/api/druid/leaf/{}".format(self.host, self.__leaf__),
+                method="GET",
+                headers={"Token": self.token}
+            )
+            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
+
+    def do_status(self, *args, **kwargs):
+        def print_dict(data, ident=0):
+            for key, value in data.items():
+                if type(value) == dict:
+                    print("{}{}:".format(" " * ident, key))
+                    print_dict(value, ident + 2)
+                else:
+                    print("{}{}: {}".format(" " * ident, key, value))
+
+        @asyncloop
+        def async_request():
+            leaf_data = yield async_client_wrapper(
+                "http://{}/api/druid/leaf/{}/status".format(self.host, self.__leaf__),
+                method="GET",
+                headers={"Token": self.token}
+            )
+            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
+
+
 class ShellTool(cmd.Cmd):
 
     def __init__(self, host=None, token=None, *args, **kwargs):
@@ -102,15 +204,15 @@ class ShellTool(cmd.Cmd):
             except:
                 print("failed")
 
-    def do_exit(self):
-        sys.exit(0)
+    def do_exit(self, args):
+        return True
 
     def do_use(self, leaf_name):
         if not leaf_name:
             print("Leaf name required")
             return
-        self.leaf_name = leaf_name
-        self.set_prompt(leaf_name)
+
+        LeafShell(leaf_name, self.host, self.token).cmdloop()
 
     def complete_use(self, text, line, begidx, endidx):
         if not text:
@@ -120,111 +222,6 @@ class ShellTool(cmd.Cmd):
                 f for f in self.leaves if f.startswith(text)
             ]
         return completions
-
-    def do_stop_leaf(self, leaf_name=None):
-        leaf_name = leaf_name or self.leaf_name
-
-        @asyncloop
-        def async_request():
-            yield async_client_wrapper(
-                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
-                method="PATCH",
-                streaming_callback=print,
-                headers={"Interactive": "True", "Token": self.token},
-                request_timeout=0,
-                body=json.dumps({"active": False})
-            )
-
-    def do_start_leaf(self, leaf_name=None):
-        leaf_name = leaf_name or self.leaf_name
-
-        @asyncloop
-        def async_request():
-            yield async_client_wrapper(
-                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
-                method="PATCH",
-                streaming_callback=print,
-                headers={"Interactive": "True", "Token": self.token},
-                request_timeout=0,
-                body=json.dumps({"active": True})
-            )
-
-    def do_watch(self, *args):
-        if not self.leaf_name:
-            print("Setting leaf name is required")
-            return
-
-        def parse_response(data):
-            try:
-                data = json.loads(data, object_hook=json_util.object_hook)
-                if data["log_type"] == "leaf.event":
-                    if "traceback" in data and data["traceback"] != "-":
-                        print("[{time}] {status} {method} - {uri} [ Traceback id: {traceback} ]".format(**data))
-                    else:
-                        print("[{time}] {status} {method} - {uri}".format(**data))
-                elif data["log_type"] == "leaf.stdout_stderr":
-                    print("[{time}] {raw}".format(**data))
-            except Exception:
-                import traceback
-                traceback.print_exc()
-
-        @asyncloop
-        def async_request():
-            yield async_client_wrapper(
-                "http://{}/api/druid/logs/{}".format(self.host, self.leaf_name),
-                method="GET",
-                streaming_callback=parse_response,
-                headers={"Interactive": "True", "Token": self.token},
-                request_timeout=0
-            )
-
-    def do_info(self, leaf_name=None):
-        leaf_name = leaf_name or self.leaf_name
-
-        if not leaf_name:
-            print("Setting leaf name is required")
-            return
-
-        def print_dict(data, ident=0):
-            for key, value in data.items():
-                if type(value) == dict:
-                    print("{}{}:".format(" " * ident, key))
-                    print_dict(value, ident+2)
-                else:
-                    print("{}{}: {}".format(" " * ident, key, value))
-
-        @asyncloop
-        def async_request():
-            leaf_data = yield async_client_wrapper(
-                "http://{}/api/druid/leaf/{}".format(self.host, leaf_name),
-                method="GET",
-                headers={"Token": self.token}
-            )
-            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
-
-    def do_status(self, leaf_name=None):
-        leaf_name = leaf_name or self.leaf_name
-
-        if not leaf_name:
-            print("Setting leaf name is required")
-            return
-
-        def print_dict(data, ident=0):
-            for key, value in data.items():
-                if type(value) == dict:
-                    print("{}{}:".format(" " * ident, key))
-                    print_dict(value, ident+2)
-                else:
-                    print("{}{}: {}".format(" " * ident, key, value))
-
-        @asyncloop
-        def async_request():
-            leaf_data = yield async_client_wrapper(
-                "http://{}/api/druid/leaf/{}/status".format(self.host, leaf_name),
-                method="GET",
-                headers={"Token": self.token}
-            )
-            print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
 
     def do_check_branch(self, branch):
         if not branch:
