@@ -52,6 +52,10 @@ class LeafShell(cmd.Cmd):
     def do_exit(self, args):
         return True
 
+    def do_EOF(self, line):
+        print()
+        return True
+
     def do_stop_leaf(self, *args, **kwargs):
         @asyncloop
         def async_request():
@@ -136,6 +140,17 @@ class LeafShell(cmd.Cmd):
                 headers={"Token": self.token}
             )
             print_dict(json.loads(leaf_data, object_hook=json_util.object_hook))
+
+    def do_find_traceback(self, tb_id):
+        @asyncloop
+        def async_request():
+            tb_data = yield async_client_wrapper(
+                "http://{}/api/druid/traceback/{}".format(self.host, tb_id),
+                method="GET",
+                headers={"Token": self.token}
+            )
+            parsed = json.loads(tb_data, object_hook=json_util.object_hook)
+            print(parsed["traceback"])
 
 
 class ShellTool(cmd.Cmd):

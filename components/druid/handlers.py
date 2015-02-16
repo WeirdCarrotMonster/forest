@@ -155,6 +155,7 @@ class LeafHandler(Handler):
         if not leaf_data:
             self.set_status(404)
             self.finish("")
+            return
 
         self.finish(json.dumps(leaf_data, default=json_util.default))
 
@@ -243,6 +244,25 @@ class SpeciesListHandler(Handler):
                 "name": species["name"]
             }, default=json_util.default))
         self.finish("]")
+
+
+class TracebackHandler(Handler):
+
+    @gen.coroutine
+    @token_auth
+    def get(self, traceback_id):
+        print(traceback_id)
+        traceback = yield self.application.async_db.logs.find_one({
+            "log_type": "leaf.traceback",
+            "traceback_id": traceback_id
+        })
+
+        if not traceback:
+            self.set_status(404)
+            self.finish("")
+            return
+
+        self.finish(json.dumps(traceback, default=json_util.default))
 
 
 class SpeciesHandler(Handler):
