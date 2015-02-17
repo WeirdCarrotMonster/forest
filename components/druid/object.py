@@ -20,6 +20,9 @@ class Druid(object):
         self.__log_listeners__[leaf_id].add(q)
         return q
 
+    def add_listener(self, leaf_id, listener):
+        self.__log_listeners__[leaf_id].add(listener)
+
     def remove_listener(self, leaf_id, listener):
         if listener in self.__log_listeners__[leaf_id]:
             self.__log_listeners__[leaf_id].remove(listener)
@@ -31,11 +34,13 @@ class Druid(object):
     @gen.coroutine
     def propagate_event(self, event):
         leaf = event.get("log_source")
-
         yield self.store_log(event)
 
         for l in self.__log_listeners__[leaf]:
-            l.put(event)
+            try:
+                l.put(event)
+            except:
+                pass
 
     @property
     def air(self):
