@@ -20,8 +20,21 @@ class LeavesHandler(Handler):
     @gen.coroutine
     @token_auth
     def get(self):
-        cursor = self.application.async_db.leaves.find()
         self.write("[")
+
+        address = self.get_argument("address", None, True)
+
+        if address:
+            query = {"address": address}
+        else:
+            query = {}
+
+        cursor = self.application.async_db.leaves.find(
+            query,
+            {
+                "name": True
+            }
+        )
         first = True
         while (yield cursor.fetch_next):
             if not first:
@@ -30,7 +43,7 @@ class LeavesHandler(Handler):
                 first = False
 
             leaf = cursor.next_object()
-            self.write(json.dumps(leaf["name"]))
+            self.write(json.dumps(leaf, default=json_util.default))
         self.finish("]")
 
     @gen.coroutine
