@@ -8,6 +8,7 @@ from components.druid.object import Druid
 
 druid_handlers = [
     (r"/api/druid/leaf", LeavesHandler),
+    (r"/api/druid/leaf\&address=([\w\d\.]*)", LeavesHandler),
     (r'/api/druid/leaf/([\w\d]+)', LeafHandler),
     (r'/api/druid/leaf/([\w\d]+)/status', LeafStatusHandler),
 

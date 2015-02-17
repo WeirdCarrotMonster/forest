@@ -19,10 +19,8 @@ class LeavesHandler(Handler):
 
     @gen.coroutine
     @token_auth
-    def get(self):
+    def get(self, address=None):
         self.write("[")
-
-        address = self.get_argument("address", None, True)
 
         if address:
             query = {"address": address}
