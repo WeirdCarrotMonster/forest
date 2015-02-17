@@ -5,7 +5,7 @@ from __future__ import unicode_literals, print_function
 import random
 from datetime import datetime
 
-from tornado import gen
+from tornado import gen, websocket
 import simplejson as json
 from bson import ObjectId, json_util
 
@@ -373,6 +373,44 @@ class LogWatcher(Handler):
         while not self.closed:
             data = yield q.get()
             self.note(json.dumps(data, default=json_util.default))
+
+
+class WebsocketLogWatcher(websocket.WebSocketHandler):
+
+    def check_origin(self, origin):
+        return True
+
+    def open(self, leaf_name):
+        self.subscribed = False
+
+        self.leaf_data = self.application.sync_db.leaves.find_one({"name": leaf_name})
+
+        if not self.leaf_data:
+            self.close()
+            return
+
+        if self.application.secret == self.request.headers.get("Token"):
+            self.subscribe_logger()
+
+    def on_message(self, message):
+        parsed = json.loads(message)
+
+        if "Token" in parsed and self.application.secret == parsed["Token"]:
+            self.subscribe_logger()
+
+    def subscribe_logger(self):
+        if self.subscribed:
+            return
+
+        self.application.druid.add_listener(self.leaf_data["_id"], self)
+        self.subscribed = True
+
+    def on_close(self):
+        if self.subscribed:
+            self.application.druid.remove_listener(self.leaf_data["_id"], self)
+
+    def put(self, data):
+        self.write_message(json.dumps(data, default=json_util.default))
 
 
 class LogHandler(Handler):

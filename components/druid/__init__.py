@@ -1,7 +1,7 @@
 # coding=utf-8
 
 from components.druid.handlers import LeafHandler, LeafStatusHandler, \
-    LeavesHandler, BranchHandler, LogHandler, LogWatcher, \
+    LeavesHandler, BranchHandler, LogHandler, LogWatcher, WebsocketLogWatcher, \
     SpeciesListHandler, SpeciesHandler, TracebackHandler
 from components.druid.object import Druid
 
@@ -18,6 +18,7 @@ druid_handlers = [
     (r'/api/druid/branch/?([\w\d]*)', BranchHandler),
     (r'/api/druid/logs', LogHandler),
     (r'/api/druid/logs/(\w*)', LogWatcher),
+    (r'/api/druid/socketlogs/(\w*)', WebsocketLogWatcher),
 
     (r'/api/druid/traceback/(\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12})', TracebackHandler)
 ]
