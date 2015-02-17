@@ -4,7 +4,7 @@
 from __future__ import unicode_literals, print_function
 import sys
 from bson import json_util
-import cmd
+from cmd import Cmd
 
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
@@ -36,10 +36,10 @@ def async_client_wrapper(*args, **kwargs):
     raise Return(res)
 
 
-class LeafShell(cmd.Cmd):
+class LeafShell(Cmd):
 
     def __init__(self, leaf, host, token, *args, **kwargs):
-        cmd.Cmd.__init__(self, *args, **kwargs)
+        Cmd.__init__(self, *args, **kwargs)
         self.__leaf__ = leaf
         self.host = host
         self.token = token
@@ -153,10 +153,10 @@ class LeafShell(cmd.Cmd):
             print(parsed["traceback"])
 
 
-class ShellTool(cmd.Cmd):
+class ShellTool(Cmd):
 
     def __init__(self, host=None, token=None, *args, **kwargs):
-        cmd.Cmd.__init__(self, *args, **kwargs)
+        Cmd.__init__(self, *args, **kwargs)
         self.leaf_name = None
         self.set_prompt()
         self.leaves = []
@@ -184,7 +184,7 @@ class ShellTool(cmd.Cmd):
                     request_timeout=1,
                     headers={"Token": self.token}
                 )
-                self.leaves = json.loads(leaves)
+                self.leaves = json.loads(leaves, object_hook=json_util.object_hook)
                 print("done, {} elements".format(len(self.leaves)))
             except Exception as e:
                 print("Failed: {}".format(e))
@@ -234,7 +234,7 @@ class ShellTool(cmd.Cmd):
             completions = self.leaves[:]
         else:
             completions = [
-                f for f in self.leaves if f.startswith(text)
+                f["name"] for f in self.leaves if f["name"].startswith(text)
             ]
         return completions
 
