@@ -21,8 +21,6 @@ class Trunk(tornado.web.Application):
         self.secret = settings_dict["secret"]
         self.emperor_dir = settings_dict.get("emperor", os.path.join(self.forest_root, "emperor"))
 
-        self.emperor = Emperor(self.emperor_dir)
-
         self.database = settings_dict.get("db")
         if self.database:
             self.async_db = get_default_database(self.database, async=True)
@@ -32,6 +30,8 @@ class Trunk(tornado.web.Application):
         self.roots = None
         self.druid = None
         self.air = None
+
+        self.emperor = Emperor(self.emperor_dir)
 
     @property
     def id(self):

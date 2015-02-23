@@ -12,8 +12,11 @@ import socket
 import subprocess
 
 import simplejson as json
+import zmq
 
 from components.common import log_message
+from components.logparse import logparse_emperor
+from tornado.gen import coroutine
 
 
 class Vassal(object):
@@ -28,6 +31,7 @@ class Vassal(object):
         self.__name__ = name
         self.__id__ = _id
         self.__emperor__ = emperor
+        self.__status__ = "stopped"
 
     @property
     def id(self):
@@ -36,6 +40,14 @@ class Vassal(object):
     @property
     def name(self):
         return self.__name__
+
+    @property
+    def status(self):
+        return self.__status__
+
+    @status.setter
+    def status(self, value):
+        self.__status__ = value
 
     def start(self):
         self.__emperor__.start_vassal(self)
@@ -80,6 +92,7 @@ class Emperor(object):
                     "--plugins-dir", self.binary_dir,
                     "--emperor", self.vassal_dir,
                     "--pidfile", self.pidfile,
+                    "--logger", "zeromq:tcp://127.0.0.1:5123",
                     "--daemonize", "/dev/null",
                     "--emperor-stats", "127.0.0.1:1777",
                     "--emperor-required-heartbeat", "40",
@@ -98,6 +111,13 @@ class Emperor(object):
             log_message("Started emperor server", component="Emperor")
 
         self.vassal_ports = {}
+        self.vassals = {}
+
+        ctx = zmq.Context()
+        s = ctx.socket(zmq.PULL)
+        s.bind('tcp://127.0.0.1:5123')
+        self.stream = zmq.eventloop.zmqstream.ZMQStream(s)
+        self.stream.on_recv(self.log_message)
 
     @property
     def root_dir(self):
@@ -134,6 +154,9 @@ class Emperor(object):
 
     def start_vassal(self, vassal):
         cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
+
+        self.vassals[str(vassal.id)] = vassal
+
         if os.path.exists(cfg_path):
             with open(cfg_path, "r") as cfg:
                 data = cfg.read()
@@ -148,6 +171,9 @@ class Emperor(object):
 
     def stop_vassal(self, vassal):
         cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
+
+        if str(vassal.id) in self.vassals:
+            del self.vassals[str(vassal.id)]
 
         if os.path.exists(cfg_path):
             os.remove(cfg_path)
@@ -177,3 +203,17 @@ class Emperor(object):
                 return l
 
         return {}
+
+    @coroutine
+    def log_message(self, message):
+        for m in message:
+            data, important = logparse_emperor(m.strip())
+
+            if data.get("log_type") == "emperor_vassal_ready":
+                vassal_id = data.get("vassal")
+                if vassal_id in self.vassals:
+                    self.vassals[vassal_id].status = "running"
+            elif data.get("log_type") == "emperor_vassal_removed":
+                vassal_id = data.get("vassal")
+                if vassal_id in self.vassals:
+                    self.vassals[vassal_id].status = "stopped"

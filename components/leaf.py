@@ -41,8 +41,6 @@ class Leaf(Vassal):
         self.leaf_host = leaf_host
         self.paused = False
 
-        self.__status__ = "stopped"
-
     def __ne__(self, other):
         r1 = self.address == other.address
         r2 = self.settings == other.settings
@@ -61,7 +59,7 @@ class Leaf(Vassal):
     def start(self):
         if self.__species__.is_ready:
             super(Leaf, self).start()
-            self.__status__ = "started"
+            self.status = "started"
             log_message("Starting leaf {}".format(self.id), component="Leaf")
             return True
         log_message("Queued leaf {}".format(self.id), component="Leaf")
@@ -70,11 +68,7 @@ class Leaf(Vassal):
     def stop(self):
         log_message("Stopping leaf {}".format(self.id), component="Leaf")
         super(Leaf, self).stop()
-        self.__status__ = "stopped"
-
-    @property
-    def status(self):
-        return self.__status__
+        self.status = "stopped"
 
     @property
     def keyfile(self):
