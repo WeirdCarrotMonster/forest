@@ -56,7 +56,7 @@ def send_request(host, resource, method, data=None):
             )
         data = response.body
         code = response.code
-    except HTTPError, e:
+    except HTTPError as e:
         data = ""
         code = e.code
 
