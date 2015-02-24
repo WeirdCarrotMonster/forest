@@ -251,14 +251,19 @@ class MysqlShared(Battery):
             )
 
             cur = db.cursor()
-            cur.execute("""
-CREATE DATABASE `{0}` CHARACTER SET utf8
-COLLATE utf8_general_ci;
-GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%'
-IDENTIFIED BY '{2}' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-""".format(self.__database__, self.__username__, self.__password__)
+            cur.execute(
+                "CREATE DATABASE `{0}` CHARACTER SET utf8 COLLATE utf8_general_ci;".format(
+                    self.__database__
+                )
             )
+            cur.execute(
+                "GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' IDENTIFIED BY '{2}' WITH GRANT OPTION;".format(
+                    self.__database__,
+                    self.__username__,
+                    self.__password__
+                )
+            )
+            cur.execute("FLUSH PRIVILEGES;")
             db.close()
         except:
             print(traceback.format_exc())
