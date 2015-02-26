@@ -163,7 +163,7 @@ class LeavesHandler(Handler):
         yield branch_prepare_species(branch, species)
         yield branch_start_leaf(branch, leaf_config)
 
-        self.finish(json.dumps({"result": "success", "message": "OK"}))
+        self.finish(json.dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
 
 
 class LeafHandler(Handler):
