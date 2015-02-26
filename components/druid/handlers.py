@@ -59,7 +59,17 @@ class LeavesHandler(Handler):
                 "message": "Malformed json"
             }))
             raise gen.Return()
-        assert "name" and "type" and "address" in data
+
+        for k in ["name", "type", "address"]:
+            if k not in data:
+                self.set_status(400)
+                self.finish(json.dumps({
+                    "result": "error",
+                    "message": "Missing key",
+                    "key": k
+                }))
+                raise gen.Return()
+
         leaf_name = data["name"]
         leaf_type = data["type"]
         leaf_address = data["address"]
