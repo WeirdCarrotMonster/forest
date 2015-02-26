@@ -13,6 +13,7 @@ import subprocess
 
 import simplejson as json
 import zmq
+from zmq.eventloop.zmqstream import ZMQStream
 
 from components.common import log_message
 from components.logparse import logparse_emperor
@@ -116,7 +117,7 @@ class Emperor(object):
         ctx = zmq.Context()
         s = ctx.socket(zmq.PULL)
         s.bind('tcp://127.0.0.1:5123')
-        self.stream = zmq.eventloop.zmqstream.ZMQStream(s)
+        self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
     @property
