@@ -14,7 +14,7 @@ class Leaf(Vassal):
                  fastrouters=None,
                  address=None,
                  batteries=None,
-                 workers=4,
+                 workers=2,
                  threads=False,
                  species=None,
                  branch=None,
