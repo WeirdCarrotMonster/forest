@@ -27,12 +27,17 @@ class Vassal(object):
             name=None,
             _id=None,
             emperor=None,
+            uwsgi_mules=None,
+            uwsgi_cron=None,
             **kwargs
     ):
         self.__name__ = name
         self.__id__ = _id
         self.__emperor__ = emperor
         self.__status__ = "stopped"
+
+        self.__uwsgi_mules__ = uwsgi_mules or []
+        self.__uwsgi_cron__ = uwsgi_cron or []
 
     @property
     def id(self):
@@ -48,19 +53,29 @@ class Vassal(object):
 
     @status.setter
     def status(self, value):
+        component = self.__class__.__name__
+        log_message("{} entered '{}' state".format(self.id, value), component=component)
         self.__status__ = value
 
     def start(self):
+        self.status = "Started"
         self.__emperor__.start_vassal(self)
 
     def stop(self):
+        self.status = "Stopped"
         self.__emperor__.stop_vassal(self)
 
     def get_config(self):
         return self.__get_config__()
 
     def __get_config__(self):
-        raise NotImplemented
+        raise NotImplementedError
+
+    def get_mules_config(self):
+        return "\n{}\n".format("\n".join("mule={}".format(mule) for mule in self.__uwsgi_mules__))
+
+    def get_cron_config(self):
+        return "\n{}\n".format("\n".join("cron={}".format(" ".join(str(c) for c in _)) for _ in self.__uwsgi_cron__))
 
 
 class Emperor(object):
@@ -213,8 +228,11 @@ class Emperor(object):
             if data.get("log_type") == "emperor_vassal_ready":
                 vassal_id = data.get("vassal")
                 if vassal_id in self.vassals:
-                    self.vassals[vassal_id].status = "running"
+                    self.vassals[vassal_id].status = "Running"
             elif data.get("log_type") == "emperor_vassal_removed":
                 vassal_id = data.get("vassal")
                 if vassal_id in self.vassals:
-                    self.vassals[vassal_id].status = "stopped"
+                    if self.vassals[vassal_id].status in ("Started", "Failed"):
+                        self.vassals[vassal_id].status = "Failed"
+                    else:
+                        self.vassals[vassal_id].status = "Stopped"

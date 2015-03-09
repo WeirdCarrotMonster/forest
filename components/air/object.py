@@ -23,7 +23,7 @@ subscriptions-sign-check=SHA1:{keydir}
 """.format(port=self.port, host=self.host, fastrouter=self.fastrouter, keydir=self.keydir)
 
 
-class Air():
+class Air(object):
 
     def __init__(self, trunk, host, fastrouter, port=3000):
         self.trunk = trunk

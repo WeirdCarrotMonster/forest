@@ -17,66 +17,42 @@ class Leaf(Vassal):
                  workers=2,
                  threads=False,
                  species=None,
-                 branch=None,
-                 active=False,
-                 modified=None,
                  log_port=None,
                  leaf_host=None,
                  **kwargs
                  ):
         super(Leaf, self).__init__(**kwargs)
-        self.__keyfile = keyfile
-        self.fastrouters = fastrouters or []
+        self.__keyfile__ = keyfile
+        self.__fastrouters__ = fastrouters or []
         self.__species__ = species
-        self.batteries = batteries
-        self._log_port = None
+        self.__batteries__ = batteries
+        self.__log_port__ = None
         self.settings = settings or {}
-        self.modified = modified
         self.address = address
         self.workers = workers
         self.threads = threads
-        self.branch = branch or []
-        self.active = active
         self.log_port = log_port
         self.leaf_host = leaf_host
         self.paused = False
 
-    def __ne__(self, other):
-        r1 = self.address == other.address
-        r2 = self.settings == other.settings
-        r3 = self.workers == other.workers
-        r4 = self.batteries == other.batteries
-        r5 = self.modified == other.modified
-        return not all([r1, r2, r3, r4, r5])
-
-    def restarted(self, other):
-        r1 = self.address == other.address
-        r2 = self.settings == other.settings
-        r3 = self.workers == other.workers
-        r4 = self.batteries == other.batteries
-        return all([r1, r2, r3, r4])
-
     def start(self):
         if self.__species__.is_ready:
             super(Leaf, self).start()
-            self.status = "started"
-            log_message("Starting leaf {}".format(self.id), component="Leaf")
             return True
-        log_message("Queued leaf {}".format(self.id), component="Leaf")
+        self.status = "Queued"
         return False
-
-    def stop(self):
-        log_message("Stopping leaf {}".format(self.id), component="Leaf")
-        super(Leaf, self).stop()
-        self.status = "stopped"
 
     @property
     def keyfile(self):
-        return self.__keyfile
+        return self.__keyfile__
 
     @property
     def log_port(self):
-        return self._log_port
+        return self.__log_port__
+
+    @log_port.setter
+    def log_port(self, value):
+        self.__log_port__ = value
 
     @property
     def species(self):
@@ -92,14 +68,10 @@ class Leaf(Vassal):
     def species(self, value):
         self.__species__ = value
 
-    @log_port.setter
-    def log_port(self, value):
-        self._log_port = value
-
     @property
     def environment(self):
         return {
-            "BATTERIES": json.dumps(self.batteries),
+            "BATTERIES": json.dumps(self.__batteries__),
             "APPLICATION_SETTINGS": json.dumps(self.settings)
         }
 
@@ -107,7 +79,7 @@ class Leaf(Vassal):
         if not self.paused:
             return self.__get_config__()
         else:
-            return self.__get_config_paused()
+            return self.__get_config_paused__()
 
     def __get_config_paused__(self):
         return """[uwsgi]"""
@@ -151,17 +123,22 @@ need-app=
 if-env=PATH
 env=PATH={virtualenv}/bin:%(_)
 endif=
+
+{mules}
+{cron}
 """.format(
             chdir=self.__species__.src_path,
             virtualenv=self.__species__.environment,
             app_settings=json.dumps(self.settings),
-            batteries=json.dumps(self.batteries),
+            batteries=json.dumps(self.__batteries__),
             logformat=json.dumps(logs_format),
             workers=self.workers,
             id=self.id,
             python=self.__species__.python_version,
             leaf_host=self.leaf_host,
-            log_port=self.log_port
+            log_port=self.log_port,
+            mules=self.get_mules_config(),
+            cron=self.get_cron_config()
         )
         if self.threads:
             config += "enable-threads=1\n"
@@ -169,7 +146,7 @@ endif=
         for before_start in self.__species__.triggers.get("before_start", []):
             config += "hook-pre-app=exec:{}\n".format(before_start)
 
-        for router in self.fastrouters:
+        for router in self.__fastrouters__:
             for address in self.address:
                 config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
                     router,
