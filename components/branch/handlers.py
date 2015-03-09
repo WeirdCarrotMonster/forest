@@ -90,7 +90,7 @@ class SpeciesHandler(tornado.web.RequestHandler):
     def get(self, _id):
         _id = ObjectId(_id)
 
-        species = self.application.branch.get_species(_id)
+        species = self.application.branch.species.get(_id)
 
         if species:
             self.finish(json.dumps({}))

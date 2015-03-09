@@ -83,11 +83,11 @@ class Branch(object):
                 except (KeyError, ValueError):
                     data_parsed["time"] = datetime.datetime.utcnow()
 
-                data_parsed["msecs"] = int(data_parsed["msecs"])
-                data_parsed["status"] = int(data_parsed["status"])
+                for key in ["msecs", "status", "request_size", "response_size"]:
+                    if key in data_parsed:
+                        data_parsed[key] = int(key)
+
                 data_parsed["log_type"] = "leaf.event"
-                data_parsed["request_size"] = int(data_parsed["request_size"])
-                data_parsed["response_size"] = int(data_parsed["response_size"])
             except json.JSONDecodeError:
                 data_parsed, important = logparse(data)
                 data_parsed["time"] = datetime.datetime.utcnow()
@@ -97,6 +97,7 @@ class Branch(object):
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
+            # noinspection PyBroadException
             try:
                 yield [logger.log(data_parsed) for logger in self.__loggers__ if logger.suitable(data_parsed)]
             except:
@@ -132,19 +133,6 @@ class Branch(object):
             return False, 500, str(e)
         else:
             return True, 200, "OK"
-
-    def get_species(self, species_id):
-        """
-        Получает экземпляр класса Species
-
-        :param species_id: ObjectId вида, получаемого через функцию
-        :raise Return: Возвращение результата через tornado coroutines
-        :rtype : Species
-        """
-        if species_id in self.species:
-            return self.species[species_id]
-        else:
-            return None
 
     def create_species(self, species):
         """
@@ -192,16 +180,14 @@ class Branch(object):
     @coroutine
     def create_leaf(self, leaf):
         """
-        Создает экземпляр листа  по данным из базы
+        Создает экземпляр листа
 
-        :type need_species_now: bool
-        :param need_species_now: Флаг ожидания готовности вида
         :type leaf: dict
         :param leaf: Словарь с конфигурацией листа
         :rtype: Leaf
         :return: Созданный по данным базы экземпляр листа
         """
-        species = self.get_species(leaf.get("type"))
+        species = self.species.get(leaf.get("type"))
         if not species:
             raise Return(None)
         l = Leaf(
