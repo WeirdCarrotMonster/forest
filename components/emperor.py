@@ -161,7 +161,7 @@ class Emperor(object):
         return [name[:-4] for name in raw_names]
 
     def stop(self):
-        log_message("Stopping uwsgi emperor", component="Branch")
+        log_message("Stopping uwsgi emperor", component="Emperor")
         subprocess.call([self.uwsgi_binary, "--stop", self.pidfile])
         os.remove(self.pidfile)
 

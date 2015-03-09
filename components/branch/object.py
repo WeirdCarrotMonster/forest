@@ -19,6 +19,7 @@ import zmq
 from toro import Lock
 
 from components.common import log_message
+from components.exceptions.logger import LoggerCreationError
 
 from components.leaf import Leaf
 from components.logparse import logparse
@@ -41,9 +42,10 @@ class Branch(object):
         self.__loggers__ = []
 
         for logger in settings.get("loggers", []):
-            result, message = self.add_logger(logger)
-            if not result:
-                log_message("Error adding '{}': {}".format(logger.get("identifier"), message), component="Branch")
+            try:
+                self.add_logger(logger)
+            except LoggerCreationError, e:
+                log_message("Error adding '{}': {}".format(logger.get("identifier"), e.message), component="Branch")
 
         self.batteries = defaultdict(list)
 
@@ -110,18 +112,24 @@ class Branch(object):
             self.__loggers__.remove(logger)
 
     def add_logger(self, configuration):
-        try:
-            for logger in self.__loggers__:
-                if logger.identifier == configuration["identifier"]:
-                    return False, "Duplicate identifier"
+        """
+        Добавляет логгер заданной конфигурации
 
-            if configuration.get("type") == "POSTLogger":
+        :param configuration: Конфигурация активируемого логгера
+        :type configuration: dict
+        :raise LoggerCreationError: ошибка создания логгера
+        """
+        for logger in self.__loggers__:
+            if logger.identifier == configuration["identifier"]:
+                raise LoggerCreationError("Duplicate identifier")
+
+        if configuration.get("type") == "POSTLogger":
+            try:
                 self.__loggers__.append(POSTLogger(**configuration))
-            else:
-                return False, "Unknown logger type"
-        except Exception as e:
-            return False, str(e)
-        return True, None
+            except TypeError:
+                raise LoggerCreationError("Invalid logger configuration")
+        else:
+            raise LoggerCreationError("Unknown logger type")
 
     def delete_logger(self, identifier):
         try:

@@ -8,6 +8,7 @@ import tornado.gen
 import simplejson as json
 
 from components.api.decorators import token_auth
+from components.exceptions.logger import LoggerCreationError
 
 
 class LeavesHandler(tornado.web.RequestHandler):
@@ -125,12 +126,12 @@ class LoggerListHandler(tornado.web.RequestHandler):
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
-        result, message = self.application.branch.add_logger(data)
-        if not result:
-            self.set_status(400)
-            self.finish(json.dumps({"result": "failure", "message": message}))
-        else:
+        try:
+            self.application.branch.add_logger(data)
             self.finish(json.dumps({"result": "success"}))
+        except LoggerCreationError, e:
+            self.set_status(400)
+            self.finish(json.dumps({"result": "failure", "message": e.message}))
 
 
 class LoggerHandler(tornado.web.RequestHandler):
