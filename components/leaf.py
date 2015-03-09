@@ -3,7 +3,6 @@
 import simplejson as json
 
 from components.emperor import Vassal
-from components.common import log_message
 
 
 class Leaf(Vassal):
