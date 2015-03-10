@@ -11,6 +11,9 @@ from components.api.decorators import token_auth
 from components.exceptions.logger import LoggerCreationError
 
 
+# pylint: disable=W0221,W0613
+
+
 class LeavesHandler(tornado.web.RequestHandler):
 
     """

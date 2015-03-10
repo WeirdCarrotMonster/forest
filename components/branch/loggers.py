@@ -7,6 +7,9 @@ from bson import json_util
 from tornado.httpclient import AsyncHTTPClient
 
 
+# pylint: disable=W0702,W0612
+
+
 class Logger(object):
 
     def __init__(
