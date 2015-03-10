@@ -2,7 +2,6 @@
 # coding=utf-8
 
 from __future__ import unicode_literals, print_function
-import sys
 from bson import json_util
 from cmd import Cmd
 
@@ -10,6 +9,9 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 from tornado.gen import coroutine, Return
 import simplejson as json
+
+
+# pylint: disable=W0702
 
 
 def asyncloop(f):

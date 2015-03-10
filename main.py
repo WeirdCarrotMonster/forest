@@ -17,6 +17,9 @@ from components.trunk import Trunk
 from components.common import log_message
 
 
+# pylint: disable=W0613
+
+
 parser = argparse.ArgumentParser(description='Run your own Forest')
 subparsers = parser.add_subparsers(dest="command")
 

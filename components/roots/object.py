@@ -12,7 +12,10 @@ from components.roots.batteries import MySQL, Mongo, MongoShared, MysqlShared
 from components.common import log_message
 
 
-class Roots():
+# pylint: disable=W0612,W0613
+
+
+class Roots(object):
 
     def __init__(self, trunk, settings):
         self.settings = settings
@@ -53,8 +56,8 @@ class Roots():
 
             with open(os.path.join(self.metaroot, f)) as config:
                 config = json.load(config, object_hook=json_util.object_hook)
-                if not "username" and "password" and "rootpass" and "database" and "path" and "port" and "owner" in config:
-                    log_message("Malformed config for {name}{ext}, skipping".format(**locals()))
+                if all(_ in config for _ in ["username", "password", "rootpass", "database", "path", "port", "owner"]):
+                    log_message("Malformed config for {}{}, skipping".format(name, ext))
                     continue
 
                 if ext == ".mysql":

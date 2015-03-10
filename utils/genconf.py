@@ -6,6 +6,9 @@ import socket
 import os
 
 
+# pylint: disable=W0613
+
+
 def generate_config(config_file):
     config = {
         "base": {}

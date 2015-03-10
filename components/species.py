@@ -13,9 +13,11 @@ import shutil
 import shlex
 
 from bson import ObjectId, json_util
+from bson.errors import InvalidId
 import tornado
 from tornado.gen import coroutine, Task, Return
 import simplejson as json
+from simplejson import JSONDecodeError
 
 from components.common import log_message
 
@@ -27,7 +29,18 @@ class Species(object):
     и виртуального окружения python
     """
 
-    def __init__(self, directory, _id, name, url, ready_callback, modified, triggers=None, interpreter=None, branch="master", **kwargs):
+    def __init__(
+            self,
+            directory,
+            _id,
+            name,
+            url,
+            ready_callback,
+            modified,
+            triggers=None,
+            interpreter=None,
+            branch="master",
+            **kwargs):
         self.directory = directory
         self.specie_id = _id
         self.specie_path = os.path.join(self.directory, str(self.specie_id))
@@ -67,10 +80,10 @@ class Species(object):
                 for key, value in data.items():
                     try:
                         data[key] = ObjectId(value)
-                    except:
+                    except (TypeError, InvalidId):
                         pass
             return data
-        except:
+        except JSONDecodeError:
             return {}
 
     @metadata.setter
