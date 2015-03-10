@@ -8,11 +8,15 @@ from datetime import datetime
 from tornado import gen, websocket
 import simplejson as json
 from bson import ObjectId, json_util
+from bson.errors import InvalidId
 
 from components.api.handler import Handler
 from components.api.decorators import token_auth
 from components.common import send_request
 from components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, branch_stop_leaf
+
+
+# pylint: disable=W0221,W0612
 
 
 class LeavesHandler(Handler):
@@ -105,7 +109,7 @@ class LeavesHandler(Handler):
 
         try:
             query = {"_id": ObjectId(leaf_type)}
-        except:
+        except (TypeError, InvalidId):
             query = {"name": leaf_type}
 
         species = yield self.application.async_db.species.find_one(query)
