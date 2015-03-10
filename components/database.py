@@ -4,6 +4,9 @@ import motor
 import pymongo
 
 
+# pylint: disable=R0913
+
+
 def get_connection_async(host, port, user, password, replica, database="trunk"):
     if not replica:
         con = motor.MotorClient(

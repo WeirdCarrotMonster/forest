@@ -7,6 +7,7 @@ from datetime import datetime
 
 from tornado import gen, websocket
 import simplejson as json
+from simplejson import JSONDecodeError
 from bson import ObjectId, json_util
 from bson.errors import InvalidId
 
@@ -56,7 +57,7 @@ class LeavesHandler(Handler):
         """
         try:
             data = json.loads(self.request.body, object_hook=json_util.object_hook)
-        except:
+        except JSONDecodeError:
             self.set_status(400)
             self.finish(json.dumps({
                 "result": "error",
@@ -348,7 +349,7 @@ class BranchHandler(Handler):
         assert branch_name
         try:
             branch = next(x for x in self.application.druid.branch if x["name"] == branch_name)
-        except:
+        except StopIteration:
             self.set_status(404)
             self.finish()
             raise gen.Return()
