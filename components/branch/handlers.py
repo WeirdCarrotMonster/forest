@@ -129,7 +129,7 @@ class LoggerListHandler(tornado.web.RequestHandler):
         try:
             self.application.branch.add_logger(data)
             self.finish(json.dumps({"result": "success"}))
-        except LoggerCreationError, e:
+        except LoggerCreationError as e:
             self.set_status(400)
             self.finish(json.dumps({"result": "failure", "message": e.message}))
 
