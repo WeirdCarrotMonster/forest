@@ -7,7 +7,7 @@ from bson import json_util
 from tornado.httpclient import AsyncHTTPClient
 
 
-# pylint: disable=W0702,W0612
+# pylint: disable=W0702,W0612,W0613
 
 
 class Logger(object):
@@ -18,7 +18,6 @@ class Logger(object):
             filters=None,
             max_failures=0,
             redundant_keys=None,
-            *args,
             **kwargs
             ):
         self.__max_failures__ = max_failures

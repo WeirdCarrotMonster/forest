@@ -26,7 +26,7 @@ class Message(object):
             self.httpclient.flush()
         return None
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, m_type, value, traceback):
         if self.httpclient.interactive and traceback:
             self.httpclient.write(str(traceback))
             self.httpclient.flush()

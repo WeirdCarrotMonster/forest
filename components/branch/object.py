@@ -27,6 +27,9 @@ from components.species import Species
 from components.branch.loggers import POSTLogger
 
 
+# pylint: disable=W0702,W0612,W0613
+
+
 class Branch(object):
 
     """
@@ -44,7 +47,7 @@ class Branch(object):
         for logger in settings.get("loggers", []):
             try:
                 self.add_logger(logger)
-            except LoggerCreationError, e:
+            except LoggerCreationError as e:
                 log_message("Error adding '{}': {}".format(logger.get("identifier"), e.message), component="Branch")
 
         self.batteries = defaultdict(list)
