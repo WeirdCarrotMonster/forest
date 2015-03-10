@@ -22,6 +22,9 @@ from simplejson import JSONDecodeError
 from components.common import log_message
 
 
+# pylint: disable=W0612,W0613
+
+
 class Species(object):
 
     """

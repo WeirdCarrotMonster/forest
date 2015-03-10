@@ -11,7 +11,7 @@ from tornado.gen import coroutine, Return
 import simplejson as json
 
 
-# pylint: disable=W0702
+# pylint: disable=W0702,W0612,W0613
 
 
 def asyncloop(f):
