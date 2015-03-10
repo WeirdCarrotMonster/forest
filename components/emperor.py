@@ -20,6 +20,9 @@ from components.logparse import logparse_emperor
 from tornado.gen import coroutine
 
 
+# pylint: disable=W0612,W0613
+
+
 class Vassal(object):
 
     def __init__(

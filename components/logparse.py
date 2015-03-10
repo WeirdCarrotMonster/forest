@@ -4,6 +4,9 @@ import re
 import base64
 
 
+# pylint: disable=W0702
+
+
 __all__ = ["logparse"]
 
 res = [

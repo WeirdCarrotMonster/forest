@@ -6,6 +6,9 @@ from toro import Queue
 from tornado import gen
 
 
+# pylint: disable=W0702
+
+
 class Druid(object):
 
     def __init__(self, trunk, settings):

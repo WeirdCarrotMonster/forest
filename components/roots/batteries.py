@@ -19,10 +19,8 @@ from components.emperor import Vassal
 from components.common import log_message
 from components.cmdrunner import call_subprocess
 
-try:
-    from subprocess import DEVNULL
-except ImportError:
-    DEVNULL = open(os.devnull, 'wb')
+
+# pylint: disable=W0612,W0221,W0702
 
 
 class Battery(Vassal):
