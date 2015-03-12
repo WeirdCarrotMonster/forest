@@ -90,7 +90,7 @@ class Branch(object):
 
                 for key in ["msecs", "status", "request_size", "response_size"]:
                     if key in data_parsed:
-                        data_parsed[key] = int(key)
+                        data_parsed[key] = int(data_parsed[key])
 
                 data_parsed["log_type"] = "leaf.event"
             except json.JSONDecodeError:
