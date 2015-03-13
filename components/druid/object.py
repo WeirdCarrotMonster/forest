@@ -34,7 +34,7 @@ class Druid(object):
 
     @gen.coroutine
     def store_log(self, log):
-        for i in range(10):
+        for _ in range(10):
             try:
                 yield self.trunk.async_db.logs.insert(log)
                 break
