@@ -255,7 +255,7 @@ class MysqlShared(Battery):
                 )
             )
             cur.execute(
-                "GRANT ALL PRIVILEGES ON {0}.* TO '{1}'@'%' IDENTIFIED BY '{2}' WITH GRANT OPTION;".format(
+                "GRANT ALL PRIVILEGES ON `{0}`.* TO '{1}'@'%' IDENTIFIED BY '{2}' WITH GRANT OPTION;".format(
                     self.__database__,
                     self.__username__,
                     self.__password__
