@@ -16,7 +16,6 @@ from bson import ObjectId
 from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import zmq
-from toro import Lock
 
 from components.common import log_message
 from components.exceptions.logger import LoggerCreationError
@@ -58,8 +57,6 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
         log_message("Started branch", component="Branch")
-
-        self.species_lock = Lock()
 
     @coroutine
     def log_message(self, message):

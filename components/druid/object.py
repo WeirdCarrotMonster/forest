@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from toro import Queue
+from toro import Queue, Lock
 from tornado import gen
 
 
@@ -17,6 +17,8 @@ class Druid(object):
         self.__roots__ = settings.get("roots", [])
         self.__branch__ = settings.get("branch", [])
         self.__log_listeners__ = defaultdict(set)
+
+        self.creation_lock = Lock()
 
     def get_listener(self, leaf_id):
         q = Queue()

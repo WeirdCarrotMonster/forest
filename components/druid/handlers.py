@@ -55,120 +55,101 @@ class LeavesHandler(Handler):
         """
         Создает новый лист.
         """
-        try:
-            data = json.loads(self.request.body, object_hook=json_util.object_hook)
-        except JSONDecodeError:
-            self.set_status(400)
-            self.finish(json.dumps({
-                "result": "error",
-                "message": "Malformed json"
-            }))
-            raise gen.Return()
-
-        for k in ["name", "type", "address"]:
-            if k not in data:
+        with (yield self.application.druid.creation_lock.acquire()):
+            try:
+                data = json.loads(self.request.body, object_hook=json_util.object_hook)
+            except JSONDecodeError:
                 self.set_status(400)
                 self.finish(json.dumps({
                     "result": "error",
-                    "message": "Missing key",
-                    "key": k
+                    "message": "Malformed json"
                 }))
                 raise gen.Return()
 
-        leaf_name = data["name"]
-        leaf_type = data["type"]
-        leaf_address = data["address"]
-        leaf_settings = data.get("settings", {})
-        leaf_desc = data.get("description", "")
+            for k in ["name", "type", "address"]:
+                if k not in data:
+                    self.set_status(400)
+                    self.finish(json.dumps({
+                        "result": "error",
+                        "message": "Missing key",
+                        "key": k
+                    }))
+                    raise gen.Return()
 
-        leaf_address_check = yield self.application.async_db.leaves.find_one({"address": leaf_address})
+            leaf_address_check = yield self.application.async_db.leaves.find_one({
+                "$or": [
+                    {"address": data["address"]},
+                    {"name": data["name"]}
+                ]
+            })
 
-        if leaf_address_check:
-            self.set_status(400)
-            self.finish(json.dumps({
-                "result": "error",
-                "message": "Duplicate address"
-            }))
-            raise gen.Return()
+            if leaf_address_check:
+                self.set_status(400)
+                self.finish(json.dumps({
+                    "result": "error",
+                    "message": "Duplicate address"
+                }))
+                raise gen.Return()
 
-        leaf = yield self.application.async_db.leaves.update(
-            {"name": leaf_name},
-            {"$set": {"name": leaf_name}},
-            upsert=True,
-            new=True
-        )
+            try:
+                query = {"_id": ObjectId(data["type"])}
+            except (TypeError, InvalidId):
+                query = {"name": data["type"]}
 
-        if leaf["updatedExisting"]:
-            self.set_status(400)
-            self.finish(json.dumps({
-                "result": "error",
-                "message": "Duplicate name"
-            }))
-            raise gen.Return()
+            species = yield self.application.async_db.species.find_one(query)
 
-        leaf_id = leaf["upserted"]
+            if not species:
+                self.set_status(400)
+                self.finish(json.dumps({
+                    "result": "error",
+                    "message": "Unknown species"
+                }))
+                raise gen.Return()
 
-        try:
-            query = {"_id": ObjectId(leaf_type)}
-        except (TypeError, InvalidId):
-            query = {"name": leaf_type}
+            branch = random.choice(self.application.druid.branch)
 
-        species = yield self.application.async_db.species.find_one(query)
-
-        if not species:
-            self.set_status(400)
-            self.finish(json.dumps({
-                "result": "error",
-                "message": "Unknown species"
-            }))
-            raise gen.Return()
-
-        yield self.application.async_db.leaves.update(
-            {"_id": leaf_id},
-            {"$set": {
-                "desc": leaf_desc,
-                "type": species["_id"],
-                "active": True,
-                "address": [leaf_address],
-                "branch": None,
-                "settings": leaf_settings
-            }}
-        )
-
-        for air in self.application.druid.air:
-            yield air_enable_host(air, leaf_address)
-
-        if species.get("requires", []):
-            roots = self.application.druid.roots[0]
-            db_settings, code = yield send_request(
-                roots,
-                "roots/db",
-                "POST",
+            leaf_id = yield self.application.async_db.leaves.insert(
                 {
-                    "name": leaf_id,
-                    "db_type": species["requires"]
+                    "name": data["name"],
+                    "desc": data.get("description", ""),
+                    "type": species["_id"],
+                    "active": data.get("start", True),
+                    "address": [data["address"]],
+                    "branch": branch["name"],
+                    "settings": data.get("settings", {})
                 }
             )
 
-            yield self.application.async_db.leaves.update({"_id": leaf_id}, {"$set": {"batteries": db_settings}})
-        else:
-            db_settings = {}
+            for air in self.application.druid.air:
+                yield air_enable_host(air, data["address"])
 
-        branch = random.choice(self.application.druid.branch)
+            if species.get("requires", []):
+                roots = self.application.druid.roots[0]
+                db_settings, code = yield send_request(
+                    roots,
+                    "roots/db",
+                    "POST",
+                    {
+                        "name": leaf_id,
+                        "db_type": species["requires"]
+                    }
+                )
 
-        yield self.application.async_db.leaves.update({"_id": leaf_id}, {"$set": {"branch": branch["name"]}})
+                yield self.application.async_db.leaves.update(
+                    {"_id": leaf_id},
+                    {"$set": {"batteries": db_settings}}
+                )
+            else:
+                pass
 
-        leaf_config = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
-        leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
+            leaf_config = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
 
-        # ==============
-        # Проверяем наличие искомого типа на ветви
-        # ==============
+            if leaf_config.get("active", True):
+                leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
+                yield branch_prepare_species(branch, species)
+                yield branch_start_leaf(branch, leaf_config)
 
-        yield branch_prepare_species(branch, species)
-        yield branch_start_leaf(branch, leaf_config)
-
-        self.finish(json.dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
+            self.finish(json.dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
 
 
 class LeafHandler(Handler):
