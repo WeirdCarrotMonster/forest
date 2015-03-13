@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from toro import Queue, Lock
 from tornado import gen
-
+from pymongo.errors import AutoReconnect, ConnectionFailure
 
 # pylint: disable=W0702
 
@@ -34,7 +34,12 @@ class Druid(object):
 
     @gen.coroutine
     def store_log(self, log):
-        yield self.trunk.async_db.logs.insert(log)
+        for i in range(10):
+            try:
+                yield self.trunk.async_db.logs.insert(log)
+                break
+            except (AutoReconnect, ConnectionFailure):
+                yield gen.sleep(1)
 
     @gen.coroutine
     def propagate_event(self, event):
