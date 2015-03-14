@@ -146,6 +146,7 @@ class LeavesHandler(Handler):
 
             if leaf_config.get("active", True):
                 leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
+                leaf_config["uwsgi_mules"] = species.get("uwsgi_mules", [])
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_config)
 
@@ -201,6 +202,7 @@ class LeafHandler(Handler):
                 ]
 
                 species = yield self.application.async_db.species.find_one({"_id": leaf_data["type"]})
+                leaf_data["uwsgi_mules"] = species.get("uwsgi_mules", [])
 
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_data)
@@ -342,10 +344,11 @@ class BranchHandler(Handler):
         while (yield cursor.fetch_next):
             leaf = cursor.next_object()
 
+            species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
             leaf["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
+            leaf["uwsgi_mules"] = species.get("uwsgi_mules", [])
 
             if leaf["type"] not in verified_species:
-                species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
                 yield branch_prepare_species(branch, species)
                 verified_species.add(leaf["type"])
 
