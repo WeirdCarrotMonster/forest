@@ -40,16 +40,16 @@ def loads(data):
     return simplejson.loads(data, object_hook=json_util.object_hook)
 
 
-def load(data):
-    return simplejson.load(data, object_hook=json_util.object_hook)
+def load(fp):
+    return simplejson.load(fp, object_hook=json_util.object_hook)
 
 
 def dumps(data):
     return simplejson.dumps(data, default=json_util.default)
 
 
-def dump(data):
-    return simplejson.dump(data, default=json_util.default)
+def dump(data, fp):
+    return simplejson.dump(data, fp, default=json_util.default)
 
 
 @coroutine
