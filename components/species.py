@@ -54,25 +54,26 @@ class Species(object):
         self.ready_callback = ready_callback
         self.modified = modified
 
+        self.__ready__ = self.modified == self.saved_data.get("modified")
+
     @property
     def is_ready(self):
-        return self.modified == self.metadata.get("modified")
+        return self.__ready__
 
     @is_ready.setter
     def is_ready(self, value):
-        metadata = self.metadata
         if value:
-            metadata["modified"] = self.modified
+            self.__ready__ = True
+            self.update_saved_data()
         else:
-            metadata["modified"] = ""
-        self.metadata = metadata
+            self.__ready__ = False
 
     @property
     def python_version(self):
         return "python2"
 
     @property
-    def metadata(self):
+    def saved_data(self):
         try:
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
                 data = load(f)
@@ -80,10 +81,19 @@ class Species(object):
         except JSONDecodeError:
             return {}
 
-    @metadata.setter
-    def metadata(self, value):
+    def update_saved_data(self):
+        data = {
+            "_id": self.id,
+            "name": self.name,
+            "url": self.url,
+            "modified": self.modified,
+            "triggers": self.triggers,
+            "interpreter": self.interpreter,
+            "branch": self.branch,
+        }
+
         with open(join(self.specie_path, "metadata.json"), 'w') as f:
-            dump(value, f)
+            dump(data, f)
 
     @coroutine
     def initialize(self):

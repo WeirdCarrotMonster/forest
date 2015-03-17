@@ -56,16 +56,13 @@ class Leaf(Vassal):
     def dict(self):
         data = super(Leaf, self).dict
         data.update({
-            "keyfile": self.__keyfile__,
             "settings": self.settings,
             "fastrouters": self.__fastrouters__,
             "address": self.address,
             "batteries": self.__batteries__,
             "workers": self.workers,
             "threads": self.threads,
-            "species": self.__species__.id,
-            "log_port": self.log_port,
-            "leaf_host": self.leaf_host
+            "type": self.__species__.id
         })
         return data
 

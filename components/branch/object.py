@@ -15,6 +15,7 @@ from bson import ObjectId
 from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import simplejson as json
+import ConfigParser
 import zmq
 
 from components.common import log_message
@@ -23,7 +24,7 @@ from components.exceptions.logger import LoggerCreationError
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
-from components.common import loads
+from components.common import loads, load
 from components.branch.loggers import POSTLogger
 
 
@@ -58,6 +59,42 @@ class Branch(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
         log_message("Started branch", component="Branch")
+
+        self.__restore_species__()
+        IOLoop.current().spawn_callback(self.__restore_leaves__)
+
+    def __restore_species__(self):
+        for species_id in os.listdir(self.species_dir):
+            if os.path.isdir(os.path.join(self.species_dir, species_id)):
+                with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
+                    data = load(m)
+                    self.create_species(data, initialize=False)
+
+    @coroutine
+    def __restore_leaves__(self):
+        for leaf_config in os.listdir(self.trunk.emperor.vassal_dir):
+            config = ConfigParser.ConfigParser()
+            config.read(os.path.join(self.trunk.emperor.vassal_dir, leaf_config))
+            try:
+                data = loads(config.get("forest", "data"))
+
+                if data.get("cls") != "Leaf":
+                    continue
+
+                try:
+                    leaf = yield self.create_leaf(data)
+                except (TypeError, ValueError):
+                    pass
+
+                if leaf:
+                    log_message("Restoring leaf {}".format(leaf.id), component="Branch")
+                    self.add_leaf(leaf, start=False)
+            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+                continue
+
+    @property
+    def species_dir(self):
+        return os.path.join(self.trunk.forest_root, "species")
 
     @coroutine
     def log_message(self, message):
@@ -141,7 +178,7 @@ class Branch(object):
         else:
             return True, 200, "OK"
 
-    def create_species(self, species):
+    def create_species(self, species, initialize=True):
         """
         Создает вид листа по данным из словаря
 
@@ -157,13 +194,16 @@ class Branch(object):
 
         if species.id in self.species:
             log_message("Updating species {}".format(species.id), component="Branch")
-        else:
+        elif initialize:
             log_message("Creating species {}".format(species.id), component="Branch")
+        else:
+            log_message("Restoring species {}".format(species.id), component="Branch")
 
         self.species[species.id] = species
 
-        self.__species_initialization_started__(species)
-        IOLoop.current().spawn_callback(species.initialize)
+        if initialize:
+            self.__species_initialization_started__(species)
+            IOLoop.current().spawn_callback(species.initialize)
 
     def __species_initialization_started__(self, species):
         for leaf in self.leaves.values():
@@ -207,13 +247,16 @@ class Branch(object):
         )
         raise Return(l)
 
-    def add_leaf(self, leaf):
+    def add_leaf(self, leaf, start=True):
         if leaf.id in self.leaves:
             self.leaves[leaf.id].stop()
             del self.leaves[leaf.id]
 
         self.leaves[leaf.id] = leaf
-        return leaf.start()
+        if start:
+            return leaf.start()
+        else:
+            return None
 
     def del_leaf(self, leaf):
         leaf.stop()
