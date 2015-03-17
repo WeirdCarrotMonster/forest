@@ -54,6 +54,16 @@ class Vassal(object):
     def status(self):
         return self.__status__
 
+    @property
+    def dict(self):
+        return {
+            "cls": self.__class__.__name__,
+            "_id": self.__id__,
+            "name": self.__name__,
+            "uwsgi_cron": self.__uwsgi_cron__,
+            "uwsgi_mules": self.__uwsgi_mules__
+        }
+
     @status.setter
     def status(self, value):
         component = self.__class__.__name__

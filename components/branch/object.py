@@ -11,10 +11,10 @@ from collections import defaultdict
 import os
 
 from zmq.eventloop.zmqstream import ZMQStream
-import simplejson as json
 from bson import ObjectId
 from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
+import simplejson as json
 import zmq
 
 from components.common import log_message
@@ -23,6 +23,7 @@ from components.exceptions.logger import LoggerCreationError
 from components.leaf import Leaf
 from components.logparse import logparse
 from components.species import Species
+from components.common import loads
 from components.branch.loggers import POSTLogger
 
 
@@ -73,13 +74,8 @@ class Branch(object):
             if not data:
                 continue
 
-            add_info = {
-                "component_name": self.trunk.name,
-                "component_type": "branch"
-            }
-
             try:
-                data_parsed = json.loads(data)
+                data_parsed = loads(data)
                 try:
                     data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
                 except (KeyError, ValueError):
@@ -94,7 +90,10 @@ class Branch(object):
                 data_parsed, important = logparse(data)
                 data_parsed["time"] = datetime.datetime.utcnow()
 
-            data_parsed.update(add_info)
+            data_parsed.update({
+                "component_name": self.trunk.name,
+                "component_type": "branch"
+            })
 
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])

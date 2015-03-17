@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import simplejson as json
-
 from components.emperor import Vassal
+from components.common import dumps
 
 
 class Leaf(Vassal):
@@ -54,6 +53,23 @@ class Leaf(Vassal):
         self.__log_port__ = value
 
     @property
+    def dict(self):
+        data = super(Leaf, self).dict
+        data.update({
+            "keyfile": self.__keyfile__,
+            "settings": self.settings,
+            "fastrouters": self.__fastrouters__,
+            "address": self.address,
+            "batteries": self.__batteries__,
+            "workers": self.workers,
+            "threads": self.threads,
+            "species": self.__species__.id,
+            "log_port": self.log_port,
+            "leaf_host": self.leaf_host
+        })
+        return data
+
+    @property
     def species(self):
         """
         Возвращает объект типа листа,
@@ -70,8 +86,8 @@ class Leaf(Vassal):
     @property
     def environment(self):
         return {
-            "BATTERIES": json.dumps(self.__batteries__),
-            "APPLICATION_SETTINGS": json.dumps(self.settings)
+            "BATTERIES": dumps(self.__batteries__),
+            "APPLICATION_SETTINGS": dumps(self.settings)
         }
 
     def get_config(self):
@@ -100,7 +116,10 @@ class Leaf(Vassal):
             "log_source": str(self.id)
         }
 
-        config = """[uwsgi]
+        config = """[forest]
+data={leaf_data_dict}
+
+[uwsgi]
 master=1
 socket={leaf_host}:0
 logger=zeromq:tcp://127.0.0.1:{log_port}
@@ -126,11 +145,12 @@ endif=
 {mules}
 {cron}
 """.format(
+            leaf_data_dict=dumps(self.dict),
             chdir=self.__species__.src_path,
             virtualenv=self.__species__.environment,
-            app_settings=json.dumps(self.settings),
-            batteries=json.dumps(self.__batteries__),
-            logformat=json.dumps(logs_format),
+            app_settings=dumps(self.settings),
+            batteries=dumps(self.__batteries__),
+            logformat=dumps(logs_format),
             workers=self.workers,
             id=self.id,
             python=self.__species__.python_version,

@@ -12,14 +12,11 @@ from os.path import join
 import shutil
 import shlex
 
-from bson import ObjectId, json_util
-from bson.errors import InvalidId
 import tornado
 from tornado.gen import coroutine, Task, Return
-import simplejson as json
 from simplejson import JSONDecodeError
 
-from components.common import log_message
+from components.common import log_message, dump, load
 
 
 # pylint: disable=W0612,W0613
@@ -78,22 +75,15 @@ class Species(object):
     def metadata(self):
         try:
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
-                data = json.loads(f.read(), object_hook=json_util.object_hook)
-
-                for key, value in data.items():
-                    try:
-                        data[key] = ObjectId(value)
-                    except (TypeError, InvalidId):
-                        pass
+                data = load(f)
             return data
         except JSONDecodeError:
             return {}
 
     @metadata.setter
     def metadata(self, value):
-        data = json.dumps(value, default=json_util.default)
         with open(join(self.specie_path, "metadata.json"), 'w') as f:
-            f.write(data)
+            dump(value, f)
 
     @coroutine
     def initialize(self):
