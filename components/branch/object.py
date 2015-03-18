@@ -12,7 +12,7 @@ import os
 
 from zmq.eventloop.zmqstream import ZMQStream
 from bson import ObjectId
-from tornado.gen import coroutine, Return
+from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
 import simplejson as json
 import ConfigParser
