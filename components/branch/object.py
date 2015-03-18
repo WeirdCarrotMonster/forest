@@ -61,7 +61,7 @@ class Branch(object):
         log_message("Started branch", component="Branch")
 
         self.__restore_species__()
-        IOLoop.current().spawn_callback(self.__restore_leaves__)
+        self.__restore_leaves__()
 
     def __restore_species__(self):
         for species_id in os.listdir(self.species_dir):
@@ -73,7 +73,6 @@ class Branch(object):
                 except (TypeError, ValueError, IOError):
                     pass
 
-    @coroutine
     def __restore_leaves__(self):
         for leaf_config in os.listdir(self.trunk.emperor.vassal_dir):
             config = ConfigParser.ConfigParser()
@@ -85,7 +84,7 @@ class Branch(object):
                     continue
 
                 try:
-                    leaf = yield self.create_leaf(data)
+                    leaf = self.create_leaf(data)
                 except (TypeError, ValueError):
                     pass
 
@@ -227,7 +226,6 @@ class Branch(object):
                 leaf.species = species
                 leaf.start()
 
-    @coroutine
     def create_leaf(self, leaf):
         """
         Создает экземпляр листа
@@ -239,8 +237,9 @@ class Branch(object):
         """
         species = self.species.get(leaf.get("type"))
         if not species:
-            raise Return(None)
-        l = Leaf(
+            return None
+
+        return Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
             emperor=self.trunk.emperor,
             species=species,
@@ -248,7 +247,6 @@ class Branch(object):
             leaf_host=self.__host__,
             **leaf
         )
-        raise Return(l)
 
     def add_leaf(self, leaf, start=True):
         if leaf.id in self.leaves:

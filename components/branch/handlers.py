@@ -32,7 +32,7 @@ class LeavesHandler(tornado.web.RequestHandler):
     def post(self):
         data = json.loads(self.request.body, object_hook=json_util.object_hook)
 
-        leaf = yield self.application.branch.create_leaf(data)
+        leaf = self.application.branch.create_leaf(data)
 
         if leaf:
             started = self.application.branch.add_leaf(leaf)

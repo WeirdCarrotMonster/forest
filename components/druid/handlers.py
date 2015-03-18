@@ -183,7 +183,7 @@ class LeafHandler(Handler):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
             self.set_status(404)
-            self.finish(json.dumps({"result": "success", "message": "Unknown leaf"}))
+            self.finish(json.dumps({"result": "failure", "message": "Unknown leaf"}))
             raise gen.Return()
 
         yield self.application.async_db.leaves.update(
