@@ -55,6 +55,7 @@ class Species(object):
         self.modified = modified
 
         self.__ready__ = self.modified == self.saved_data.get("modified")
+        self.update_saved_data()
 
     @property
     def is_ready(self):
@@ -62,11 +63,7 @@ class Species(object):
 
     @is_ready.setter
     def is_ready(self, value):
-        if value:
-            self.__ready__ = True
-            self.update_saved_data()
-        else:
-            self.__ready__ = False
+        self.__ready__ = True
 
     @property
     def python_version(self):
