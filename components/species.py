@@ -78,7 +78,7 @@ class Species(object):
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
                 data = load(f)
             return data
-        except JSONDecodeError:
+        except (IOError, JSONDecodeError):
             return {}
 
     def update_saved_data(self):
