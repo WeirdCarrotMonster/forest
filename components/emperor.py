@@ -18,6 +18,7 @@ from zmq.eventloop.zmqstream import ZMQStream
 from components.common import log_message
 from components.logparse import logparse_emperor
 from tornado.gen import coroutine
+from tornado.ioloop import PeriodicCallback
 
 
 # pylint: disable=W0612,W0613
@@ -148,6 +149,9 @@ class Emperor(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
+        self.__scan_callback__ = PeriodicCallback(self.__read_vassals_status__, 5000)
+        self.__scan_callback__.start()
+
     @property
     def root_dir(self):
         return self.__root_dir__
@@ -172,6 +176,13 @@ class Emperor(object):
     def vassal_names(self):
         raw_names = os.listdir(self.vassal_dir)
         return [name[:-4] for name in raw_names]
+
+    @coroutine
+    def __read_vassals_status__(self):
+        for vassal in self.__stats__()["vassals"]:
+            if vassal["id"][0:-4] in self.vassals:
+                if vassal["ready"] == 1 and self.vassals[vassal["id"][0:-4]].status != "Running":
+                    self.vassals[vassal["id"][0:-4]].status = "Running"
 
     def stop(self):
         log_message("Stopping uwsgi emperor", component="Emperor")
@@ -214,6 +225,13 @@ class Emperor(object):
             os.utime(cfg_path, None)
 
     def stats(self, vassal):
+        for l in self.__stats__()["vassals"]:
+            if l["id"] == "{}.ini".format(vassal):
+                return l
+
+        return {}
+
+    def __stats__(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("127.0.0.1", 1777))
 
@@ -225,13 +243,7 @@ class Emperor(object):
                 break
             data += new_data.decode('utf8')
 
-        data = json.loads(data)
-
-        for l in data["vassals"]:
-            if l["id"] == "{}.ini".format(vassal):
-                return l
-
-        return {}
+        return json.loads(data)
 
     @coroutine
     def log_message(self, message):
