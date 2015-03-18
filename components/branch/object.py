@@ -66,9 +66,12 @@ class Branch(object):
     def __restore_species__(self):
         for species_id in os.listdir(self.species_dir):
             if os.path.isdir(os.path.join(self.species_dir, species_id)):
-                with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
-                    data = load(m)
-                    self.create_species(data, initialize=False)
+                try:
+                    with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
+                        data = load(m)
+                        self.create_species(data, initialize=False)
+                except (TypeError, ValueError, IOError):
+                    pass
 
     @coroutine
     def __restore_leaves__(self):
