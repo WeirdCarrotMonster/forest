@@ -73,6 +73,6 @@ Vagrant.configure(2) do |config|
     python2 setup.py develop
     cp examples/forest.json /home/vagrant/.forest.json
     sh /vagrant/tools/set_mongodb_password.sh
-    forest prepare
+    su vagrant -c "forest prepare"
   SHELL
 end
