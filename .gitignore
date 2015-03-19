@@ -53,3 +53,4 @@ roots
 *.pid
 
 docs/_*
+.vagrant
