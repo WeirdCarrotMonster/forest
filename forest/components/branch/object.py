@@ -64,14 +64,17 @@ class Branch(object):
         self.__restore_leaves__()
 
     def __restore_species__(self):
-        for species_id in os.listdir(self.species_dir):
-            if os.path.isdir(os.path.join(self.species_dir, species_id)):
-                try:
-                    with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
-                        data = load(m)
-                        self.create_species(data, initialize=False)
-                except (TypeError, ValueError, IOError):
-                    pass
+        try:
+            for species_id in os.listdir(self.species_dir):
+                if os.path.isdir(os.path.join(self.species_dir, species_id)):
+                    try:
+                        with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
+                            data = load(m)
+                            self.create_species(data, initialize=False)
+                    except (TypeError, ValueError, IOError):
+                        pass
+        except OSError:
+            pass
 
     def __restore_leaves__(self):
         for leaf_config in os.listdir(self.trunk.emperor.vassal_dir):

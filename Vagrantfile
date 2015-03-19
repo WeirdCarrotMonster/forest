@@ -69,6 +69,8 @@ Vagrant.configure(2) do |config|
     echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.0.list
     sudo apt-get update
     sudo apt-get install -y mongodb-org libzmq3-dev libssl-dev libcrypto++-dev build-essential python-dev python3-dev libpcre3-dev python-pip
-    sudo pip2 install -r /vagrant/requirements.txt
+    cd /vagrant
+    python2 setup.py develop
+    cp examples/forest.json /home/vagrant/.forest.json
   SHELL
 end

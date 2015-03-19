@@ -2,25 +2,25 @@
     "base": {
         "host": "127.0.0.1",
         "port": 1234,
-        "root": "/home/wcm/coding/forest",
-        "emperor": "/home/wcm/coding/forest/emperor",
+        "root": "/home/vagrant/.forest",
+        "emperor": "/home/vagrant/.forest/emperor",
         "name": "main",
         "db": {
             "host": "127.0.0.1",
             "port": 27017,
-            "user": "admin",
+            "user": "user",
             "pass": "password",
             "name": "trunk"
         },
         "secret": "71a9eccb2cedb3dbd850d907d803388f"
     },
     "roots": {
-        "roots_dir": "/home/wcm/coding/forest/roots",
-        "mongo": {
+        "roots_dir": "/home/vagrant/.forest/roots",
+        "mysql": {
             "type": "shared",
             "rootpass": "password"
         },
-        "mysql": {
+        "mongo": {
             "type": "shared",
             "rootpass": "password"
         }
@@ -30,11 +30,12 @@
         "loggers": [
             {
                 "identifier": "1",
-                "type": "POSTLoggerMinimal",
+                "type": "POSTLogger",
                 "address": "http://127.0.0.1:1234/api/druid/logs",
                 "headers": {"Token": "71a9eccb2cedb3dbd850d907d803388f"},
+                "filters": {"log_type": "leaf.event"},
                 "redundant_keys": [
-                    "host",
+                    "addr",
                     "proto",
                     "warning",
                     "traceback",
@@ -46,6 +47,13 @@
                 "identifier": "2",
                 "type": "POSTLogger",
                 "filters": {"status": 500},
+                "address": "http://127.0.0.1:1234/api/druid/logs",
+                "headers": {"Token": "71a9eccb2cedb3dbd850d907d803388f"}
+            },            
+            {
+                "identifier": "3",
+                "type": "POSTLogger",
+                "filters": {"log_type": "leaf.traceback"},
                 "address": "http://127.0.0.1:1234/api/druid/logs",
                 "headers": {"Token": "71a9eccb2cedb3dbd850d907d803388f"}
             }

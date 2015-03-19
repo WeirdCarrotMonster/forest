@@ -51,6 +51,7 @@ Forest.egg-info
 setup.cfg
 build
 temp
+*/#*#
 
 # Vagrant
 .vagrant
