@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from components.emperor import Vassal
-from components.common import dumps
+from forest.components.emperor import Vassal
+from forest.components.common import dumps
 
 
 class Leaf(Vassal):

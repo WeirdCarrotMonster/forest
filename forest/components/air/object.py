@@ -2,8 +2,8 @@
 import os
 import shutil
 
-from components.emperor import Vassal
-from components.common import log_message
+from forest.components.emperor import Vassal
+from forest.components.common import log_message
 
 
 class Fastrouter(Vassal):

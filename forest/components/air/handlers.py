@@ -6,8 +6,8 @@ from tornado import gen
 import simplejson as json
 from bson import json_util
 
-from components.api.decorators import token_auth
-from components.api.handler import Handler
+from forest.components.api.decorators import token_auth
+from forest.components.api.handler import Handler
 
 
 class HostHandler(Handler):

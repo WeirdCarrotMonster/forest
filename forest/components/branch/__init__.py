@@ -1,7 +1,7 @@
 # coding=utf-8
 
-from components.branch.object import Branch
-from components.branch.handlers import LeavesHandler, LeafHandler, SpeciesListHandler, SpeciesHandler, LoggerHandler, LoggerListHandler
+from forest.components.branch.object import Branch
+from forest.components.branch.handlers import LeavesHandler, LeafHandler, SpeciesListHandler, SpeciesHandler, LoggerHandler, LoggerListHandler
 
 
 branch_handlers = [

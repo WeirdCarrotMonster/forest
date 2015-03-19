@@ -1,9 +1,9 @@
 # coding=utf-8
 
-from components.druid.handlers import LeafHandler, LeafStatusHandler, \
+from forest.components.druid.handlers import LeafHandler, LeafStatusHandler, \
     LeavesHandler, BranchHandler, LogHandler, LogWatcher, WebsocketLogWatcher, \
     SpeciesListHandler, SpeciesHandler, TracebackHandler
-from components.druid.object import Druid
+from forest.components.druid.object import Druid
 
 
 druid_handlers = [

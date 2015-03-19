@@ -11,10 +11,10 @@ from simplejson import JSONDecodeError
 from bson import ObjectId, json_util
 from bson.errors import InvalidId
 
-from components.api.handler import Handler
-from components.api.decorators import token_auth
-from components.common import send_request
-from components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, branch_stop_leaf
+from forest.components.api.handler import Handler
+from forest.components.api.decorators import token_auth
+from forest.components.common import send_request
+from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, branch_stop_leaf
 
 
 # pylint: disable=W0221,W0612

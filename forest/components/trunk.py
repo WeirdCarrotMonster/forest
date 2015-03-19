@@ -6,8 +6,8 @@ import tornado.httpclient
 import tornado.template
 import tornado.web
 
-from components.emperor import Emperor
-from components.database import get_default_database
+from forest.components.emperor import Emperor
+from forest.components.database import get_default_database
 
 
 class Trunk(tornado.web.Application):

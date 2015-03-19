@@ -15,8 +15,8 @@ import simplejson as json
 import zmq
 from zmq.eventloop.zmqstream import ZMQStream
 
-from components.common import log_message
-from components.logparse import logparse_emperor
+from forest.components.common import log_message
+from forest.components.logparse import logparse_emperor
 from tornado.gen import coroutine
 from tornado.ioloop import PeriodicCallback
 

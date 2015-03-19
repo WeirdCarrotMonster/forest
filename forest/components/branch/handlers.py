@@ -7,8 +7,8 @@ import tornado.web
 import tornado.gen
 import simplejson as json
 
-from components.api.decorators import token_auth
-from components.exceptions.logger import LoggerCreationError
+from forest.components.api.decorators import token_auth
+from forest.components.exceptions.logger import LoggerCreationError
 
 
 # pylint: disable=W0221,W0613

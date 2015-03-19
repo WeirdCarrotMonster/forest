@@ -1,7 +1,7 @@
 # coding=utf-8
 
-from components.roots.object import Roots
-from components.roots.handlers import DatabaseHandler
+from forest.components.roots.object import Roots
+from forest.components.roots.handlers import DatabaseHandler
 
 
 roots_handlers = [

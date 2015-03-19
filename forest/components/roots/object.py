@@ -8,8 +8,8 @@ from bson import json_util
 from tornado.gen import Return, coroutine
 import simplejson as json
 
-from components.roots.batteries import MySQL, Mongo, MongoShared, MysqlShared
-from components.common import log_message
+from forest.components.roots.batteries import MySQL, Mongo, MongoShared, MysqlShared
+from forest.components.common import log_message
 
 
 # pylint: disable=W0612,W0613

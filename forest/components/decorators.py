@@ -3,7 +3,7 @@
 from pymongo.errors import AutoReconnect
 from tornado.web import HTTPError
 
-from components.common import log_message
+from forest.components.common import log_message
 
 
 def login_required(fn):

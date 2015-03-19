@@ -45,12 +45,12 @@ nosetests.xml
 /.idea/vcs.xml
 /.idea/workspace.xml
 
-emperor
-keys
-species
-vassals
-roots
-*.pid
+# Setuptools distribution folder.
+/dist/
+Forest.egg-info
+setup.cfg
+build
+temp
 
-docs/_*
+# Vagrant
 .vagrant

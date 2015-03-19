@@ -18,14 +18,14 @@ import simplejson as json
 import ConfigParser
 import zmq
 
-from components.common import log_message
-from components.exceptions.logger import LoggerCreationError
+from forest.components.common import log_message
+from forest.components.exceptions.logger import LoggerCreationError
 
-from components.leaf import Leaf
-from components.logparse import logparse
-from components.species import Species
-from components.common import loads, load
-from components.branch.loggers import POSTLogger
+from forest.components.leaf import Leaf
+from forest.components.logparse import logparse
+from forest.components.species import Species
+from forest.components.common import loads, load
+from forest.components.branch.loggers import POSTLogger
 
 
 # pylint: disable=W0702,W0612,W0613

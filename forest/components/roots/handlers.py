@@ -6,7 +6,7 @@ from tornado import gen
 import simplejson as json
 from bson import json_util
 
-from components.api.handler import Handler
+from forest.components.api.handler import Handler
 
 
 class DatabaseHandler(Handler):

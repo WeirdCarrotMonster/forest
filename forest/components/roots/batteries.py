@@ -15,9 +15,9 @@ import motor
 from pymysql import OperationalError
 import traceback
 
-from components.emperor import Vassal
-from components.common import log_message
-from components.cmdrunner import call_subprocess
+from forest.components.emperor import Vassal
+from forest.components.common import log_message
+from forest.components.cmdrunner import call_subprocess
 
 
 # pylint: disable=W0612,W0221,W0702

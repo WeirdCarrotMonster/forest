@@ -16,7 +16,7 @@ import tornado
 from tornado.gen import coroutine, Task, Return
 from simplejson import JSONDecodeError
 
-from components.common import log_message, dump, load
+from forest.components.common import log_message, dump, load
 
 
 # pylint: disable=W0612,W0613
