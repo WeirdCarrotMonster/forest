@@ -25,7 +25,18 @@ class LeavesHandler(tornado.web.RequestHandler):
         """
         Возвращает список всех известных листьев
         """
-        pass
+        self.write("[")
+
+        first = True
+        for leaf in self.application.branch.leaves.keys():
+            if not first:
+                self.write(",")
+            else:
+                first = False
+
+            self.write(json.dumps(leaf, default=json_util.default))
+
+        self.finish("]")
 
     @tornado.gen.coroutine
     @token_auth
