@@ -148,10 +148,10 @@ def runserver(args):
 
 def main():
     args = parser.parse_args()
-    settings = json.load(args.config)
 
     if args.command == "prepare":
         from utils.build import build_uwsgi
+        settings = json.load(args.config)
 
         emperor_dir = settings["base"].get("emperor", os.path.join(settings["base"]["root"], "emperor"))
 
@@ -174,6 +174,7 @@ def main():
         sys.exit(0)
     elif args.command == "shell":
         from utils.shell import ShellTool
+        settings = json.load(args.config)
         ShellTool(**settings).cmdloop()
         sys.exit(0)
     elif args.command == "genconf":

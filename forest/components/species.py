@@ -51,6 +51,10 @@ class Species(object):
         self.triggers = triggers or {}
         self._environment = os.path.join(self.specie_path, "env")
         self._path = os.path.join(self.specie_path, "src")
+
+        if not os.path.exists(self.specie_path):
+            os.makedirs(self.specie_path)
+
         self.ready_callback = ready_callback
         self.modified = modified
 
@@ -94,13 +98,6 @@ class Species(object):
 
     @coroutine
     def initialize(self):
-        if not os.path.exists(self.specie_path):
-            log_message(
-                "Creating directory for {}".format(self.name),
-                component="Specie"
-            )
-            os.makedirs(self.specie_path)
-
         if not self.is_ready:
             if os.path.exists(self._path):
                 shutil.rmtree(self._path)
