@@ -17,11 +17,9 @@
     "roots": {
         "roots_dir": "/home/vagrant/.forest/roots",
         "mysql": {
-            "type": "shared",
             "rootpass": "password"
         },
         "mongo": {
-            "type": "shared",
             "rootpass": "password"
         }
     },
