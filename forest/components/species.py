@@ -67,7 +67,7 @@ class Species(object):
 
     @is_ready.setter
     def is_ready(self, value):
-        self.__ready__ = True
+        self.__ready__ = value
 
     @property
     def python_version(self):
