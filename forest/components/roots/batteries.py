@@ -10,8 +10,6 @@ import pymysql
 import motor
 import traceback
 
-from forest.components.emperor import Vassal
-
 
 # pylint: disable=W0612,W0221,W0702
 
