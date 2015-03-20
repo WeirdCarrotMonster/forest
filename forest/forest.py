@@ -148,9 +148,9 @@ def runserver(args):
 
 def main():
     args = parser.parse_args()
+    settings = json.load(args.config)
 
     if args.command == "prepare":
-        settings = json.load(args.config)
         from utils.build import build_uwsgi
 
         emperor_dir = settings["base"].get("emperor", os.path.join(settings["base"]["root"], "emperor"))
