@@ -10,9 +10,18 @@ setup(
     license="LGPLv3",
     keywords="PaaS",
     url="https://github.com/WeirdCarrotMonster/forest",
-    packages=['forest'],
+    packages=[
+        'forest',
+        'forest.components',
+        'forest.components.air',
+        'forest.components.api',
+        'forest.components.druid',
+        'forest.components.roots',
+        'forest.components.branch',
+        'forest.components.exceptions',
+        'forest.utils'
+    ],
     long_description=(""),
-    py_modules=['forest'],
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Topic :: Utilities",
