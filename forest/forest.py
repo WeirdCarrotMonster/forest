@@ -146,30 +146,34 @@ def runserver(args):
     loop.start()
 
 
+def prepare(args):
+    from utils.build import build_uwsgi
+    settings = json.load(args.config)
+
+    emperor_dir = settings["base"].get("emperor", os.path.join(settings["base"]["root"], "emperor"))
+
+    if os.path.exists(emperor_dir) and args.force:
+        print("Cleaning existing executables")
+        shutil.rmtree(os.path.join(emperor_dir, "bin"))
+
+    if not os.path.exists(os.path.join(emperor_dir, "bin")):
+        print("Creating emperor directory at {}".format(emperor_dir))
+
+        os.makedirs(os.path.join(emperor_dir, "bin"))
+        if not os.path.exists(os.path.join(emperor_dir, "vassals")):
+            os.makedirs(os.path.join(emperor_dir, "vassals"))
+
+        print("Building uwsgi")
+        build_uwsgi(os.path.join(emperor_dir, "bin"))
+
+    sys.exit(0)
+
+
 def main():
     args = parser.parse_args()
 
     if args.command == "prepare":
-        from utils.build import build_uwsgi
-        settings = json.load(args.config)
-
-        emperor_dir = settings["base"].get("emperor", os.path.join(settings["base"]["root"], "emperor"))
-
-        if os.path.exists(emperor_dir) and args.force:
-            print("Cleaning existing executables")
-            shutil.rmtree(os.path.join(emperor_dir, "bin"))
-
-        if not os.path.exists(os.path.join(emperor_dir, "bin")):
-            print("Creating emperor directory at {}".format(emperor_dir))
-
-            os.makedirs(os.path.join(emperor_dir, "bin"))
-            if not os.path.exists(os.path.join(emperor_dir, "vassals")):
-                os.makedirs(os.path.join(emperor_dir, "vassals"))
-
-            print("Building uwsgi")
-            build_uwsgi(os.path.join(emperor_dir, "bin"))
-
-        sys.exit(0)
+        prepare(args)
     elif args.command == "check":
         sys.exit(0)
     elif args.command == "shell":
