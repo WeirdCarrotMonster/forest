@@ -86,6 +86,19 @@ class LeafHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class LeafRPCHandler(tornado.web.RequestHandler):
+
+    @tornado.gen.coroutine
+    @token_auth
+    def post(self, _id):
+        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        assert type(data) == list
+
+        response = yield self.application.emperor.call_vassal_rpc(_id, *data)
+
+        self.finish(json.dumps(response))
+
+
 class SpeciesListHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine

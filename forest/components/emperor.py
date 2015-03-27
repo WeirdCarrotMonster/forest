@@ -9,7 +9,9 @@ from __future__ import print_function, unicode_literals
 
 import os
 import socket
+import psutil
 import subprocess
+from struct import pack, unpack
 
 import simplejson as json
 import zmq
@@ -17,8 +19,10 @@ from zmq.eventloop.zmqstream import ZMQStream
 
 from forest.components.common import log_message
 from forest.components.logparse import logparse_emperor
-from tornado.gen import coroutine
+from tornado.tcpclient import TCPClient
+from tornado.gen import coroutine, Return
 from tornado.ioloop import PeriodicCallback
+from tornado.iostream import StreamClosedError
 
 
 # pylint: disable=W0612,W0613
@@ -107,12 +111,10 @@ class Emperor(object):
             with open(self.pidfile) as pid_file:
                 try:
                     emperor_pid = int(pid_file.read())
-                    if not os.path.exists("/proc/{}".format(emperor_pid)):
-                        emperor_pid = 0
-                        raise ValueError()
+                    psutil.Process(emperor_pid)
 
                     log_message("Found running emperor server", component="Emperor")
-                except ValueError:
+                except (ValueError, psutil.NoSuchProcess):
                     os.remove(self.pidfile)
 
         if not emperor_pid:
@@ -140,7 +142,6 @@ class Emperor(object):
             assert code == 0, "Error starting emperor server"
             log_message("Started emperor server", component="Emperor")
 
-        self.vassal_ports = {}
         self.vassals = {}
 
         ctx = zmq.Context()
@@ -183,6 +184,44 @@ class Emperor(object):
             if vassal["id"][0:-4] in self.vassals:
                 if vassal["ready"] == 1 and self.vassals[vassal["id"][0:-4]].status != "Running":
                     self.vassals[vassal["id"][0:-4]].status = "Running"
+
+    @coroutine
+    def call_vassal_rpc(self, vassal, *args):
+        stats = self.stats(vassal)
+        try:
+            assert "pid" in stats
+
+            process = psutil.Process(stats["pid"])
+            host, port = process.connections()[0].laddr
+
+            client = yield TCPClient().connect(host, port)
+            yield client.write(pack('<BHB', 173, sum(2 + len(arg) for arg in args), 0))
+
+            for arg in args:
+                yield client.write(pack('<H', len(arg)) + arg)
+
+            print(1)
+            data = yield client.read_bytes(4)
+            print(1)
+            modifier1, datasize, modifier2 = unpack("<BHB", data)
+
+            data = yield client.read_bytes(datasize)
+            print(3)
+            raise Return({
+                "result": "success",
+                "data": data
+            })
+
+        except (AssertionError, psutil.NoSuchProcess):
+            raise Return({
+                "result": "failure",
+                "message": "Not running"
+            })
+        except StreamClosedError:
+            raise Return({
+                "result": "failure",
+                "message": "Call failure"
+            })
 
     def stop(self):
         log_message("Stopping uwsgi emperor", component="Emperor")
