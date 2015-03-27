@@ -118,6 +118,8 @@ data={leaf_data_dict}
 
 [uwsgi]
 master=1
+buffer-size=65535
+heartbeat=10
 socket={leaf_host}:0
 logger=zeromq:tcp://127.0.0.1:{log_port}
 req-logger=zeromq:tcp://127.0.0.1:{log_port}

@@ -129,10 +129,7 @@ class Emperor(object):
                     "--emperor-stats", "127.0.0.1:1777",
                     "--emperor-required-heartbeat", "40",
                     "--emperor-throttle", "10000",
-                    "--vassal-set", "plugins-dir=%s" % self.binary_dir,
-                    "--vassal-set", "buffer-size=65535",
-                    "--vassal-set", "heartbeat=10",
-                    "--vassal-set", "strict=1"
+                    "--vassal-set", "plugins-dir=%s" % self.binary_dir
                 ],
                 bufsize=1,
                 close_fds=True
