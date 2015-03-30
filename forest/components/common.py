@@ -33,7 +33,7 @@ class Message(object):
 
 
 def log_message(message, component="Forest", end="\n", begin=""):
-    print("{3}[{0}][{1:8}] {2}".format(datetime.now(), component, message, begin), end=end)
+    print("{3}[{0}][{1}] {2}".format(datetime.now(), component.center(10), message, begin), end=end)
 
 
 def loads(data):
