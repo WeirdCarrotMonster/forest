@@ -68,9 +68,7 @@ class Leaf(Vassal):
 
     @property
     def species(self):
-        """
-        Возвращает объект типа листа,
-
+        """Возвращает тип листа
         :rtype : Species
         :return:
         """
@@ -152,7 +150,7 @@ endif=
             logformat=dumps(logs_format),
             workers=self.workers,
             id=self.id,
-            python=self.__species__.python_version,
+            python=self.__species__.python,
             leaf_host=self.leaf_host,
             log_port=self.log_port,
             mules=self.get_mules_config(),

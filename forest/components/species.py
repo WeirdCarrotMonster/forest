@@ -66,17 +66,14 @@ class Species(object):
         """
         self.directory = directory
         self.specie_id = _id
-        self.specie_path = os.path.join(self.directory, str(self.specie_id))
         self.interpreter = interpreter if interpreter in ["python2", "python3"] else "python2"
         self.url = url
         self.name = name
         self.branch = branch
         self.triggers = triggers or {}
-        self._environment = os.path.join(self.specie_path, "env")
-        self._path = os.path.join(self.specie_path, "src")
 
-        if not os.path.exists(self.specie_path):
-            os.makedirs(self.specie_path)
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
         self.ready_callback = ready_callback
         self.modified = modified
@@ -87,28 +84,31 @@ class Species(object):
     @property
     def is_ready(self):
         """Возвращает значение готовности вида
+        :returns: Готовность вида
         :rtype: bool
         """
         return self.__ready__
 
     @is_ready.setter
     def is_ready(self, value):
-        """Устанавливает флаг готовности
+        """Устанавливает флаг готовности вида
         :param value: Новое значение флага готовности
         :type value: bool
         """
         self.__ready__ = value
 
     @property
-    def python_version(self):
-        """Установленный интерпретатор python
+    def python(self):
+        """Возвращает версию интерпретатора, на использование которой настроен данный вид
+        :returns: Строка с именем исполняемого файла интерпретатора
         :rtype: str
         """
         return "python2"
 
     @property
     def description(self):
-        """Краткое описание вида, включающее id и дату модификации
+        """Формирует краткое описание вида, достаточное для сравнения объектов.
+        :returns: Словарь с кратким описанием
         :rtype dict:
         """
         return {
@@ -118,11 +118,12 @@ class Species(object):
 
     @property
     def saved_data(self):
-        """Сохраненные настройки вида
+        """Загружает и возвращает настройки вида, описанные в файле метаданных
+        :returns: Словарь с настройками вида
         :rtype: dict
         """
         try:
-            with open(join(self.specie_path, "metadata.json"), 'r') as f:
+            with open(join(self.path, "metadata.json"), 'r') as f:
                 data = load(f)
             return data
         except (IOError, JSONDecodeError):
@@ -141,7 +142,7 @@ class Species(object):
             "branch": self.branch,
         }
 
-        with open(join(self.specie_path, "metadata.json"), 'w') as f:
+        with open(join(self.path, "metadata.json"), 'w') as f:
             dump(data, f)
 
     @coroutine
@@ -149,8 +150,8 @@ class Species(object):
         """Инициализирует корневую директорию вида
         """
         if not self.is_ready:
-            if os.path.exists(self._path):
-                shutil.rmtree(self._path)
+            if os.path.exists(self.src_path):
+                shutil.rmtree(self.src_path)
             log_message(
                 "Initializing sources for {}".format(self.name),
                 component="Species"
@@ -162,13 +163,13 @@ class Species(object):
                     "--depth", "1",
                     "--branch", self.branch,
                     self.url,
-                    self._path
+                    self.src_path
                 ],
                 apply_env=False
             )
 
-            if os.path.exists(self._environment):
-                shutil.rmtree(self._environment)
+            if os.path.exists(self.environment):
+                shutil.rmtree(self.environment)
             log_message(
                 "Creating virtualenv for species {}".format(self.name),
                 component="Species"
@@ -177,8 +178,8 @@ class Species(object):
             yield self.run_in_env(
                 [
                     "virtualenv",
-                    "--python=%s" % self.python_version,
-                    self._environment
+                    "--python=%s" % self.python,
+                    self.environment
                 ],
                 apply_env=False
             )
@@ -190,10 +191,10 @@ class Species(object):
 
             yield self.run_in_env(
                 [
-                    os.path.join(self._environment, "bin/pip"),
+                    os.path.join(self.environment, "bin/pip"),
                     "install",
                     "-r",
-                    os.path.join(self._path, "requirements.txt"),
+                    os.path.join(self.src_path, "requirements.txt"),
                     "--upgrade"
                 ]
             )
@@ -214,14 +215,14 @@ class Species(object):
         cmd = shlex.split(cmd) if type(cmd) != list else cmd
         process_env = os.environ.copy()
         if apply_env:
-            process_env["PATH"] = join(self._environment, "bin") + ":" + process_env.get("PATH", "")
-            process_env["VIRTUAL_ENV"] = self._environment
+            process_env["PATH"] = join(self.environment, "bin") + ":" + process_env.get("PATH", "")
+            process_env["VIRTUAL_ENV"] = self.environment
 
         if env:
             process_env.update(env)
 
         if not path:
-            path = self.specie_path
+            path = self.path
 
         sub_process = tornado.process.Subprocess(
             cmd,
@@ -244,29 +245,33 @@ class Species(object):
         raise Return((result, error))
 
     @property
-    def src_path(self):
-        """Путь к директории с исходными кодами внутри корневой директории вида
+    def path(self):
+        """Возвращает полный путь к корневой директории вида
+        :returns: Полный путь к корневой директории вида
         :rtype: str
         """
-        return self._path
+        return os.path.join(self.directory, str(self.specie_id))
 
     @property
-    def path(self):
-        """Корневая директория вида
+    def src_path(self):
+        """Путь к директории с исходными кодами вида (обычно root/src)
+        :returns: Полынй путь к директории исходных кодов
         :rtype: str
         """
-        return self.specie_path
+        return os.path.join(self.path, "src")
 
     @property
     def environment(self):
-        """Путь к виртуальному окружению python внутри корневой директории вида
+        """Возвращает полный путь к директории виртуального окржения вида (обычно root/env)
+        :returns: Полный путь к директории виртуального окружения
         :rtype: str
         """
-        return self._environment
+        return os.path.join(self.path, "env")
 
     @property
     def id(self):
         """Уникальный идентификатор вида
-        :rtype: str
+        :returns: Идентификатор вида
+        :rtype: ObjectId
         """
         return self.specie_id
