@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from itertools import product
+
 from forest.components.emperor import Vassal
 from forest.components.common import dumps
 
@@ -141,6 +143,7 @@ endif=
 
 {mules}
 {cron}
+{triggers}
 """.format(
             leaf_data_dict=dumps(self.dict),
             chdir=self.__species__.src_path,
@@ -153,20 +156,17 @@ endif=
             python=self.__species__.python,
             leaf_host=self.leaf_host,
             log_port=self.log_port,
-            mules=self.get_mules_config(),
-            cron=self.get_cron_config()
+            cron=self.get_cron_config(),
+            triggers=self.get_triggers_config(),
+            mules=self.get_mules_config()
         )
         if self.threads:
             config += "enable-threads=1\n"
 
-        for before_start in self.__species__.triggers.get("before_start", []):
-            config += "hook-pre-app=exec:{}\n".format(before_start)
-
-        for router in self.__fastrouters__:
-            for address in self.address:
-                config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
-                    router,
-                    address, self.keyfile
-                )
+        for router, address in product(self.__fastrouters__, self.address):
+            config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
+                router,
+                address, self.keyfile
+            )
 
         return config

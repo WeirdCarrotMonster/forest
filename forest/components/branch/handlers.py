@@ -98,7 +98,7 @@ class SpeciesListHandler(tornado.web.RequestHandler):
     def post(self):
         data = loads(self.request.body)
 
-        self.application.branch.create_species(data)
+        yield self.application.branch.create_species(data)
 
         self.finish(dumps({"result": "success", "message": "OK"}))
 

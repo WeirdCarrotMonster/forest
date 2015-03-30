@@ -13,7 +13,7 @@ import os
 
 from zmq.eventloop.zmqstream import ZMQStream
 from bson import ObjectId
-from tornado.gen import coroutine
+from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import simplejson as json
 import ConfigParser
@@ -61,22 +61,24 @@ class Branch(object):
         self.stream.on_recv(self.log_message)
         log_message("Started branch", component="Branch")
 
-        self.__restore_species__()
-        self.__restore_leaves__()
+        IOLoop.current().spawn_callback(self.__restore_species__)
 
+    @coroutine
     def __restore_species__(self):
         try:
             for species_id in os.listdir(self.species_dir):
                 if os.path.isdir(os.path.join(self.species_dir, species_id)):
                     try:
                         with open(os.path.join(self.species_dir, species_id, "metadata.json"), "r") as m:
-                            data = load(m)
-                            self.create_species(data, initialize=False)
+                            yield self.create_species(load(m), initialize=False)
                     except (TypeError, ValueError, IOError):
                         pass
         except OSError:
             pass
 
+        IOLoop.current().spawn_callback(self.__restore_leaves__)
+
+    @coroutine
     def __restore_leaves__(self):
         for leaf_config in os.listdir(self.trunk.emperor.vassal_dir):
             config = ConfigParser.ConfigParser()
@@ -95,7 +97,7 @@ class Branch(object):
                 if leaf:
                     log_message("Restoring leaf {}".format(leaf.id), component="Branch")
                     self.add_leaf(leaf, start=False)
-            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+            except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, Species.NotDefined):
                 continue
 
     @property
@@ -111,18 +113,15 @@ class Branch(object):
         :param message: Логгируемое сообщение
         :type message: list
         """
-        for data in message:
-            data = data.strip()
-
-            if not data:
-                continue
-
+        for data in (_.strip() for _ in message if _.strip()):
             try:
                 data_parsed = loads(data)
                 try:
                     data_parsed["time"] = datetime.datetime.utcfromtimestamp(int(data_parsed["time"]))
-                except (KeyError, ValueError):
+                except KeyError:
                     data_parsed["time"] = datetime.datetime.utcnow()
+                except ValueError:
+                    pass
 
                 for key in ["msecs", "status", "request_size", "response_size"]:
                     if key in data_parsed:
@@ -207,27 +206,20 @@ class Branch(object):
         self.species[species.id] = species
 
         if initialize:
-            self.__species_initialization_started__(species)
-            IOLoop.current().spawn_callback(species.initialize)
 
-    def __species_initialization_started__(self, species):
-        for leaf in self.leaves.values():
-            if leaf.species.id == species.id:
+            species.is_ready = False
+            for leaf in (_ for _ in self.leaves.values() if _.species.id == species.id):
                 leaf.species = species
                 leaf.stop()
 
-    def __species_initialization_finished__(self, species):
-        """
-        Событие, выполняющееся при завершении инициализации вида листьев
+            yield species.initialize()
 
-        :type species: Species
-        :param species: Вид листьев, закончивший инициализацию
-        """
-        species.is_ready = True
-        for leaf in self.leaves.values():
-            if leaf.species.id == species.id:
+            species.is_ready = True
+            for leaf in (_ for _ in self.leaves.values() if _.species.id == species.id):
                 leaf.species = species
                 leaf.start()
+
+        raise Return(species)
 
     def create_leaf(self, leaf):
         """

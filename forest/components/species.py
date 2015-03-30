@@ -36,11 +36,8 @@ class Species(object):
             self,
             directory,
             _id,
-            name,
             url,
-            ready_callback,
             modified,
-            triggers=None,
             interpreter=None,
             branch="master",
             **kwargs):
@@ -49,16 +46,10 @@ class Species(object):
         :type directory: str
         :param _id: Уникальный идентификатор вида
         :type _id: ObjectId
-        :param name: Человеко-читаемое имя вида
-        :type name: str
         :param url: URL исходных кодов приложения
         :type url: str
-        :param ready_callback: Функция, выполняемая по завершении инициализации
-        :type ready_callback: function
         :param modified: Дата последнего изменения вида
         :type modified: DateTime
-        :param triggers: Словарь триггеров, выполняемых при запуске листьев
-        :type triggers: dict
         :param interpreter: Используемый интерпретатор python
         :type interpreter: str
         :param branch: Ветвь репозитория (при использовании git)
@@ -68,14 +59,11 @@ class Species(object):
         self.specie_id = _id
         self.interpreter = interpreter if interpreter in ["python2", "python3"] else "python2"
         self.url = url
-        self.name = name
         self.branch = branch
-        self.triggers = triggers or {}
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 
-        self.ready_callback = ready_callback
         self.modified = modified
 
         self.__ready__ = self.modified == self.saved_data.get("modified")
@@ -134,10 +122,8 @@ class Species(object):
         """
         data = {
             "_id": self.id,
-            "name": self.name,
             "url": self.url,
             "modified": self.modified,
-            "triggers": self.triggers,
             "interpreter": self.interpreter,
             "branch": self.branch,
         }
@@ -152,59 +138,43 @@ class Species(object):
         if not self.is_ready:
             if os.path.exists(self.src_path):
                 shutil.rmtree(self.src_path)
-            log_message(
-                "Initializing sources for {}".format(self.name),
-                component="Species"
-            )
-            yield self.run_in_env(
-                [
-                    "git",
-                    "clone",
-                    "--depth", "1",
-                    "--branch", self.branch,
-                    self.url,
-                    self.src_path
-                ],
-                apply_env=False
+
+            log_message("Initializing sources for {}".format(self.id), "Species")
+
+            yield self.run_in_env([
+                "git",
+                "clone",
+                "--depth", "1",
+                "--branch", self.branch,
+                self.url,
+                self.src_path
+                ], apply_env=False
             )
 
             if os.path.exists(self.environment):
                 shutil.rmtree(self.environment)
-            log_message(
-                "Creating virtualenv for species {}".format(self.name),
-                component="Species"
-            )
 
-            yield self.run_in_env(
-                [
-                    "virtualenv",
-                    "--python=%s" % self.python,
-                    self.environment
+            log_message("Creating virtualenv for species {}".format(self.id), "Species")
+
+            yield self.run_in_env([
+                "virtualenv",
+                "--python=%s" % self.python,
+                self.environment
                 ],
                 apply_env=False
             )
 
-            log_message(
-                "Installing virtualenv requirements for {}".format(self.name),
-                component="Species"
-            )
+            log_message("Installing virtualenv requirements for {}".format(self.id), "Species")
 
-            yield self.run_in_env(
-                [
-                    os.path.join(self.environment, "bin/pip"),
-                    "install",
-                    "-r",
-                    os.path.join(self.src_path, "requirements.txt"),
-                    "--upgrade"
-                ]
-            )
+            yield self.run_in_env([
+                os.path.join(self.environment, "bin/pip"),
+                "install",
+                "-r",
+                os.path.join(self.src_path, "requirements.txt"),
+                "--upgrade"
+            ])
 
-            self.is_ready = True
-            log_message(
-                "Done initializing {}".format(self.name),
-                component="Species"
-            )
-            self.ready_callback(self)
+            log_message("Done initializing {}".format(self.id), "Species")
 
     @coroutine
     def run_in_env(self, cmd, stdin_data=None, env=None, apply_env=True, path=None):
