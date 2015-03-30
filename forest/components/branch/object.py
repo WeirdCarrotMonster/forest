@@ -235,7 +235,7 @@ class Branch(object):
             raise Species.NotDefined()
 
         return Leaf(
-            keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
+            keyfile=os.path.join(self.trunk.forest_root, "keys", "private.pem"),
             emperor=self.trunk.emperor,
             species=species,
             log_port=5122,
