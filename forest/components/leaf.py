@@ -33,7 +33,6 @@ class Leaf(Vassal):
         self.threads = threads
         self.log_port = log_port
         self.leaf_host = leaf_host
-        self.paused = False
 
     def start(self):
         if self.__species__.is_ready:
@@ -87,8 +86,14 @@ class Leaf(Vassal):
             "APPLICATION_SETTINGS": dumps(self.settings)
         }
 
+    def pause(self):
+        self.status = "Paused"
+        # TODO: Раскомментировать, когда будет работать приостановленный конфиг
+        # self.__emperor__.start_vassal(self)
+        self.__emperor__.stop_vassal(self)
+
     def get_config(self):
-        if not self.paused:
+        if self.status != "Paused":
             return self.__get_config__()
         else:
             return self.__get_config_paused__()

@@ -41,7 +41,7 @@ class Vassal(object):
     ):
         self.__id__ = _id
         self.__emperor__ = emperor
-        self.__status__ = "stopped"
+        self.__status__ = "Stopped"
 
         self.__uwsgi_cron__ = uwsgi_cron or []
         self.__uwsgi_mules__ = uwsgi_mules or []

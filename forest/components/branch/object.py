@@ -210,7 +210,7 @@ class Branch(object):
             species.is_ready = False
             for leaf in (_ for _ in self.leaves.values() if _.species.id == species.id):
                 leaf.species = species
-                leaf.stop()
+                leaf.pause()
 
             yield species.initialize()
 
