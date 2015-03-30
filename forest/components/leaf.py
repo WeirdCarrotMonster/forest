@@ -133,6 +133,7 @@ module=wsgi:application
 processes={workers}
 static-map=/static={chdir}/static
 offload-threads=4
+{threads}
 
 chdir={chdir}
 env=BATTERIES={batteries}
@@ -148,23 +149,22 @@ endif=
 {cron}
 {triggers}
 """.format(
-            leaf_data_dict=dumps(self.dict),
-            chdir=self.__species__.src_path,
-            virtualenv=self.__species__.environment,
             app_settings=dumps(self.settings),
             batteries=dumps(self.__batteries__),
-            logformat=dumps(logs_format),
-            workers=self.workers,
+            chdir=self.__species__.src_path,
+            cron=self.get_cron_config(),
             id=self.id,
-            python=self.__species__.python,
+            leaf_data_dict=dumps(self.dict),
             leaf_host=self.leaf_host,
             log_port=self.log_port,
-            cron=self.get_cron_config(),
+            logformat=dumps(logs_format),
+            mules=self.get_mules_config(),
+            python=self.__species__.python,
+            threads="enable-threads=" if self.threads else "",
             triggers=self.get_triggers_config(),
-            mules=self.get_mules_config()
+            virtualenv=self.__species__.environment,
+            workers=self.workers
         )
-        if self.threads:
-            config += "enable-threads=1\n"
 
         for router, address in product(self.__fastrouters__, self.address):
             config += "subscribe-to={0}:{1},5,SHA1:{2}\n".format(
