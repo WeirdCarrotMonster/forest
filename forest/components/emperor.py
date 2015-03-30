@@ -49,14 +49,36 @@ class Vassal(object):
 
     @property
     def id(self):
-        return self.__id__
+        """Уникальный идентификатор вассала, который может быть использован в имени конфигурационного файла
+        :returns: Уникальный идентификатор
+        :rtype: str
+        """
+        return str(self.__id__)
 
     @property
     def status(self):
+        """Текущий статус вассала
+        :returns: Статус вассала
+        :rtype: str
+        """
         return self.__status__
+
+    @status.setter
+    def status(self, value):
+        """Устанавливает статус вассала и логгирует его
+        :param value: Новый статус
+        :type value: str
+        """
+        if value != self.__status__:
+            log_message("{} entered '{}' state".format(self.id, value), self.__class__.__name__)
+            self.__status__ = value
 
     @property
     def dict(self):
+        """Словарь с базовой конфигурацией вассала, достаточной для его создания
+        :returns: Словарь с конфигурацией
+        :rtype: dict
+        """
         return {
             "cls": self.__class__.__name__,
             "_id": self.__id__,
@@ -65,33 +87,52 @@ class Vassal(object):
             "uwsgi_triggers": self.__uwsgi_triggers__
         }
 
-    @status.setter
-    def status(self, value):
-        if value != self.__status__:
-            log_message("{} entered '{}' state".format(self.id, value), self.__class__.__name__)
-            self.__status__ = value
-
     def start(self):
+        """Запускает вассала и устанавливает соответствующий статус
+        """
         self.status = "Started"
         self.__emperor__.start_vassal(self)
 
     def stop(self):
+        """Останавливает вассала и устанавливает соответствующий статус
+        """
         self.status = "Stopped"
         self.__emperor__.stop_vassal(self)
 
     def get_config(self):
+        """Конфигурация вассала для запуска через uwsgi-emperor
+        :returns: Конфигарация uwsgi в формате ini
+        :rtype: str
+        """
         return self.__get_config__()
 
     def __get_config__(self):
+        """Возвращает конфигурацию вассала, используемую при запуске
+        Должен быть переопределен в классе-потомке
+
+        :raise NotImplementedError: Метод не переопределен в классе-потомке
+        """
         raise NotImplementedError
 
     def get_cron_config(self):
+        """Генерирует конфигурацию uwsgi-cron
+        :returns: Строка конфигурации uwsgi
+        :rtype: str
+        """
         return "\n".join("cron={}".format(_) for _ in self.__uwsgi_cron__)
 
     def get_mules_config(self):
+        """Генерирует конфигурацию uwsgi-mule
+        :returns: Строка конфигурации uwsgi
+        :rtype: str
+        """
         return "\n".join("mule={}".format(_) for _ in self.__uwsgi_mules__)
 
     def get_triggers_config(self):
+        """Генерирует конфигурацию uwsgi-hooks
+        :returns: Строка конфигурации uwsgi
+        :rtype: str
+        """
         return "\n".join("hook-pre-app=exec:{}".format(_) for _ in self.__uwsgi_triggers__.get("before_start", []))
 
 
