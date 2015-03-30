@@ -118,25 +118,28 @@ data={leaf_data_dict}
 
 [uwsgi]
 master=1
+need-app=
 buffer-size=65535
 heartbeat=10
 socket={leaf_host}:0
+
 logger=zeromq:tcp://127.0.0.1:{log_port}
 req-logger=zeromq:tcp://127.0.0.1:{log_port}
-buffer-size=65535
-chdir={chdir}
+logformat={logformat}
+log-encoder=prefix [Leaf {id}]
+
 plugin={python}
 module=wsgi:application
 processes={workers}
+static-map=/static={chdir}/static
+offload-threads=4
+
+chdir={chdir}
 env=BATTERIES={batteries}
 env=APPLICATION_SETTINGS={app_settings}
 env=VIRTUAL_ENV={virtualenv}
+
 virtualenv={virtualenv}
-logformat={logformat}
-static-map=/static={chdir}/static
-offload-threads=4
-log-encoder=prefix [Leaf {id}]
-need-app=
 if-env=PATH
 env=PATH={virtualenv}/bin:%(_)
 endif=
