@@ -32,20 +32,22 @@ class Vassal(object):
 
     def __init__(
             self,
-            name=None,
             _id=None,
+            name=None,
             emperor=None,
-            uwsgi_mules=None,
             uwsgi_cron=None,
+            uwsgi_mules=None,
+            uwsgi_triggers=None,
             **kwargs
     ):
-        self.__name__ = name
         self.__id__ = _id
+        self.__name__ = name
         self.__emperor__ = emperor
         self.__status__ = "stopped"
 
-        self.__uwsgi_mules__ = uwsgi_mules or []
         self.__uwsgi_cron__ = uwsgi_cron or []
+        self.__uwsgi_mules__ = uwsgi_mules or []
+        self.__uwsgi_triggers = uwsgi_triggers or {}
 
     @property
     def id(self):
