@@ -44,6 +44,26 @@ class Species(object):
             interpreter=None,
             branch="master",
             **kwargs):
+        """
+        :param directory: Корневая директория вида
+        :type directory: str
+        :param _id: Уникальный идентификатор вида
+        :type _id: ObjectId
+        :param name: Человеко-читаемое имя вида
+        :type name: str
+        :param url: URL исходных кодов приложения
+        :type url: str
+        :param ready_callback: Функция, выполняемая по завершении инициализации
+        :type ready_callback: function
+        :param modified: Дата последнего изменения вида
+        :type modified: DateTime
+        :param triggers: Словарь триггеров, выполняемых при запуске листьев
+        :type triggers: dict
+        :param interpreter: Используемый интерпретатор python
+        :type interpreter: str
+        :param branch: Ветвь репозитория (при использовании git)
+        :type branch: str
+        """
         self.directory = directory
         self.specie_id = _id
         self.specie_path = os.path.join(self.directory, str(self.specie_id))
@@ -66,18 +86,31 @@ class Species(object):
 
     @property
     def is_ready(self):
+        """Возвращает значение готовности вида
+        :rtype: bool
+        """
         return self.__ready__
 
     @is_ready.setter
     def is_ready(self, value):
+        """Устанавливает флаг готовности
+        :param value: Новое значение флага готовности
+        :type value: bool
+        """
         self.__ready__ = value
 
     @property
     def python_version(self):
+        """Установленный интерпретатор python
+        :rtype: str
+        """
         return "python2"
 
     @property
     def description(self):
+        """Краткое описание вида, включающее id и дату модификации
+        :rtype dict:
+        """
         return {
             "_id": self.id,
             "modified": self.modified
@@ -85,6 +118,9 @@ class Species(object):
 
     @property
     def saved_data(self):
+        """Сохраненные настройки вида
+        :rtype: dict
+        """
         try:
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
                 data = load(f)
@@ -93,6 +129,8 @@ class Species(object):
             return {}
 
     def update_saved_data(self):
+        """Обновляет сохраненные настройки вида актуальными данными
+        """
         data = {
             "_id": self.id,
             "name": self.name,
@@ -108,6 +146,8 @@ class Species(object):
 
     @coroutine
     def initialize(self):
+        """Инициализирует корневую директорию вида
+        """
         if not self.is_ready:
             if os.path.exists(self._path):
                 shutil.rmtree(self._path)
@@ -205,16 +245,28 @@ class Species(object):
 
     @property
     def src_path(self):
+        """Путь к директории с исходными кодами внутри корневой директории вида
+        :rtype: str
+        """
         return self._path
 
     @property
     def path(self):
+        """Корневая директория вида
+        :rtype: str
+        """
         return self.specie_path
 
     @property
     def environment(self):
+        """Путь к виртуальному окружению python внутри корневой директории вида
+        :rtype: str
+        """
         return self._environment
 
     @property
     def id(self):
+        """Уникальный идентификатор вида
+        :rtype: str
+        """
         return self.specie_id
