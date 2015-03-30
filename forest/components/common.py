@@ -57,19 +57,12 @@ def send_request(host, resource, method, data=None):
     http_client = AsyncHTTPClient()
 
     try:
-        if data:
-            response = yield http_client.fetch(
-                "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-                body=dumps(data),
-                method=method,
-                headers={"Token": host["secret"]}
-            )
-        else:
-            response = yield http_client.fetch(
-                "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
-                method=method,
-                headers={"Token": host["secret"]}
-            )
+        response = yield http_client.fetch(
+            "http://{}:{}/api/{}".format(host["host"], host["port"], resource),
+            body=dumps(data) if data else None,
+            method=method,
+            headers={"Token": host["secret"]}
+        )
         data = response.body
         code = response.code
     except HTTPError as e:
