@@ -17,7 +17,7 @@ except ImportError:
     DEVNULL = open(os.devnull, 'wb')
 
 
-UWSGI_VERSION = "2.0.8"
+UWSGI_VERSION = "2.0.10"
 
 
 FOREST_CFG = """
