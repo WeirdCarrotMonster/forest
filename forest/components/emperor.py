@@ -288,8 +288,8 @@ class Emperor(object):
 
     @coroutine
     def log_message(self, message):
-        for m in message:
-            data, important = logparse_emperor(m.strip())
+        for m in (_.strip() for _ in message if _.strip()):
+            data, important = logparse_emperor(m)
 
             if data.get("log_type") == "emperor_vassal_ready":
                 vassal_id = data.get("vassal")
