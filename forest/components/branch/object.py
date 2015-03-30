@@ -7,6 +7,7 @@
 from __future__ import print_function, unicode_literals
 
 import datetime
+import traceback
 from collections import defaultdict
 import os
 
@@ -144,8 +145,7 @@ class Branch(object):
             try:
                 yield [logger.log(data_parsed) for logger in self.__loggers__ if logger.suitable(data_parsed)]
             except:
-                import traceback
-                print(traceback.format_exc())
+                traceback.print_exc()
 
         failed_loggers = [logger for logger in self.__loggers__ if logger.failed]
 
