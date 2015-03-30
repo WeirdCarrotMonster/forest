@@ -182,6 +182,7 @@ class Branch(object):
         else:
             return True, 200, "OK"
 
+    @coroutine
     def create_species(self, species, initialize=True):
         """
         Создает вид листа по данным из словаря
