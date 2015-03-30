@@ -86,13 +86,13 @@ class Vassal(object):
         raise NotImplementedError
 
     def get_cron_config(self):
-        return "\ncron=".join(self.__uwsgi_cron__)
+        return "\n".join("cron={}".format(_) for _ in self.__uwsgi_cron__)
 
     def get_mules_config(self):
-        return "\nmule=".join(self.__uwsgi_mules__)
+        return "\n".join("mule={}".format(_) for _ in self.__uwsgi_mules__)
 
     def get_triggers_config(self):
-        return "\nhook-pre-app=exec:".join(self.__uwsgi_triggers__.get("before_start", []))
+        return "\n".join("hook-pre-app=exec:{}".format(_) for _ in self.__uwsgi_triggers__.get("before_start", []))
 
 
 class Emperor(object):
