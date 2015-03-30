@@ -33,7 +33,6 @@ class Vassal(object):
     def __init__(
             self,
             _id=None,
-            name=None,
             emperor=None,
             uwsgi_cron=None,
             uwsgi_mules=None,
@@ -41,7 +40,6 @@ class Vassal(object):
             **kwargs
     ):
         self.__id__ = _id
-        self.__name__ = name
         self.__emperor__ = emperor
         self.__status__ = "stopped"
 
@@ -54,10 +52,6 @@ class Vassal(object):
         return self.__id__
 
     @property
-    def name(self):
-        return self.__name__
-
-    @property
     def status(self):
         return self.__status__
 
@@ -66,7 +60,6 @@ class Vassal(object):
         return {
             "cls": self.__class__.__name__,
             "_id": self.__id__,
-            "name": self.__name__,
             "uwsgi_cron": self.__uwsgi_cron__,
             "uwsgi_mules": self.__uwsgi_mules__,
             "uwsgi_triggers": self.__uwsgi_triggers__

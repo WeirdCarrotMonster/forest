@@ -33,8 +33,7 @@ class Air(object):
             port=port,
             fastrouter=fastrouter,
             keydir=self.keydir,
-            _id="fastrouter",
-            name="fastrouter"
+            _id="fastrouter"
         )
         self.trunk.emperor.start_vassal(self.__fastrouter__)
         log_message("Started air", component="Air")
