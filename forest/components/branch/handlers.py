@@ -6,6 +6,7 @@ from bson import ObjectId
 import tornado.web
 import tornado.gen
 
+from forest.components.species import Species
 from forest.components.common import loads, dumps
 from forest.components.api.decorators import token_auth
 from forest.components.exceptions.logger import LoggerCreationError
@@ -43,12 +44,11 @@ class LeavesHandler(tornado.web.RequestHandler):
     def post(self):
         data = loads(self.request.body)
 
-        leaf = self.application.branch.create_leaf(data)
-
-        if leaf:
+        try:
+            leaf = self.application.branch.create_leaf(data)
             started = self.application.branch.add_leaf(leaf)
             self.finish(dumps({"result": "started" if started else "queued"}))
-        else:
+        except Species.NotDefined:
             self.set_status(400)
             self.finish(dumps({"result": "error", "message": "Unknown species"}))
 

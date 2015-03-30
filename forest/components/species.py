@@ -29,6 +29,9 @@ class Species(object):
     и виртуального окружения python
     """
 
+    class NotDefined(Exception):
+        pass
+
     def __init__(
             self,
             directory,

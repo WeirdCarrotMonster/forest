@@ -240,7 +240,7 @@ class Branch(object):
         """
         species = self.species.get(leaf.get("type"))
         if not species:
-            return None
+            raise Species.NotDefined()
 
         return Leaf(
             keyfile=os.path.join(self.trunk.forest_root, "keys/private.pem"),
