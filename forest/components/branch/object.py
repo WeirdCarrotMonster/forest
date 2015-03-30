@@ -192,7 +192,6 @@ class Branch(object):
         :return: Созданный экземпляр вида листа
         """
         species = Species(
-            ready_callback=self.__species_initialization_finished__,
             directory=os.path.join(self.trunk.forest_root, "species"),
             **species
         )
