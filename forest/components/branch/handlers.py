@@ -68,14 +68,6 @@ class LeafHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     @token_auth
-    def post(self):
-        """
-        Перезаписывает настройки листа
-        """
-        pass
-
-    @tornado.gen.coroutine
-    @token_auth
     def delete(self, leaf_id):
         leaf_id = ObjectId(leaf_id)
 
@@ -121,10 +113,10 @@ class SpeciesHandler(tornado.web.RequestHandler):
         species = self.application.branch.species.get(_id)
 
         if species:
-            self.finish(dumps({}))
+            self.finish(dumps(species.description))
         else:
             self.set_status(404)
-            self.finish()
+            self.finish(dumps({}))
 
     @tornado.gen.coroutine
     @token_auth

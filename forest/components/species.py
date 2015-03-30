@@ -77,6 +77,13 @@ class Species(object):
         return "python2"
 
     @property
+    def description(self):
+        return {
+            "_id": self.id,
+            "modified": self.modified
+        }
+
+    @property
     def saved_data(self):
         try:
             with open(join(self.specie_path, "metadata.json"), 'r') as f:
