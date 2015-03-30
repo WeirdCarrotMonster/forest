@@ -9,16 +9,16 @@ from forest.components.common import dumps
 class Leaf(Vassal):
 
     def __init__(self,
-                 keyfile=None,
-                 settings=None,
-                 fastrouters=None,
                  address=None,
                  batteries=None,
-                 workers=2,
-                 threads=False,
-                 species=None,
-                 log_port=None,
+                 fastrouters=None,
+                 keyfile=None,
                  leaf_host=None,
+                 log_port=None,
+                 settings=None,
+                 species=None,
+                 threads=False,
+                 workers=2,
                  **kwargs
                  ):
         super(Leaf, self).__init__(**kwargs)
