@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from toro import Queue, Lock
 from tornado import gen
-from pymongo.errors import AutoReconnect, ConnectionFailure
+from pymongo.errors import AutoReconnect, ConnectionFailure, DuplicateKeyError
 
 # pylint: disable=W0702
 
@@ -38,8 +38,8 @@ class Druid(object):
             try:
                 yield self.trunk.async_db.logs.insert(log)
                 break
-            except (AutoReconnect, ConnectionFailure):
-                yield gen.sleep(1)
+            except (AutoReconnect, ConnectionFailure, DuplicateKeyError):
+                yield gen.sleep(2)
 
     @gen.coroutine
     def propagate_event(self, event):
