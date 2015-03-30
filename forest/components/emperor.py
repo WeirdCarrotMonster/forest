@@ -47,7 +47,7 @@ class Vassal(object):
 
         self.__uwsgi_cron__ = uwsgi_cron or []
         self.__uwsgi_mules__ = uwsgi_mules or []
-        self.__uwsgi_triggers = uwsgi_triggers or {}
+        self.__uwsgi_triggers__ = uwsgi_triggers or {}
 
     @property
     def id(self):
@@ -68,7 +68,8 @@ class Vassal(object):
             "_id": self.__id__,
             "name": self.__name__,
             "uwsgi_cron": self.__uwsgi_cron__,
-            "uwsgi_mules": self.__uwsgi_mules__
+            "uwsgi_mules": self.__uwsgi_mules__,
+            "uwsgi_triggers": self.__uwsgi_triggers__
         }
 
     @status.setter
