@@ -14,7 +14,8 @@ from bson.errors import InvalidId
 from forest.components.api.handler import Handler
 from forest.components.api.decorators import token_auth
 from forest.components.common import send_request
-from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, branch_stop_leaf
+from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, \
+    branch_stop_leaf
 
 
 # pylint: disable=W0221,W0612
@@ -147,6 +148,7 @@ class LeavesHandler(Handler):
             if leaf_config.get("active", True):
                 leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
                 leaf_config["uwsgi_mules"] = species.get("uwsgi_mules", [])
+                leaf_config["uwsgi_triggers"] = species.get("triggers", {})
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_config)
 
@@ -202,7 +204,9 @@ class LeafHandler(Handler):
                 ]
 
                 species = yield self.application.async_db.species.find_one({"_id": leaf_data["type"]})
+                leaf_data["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
                 leaf_data["uwsgi_mules"] = species.get("uwsgi_mules", [])
+                leaf_data["uwsgi_triggers"] = species.get("triggers", {})
 
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_data)
@@ -347,6 +351,7 @@ class BranchHandler(Handler):
             species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
             leaf["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
             leaf["uwsgi_mules"] = species.get("uwsgi_mules", [])
+            leaf["uwsgi_triggers"] = species.get("triggers", {})
 
             if leaf["type"] not in verified_species:
                 yield branch_prepare_species(branch, species)
