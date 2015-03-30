@@ -34,10 +34,10 @@ class Species(object):
 
     def __init__(
             self,
-            directory,
             _id,
             url,
             modified,
+            directory,
             interpreter=None,
             branch="master",
             **kwargs):
