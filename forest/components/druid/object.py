@@ -38,8 +38,10 @@ class Druid(object):
             try:
                 yield self.trunk.async_db.logs.insert(log)
                 break
-            except (AutoReconnect, ConnectionFailure, DuplicateKeyError):
+            except (AutoReconnect, ConnectionFailure):
                 yield gen.sleep(2)
+            except DuplicateKeyError:
+                pass
 
     @gen.coroutine
     def propagate_event(self, event):
