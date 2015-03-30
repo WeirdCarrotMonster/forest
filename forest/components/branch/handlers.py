@@ -1,12 +1,12 @@
 # coding=utf-8
 
 from __future__ import unicode_literals
-from bson import ObjectId, json_util
+from bson import ObjectId
 
 import tornado.web
 import tornado.gen
-import simplejson as json
 
+from forest.components.common import loads, dumps
 from forest.components.api.decorators import token_auth
 from forest.components.exceptions.logger import LoggerCreationError
 
@@ -34,23 +34,23 @@ class LeavesHandler(tornado.web.RequestHandler):
             else:
                 first = False
 
-            self.write(json.dumps(leaf, default=json_util.default))
+            self.write(dumps(leaf))
 
         self.finish("]")
 
     @tornado.gen.coroutine
     @token_auth
     def post(self):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
 
         leaf = self.application.branch.create_leaf(data)
 
         if leaf:
             started = self.application.branch.add_leaf(leaf)
-            self.finish(json.dumps({"result": "started" if started else "queued"}))
+            self.finish(dumps({"result": "started" if started else "queued"}))
         else:
             self.set_status(400)
-            self.finish(json.dumps({"result": "error", "message": "Unknown species"}))
+            self.finish(dumps({"result": "error", "message": "Unknown species"}))
 
 
 class LeafHandler(tornado.web.RequestHandler):
@@ -64,7 +64,7 @@ class LeafHandler(tornado.web.RequestHandler):
         """
         Получает информацию о листе с указанным id
         """
-        self.finish(json.dumps(self.application.emperor.stats(_id)))
+        self.finish(dumps(self.application.emperor.stats(_id)))
 
     @tornado.gen.coroutine
     @token_auth
@@ -91,12 +91,12 @@ class LeafRPCHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def post(self, _id):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
         assert type(data) == list
 
         response = yield self.application.emperor.call_vassal_rpc(_id, *data)
 
-        self.finish(json.dumps(response))
+        self.finish(dumps(response))
 
 
 class SpeciesListHandler(tornado.web.RequestHandler):
@@ -104,11 +104,11 @@ class SpeciesListHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def post(self):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
 
         self.application.branch.create_species(data)
 
-        self.finish(json.dumps({"result": "success", "message": "OK"}))
+        self.finish(dumps({"result": "success", "message": "OK"}))
 
 
 class SpeciesHandler(tornado.web.RequestHandler):
@@ -121,7 +121,7 @@ class SpeciesHandler(tornado.web.RequestHandler):
         species = self.application.branch.species.get(_id)
 
         if species:
-            self.finish(json.dumps({}))
+            self.finish(dumps({}))
         else:
             self.set_status(404)
             self.finish()
@@ -129,11 +129,11 @@ class SpeciesHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def patch(self, _id):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
 
         self.application.branch.create_species(data)
 
-        self.finish(json.dumps({"result": "success", "message": "OK"}))
+        self.finish(dumps({"result": "success", "message": "OK"}))
 
 
 class LoggerListHandler(tornado.web.RequestHandler):
@@ -141,7 +141,7 @@ class LoggerListHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def get(self):
-        self.finish(json.dumps([
+        self.finish(dumps([
             {
                 "identifier": logger.identifier,
                 "type": logger.__class__.__name__
@@ -151,14 +151,14 @@ class LoggerListHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def post(self):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
 
         try:
             self.application.branch.add_logger(data)
-            self.finish(json.dumps({"result": "success"}))
+            self.finish(dumps({"result": "success"}))
         except LoggerCreationError as e:
             self.set_status(400)
-            self.finish(json.dumps({"result": "failure", "message": e.message}))
+            self.finish(dumps({"result": "failure", "message": e.message}))
 
 
 class LoggerHandler(tornado.web.RequestHandler):
@@ -169,6 +169,6 @@ class LoggerHandler(tornado.web.RequestHandler):
         result, code, message = self.application.branch.delete_logger(identifier)
         if not result:
             self.set_status(code)
-            self.finish(json.dumps({"result": "failure", "message": message}))
+            self.finish(dumps({"result": "failure", "message": message}))
         else:
-            self.finish(json.dumps({"result": "success"}))
+            self.finish(dumps({"result": "success"}))
