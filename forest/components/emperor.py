@@ -74,9 +74,9 @@ class Vassal(object):
 
     @status.setter
     def status(self, value):
-        component = self.__class__.__name__
-        log_message("{} entered '{}' state".format(self.id, value), component=component)
-        self.__status__ = value
+        if value != self.__status__:
+            log_message("{} entered '{}' state".format(self.id, value), self.__class__.__name__)
+            self.__status__ = value
 
     def start(self):
         self.status = "Started"
