@@ -30,7 +30,6 @@ setup(
     ],
     install_requires=[
         "simplejson",
-        "bson",
         "tornado",
         "psutil",
         "pymongo",
