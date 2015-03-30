@@ -195,13 +195,10 @@ class Emperor(object):
             for arg in args:
                 yield client.write(pack('<H', len(arg)) + arg)
 
-            print(1)
             data = yield client.read_bytes(4)
-            print(1)
             modifier1, datasize, modifier2 = unpack("<BHB", data)
 
             data = yield client.read_bytes(datasize)
-            print(3)
             raise Return({
                 "result": "success",
                 "data": data
