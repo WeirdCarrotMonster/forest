@@ -191,31 +191,57 @@ class Emperor(object):
 
     @property
     def root_dir(self):
+        """Корневая директория uwsgi-emperor
+        :returns: Полный путь к корневой директории
+        :rtype: str
+        """
         return self.__root_dir__
 
     @property
     def binary_dir(self):
+        """Директория с исполняемыми файлами и плагинами uwsgi-emperor
+        :returns: Полный путь к директории с исполняемыми файлами
+        :rtype: str
+        """
         return os.path.join(self.root_dir, "bin")
 
     @property
     def uwsgi_binary(self):
+        """Основной исполняемый файл uwsgi
+        :returns: Полный путь к исполняемому файлу uwsgi
+        :rtype: str
+        """
         return os.path.join(self.binary_dir, "uwsgi")
 
     @property
     def vassal_dir(self):
+        """Директория с вассалами uwsgi
+        :returns: Полный путь к директории вассалов
+        :rtype: str
+        """
         return os.path.join(self.root_dir, "vassals")
 
     @property
     def pidfile(self):
+        """Pid-файл uwsgi-emperor
+        :returns: Полный путь к pid-файлу
+        :rtype: str
+        """
         return os.path.join(self.root_dir, "emperor.pid")
 
     @property
     def vassal_names(self):
+        """Возвращает спиоск имен вассалов, активных в данный момент. Имена передаются без расширения.
+        :returns: Список имен активных вассалов
+        :rtype: list
+        """
         raw_names = os.listdir(self.vassal_dir)
         return [name[:-4] for name in raw_names]
 
     @coroutine
     def __read_vassals_status__(self):
+        """Обновляет статус активных вассалов, опрашивая uwsgi-emperor через stats-server
+        """
         for vassal in self.__stats__()["vassals"]:
             if vassal["id"][0:-4] in self.vassals:
                 if vassal["ready"] == 1 and self.vassals[vassal["id"][0:-4]].status != "Running":
@@ -223,6 +249,12 @@ class Emperor(object):
 
     @coroutine
     def call_vassal_rpc(self, vassal, *args):
+        """Вызывает rpc-функцию вассала
+        :param vassal: Имя вассала
+        :type vassal: str
+        :returns: Результат выполнения функции
+        :rtype: dict
+        """
         stats = self.stats(vassal)
         try:
             assert "pid" in stats
@@ -257,6 +289,8 @@ class Emperor(object):
             })
 
     def stop(self):
+        """Останавливает uwsgi-emperor и очищает директорию вассалов
+        """
         log_message("Stopping uwsgi emperor", component="Emperor")
         subprocess.call([self.uwsgi_binary, "--stop", self.pidfile])
         os.remove(self.pidfile)
@@ -265,6 +299,10 @@ class Emperor(object):
             os.remove(os.path.join(self.vassal_dir, name))
 
     def start_vassal(self, vassal):
+        """Запускает указанного вассала
+        :param vassal: Запускаемый вассал
+        :type vassal: Vassal
+        """
         cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
 
         self.vassals[str(vassal.id)] = vassal
@@ -282,6 +320,10 @@ class Emperor(object):
             cfg.write(vassal.get_config())
 
     def stop_vassal(self, vassal):
+        """Останавливает указанного вассала
+        :param vassal: Останавливаемый вассал
+        :type vassal: Vassal
+        """
         cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
 
         if str(vassal.id) in self.vassals:
@@ -291,12 +333,22 @@ class Emperor(object):
             os.remove(cfg_path)
 
     def soft_restart_vassal(self, vassal):
+        """Выполняет плавный перезапуск вассала
+        :param vassal: Перезапускаемый вассал
+        :type vassal: Vassal
+        """
         cfg_path = os.path.join(self.vassal_dir, "{}.ini".format(vassal.id))
 
         if os.path.exists(cfg_path):
             os.utime(cfg_path, None)
 
     def stats(self, vassal):
+        """Возвращает статистику по указанному вассалу
+        :param vassal: Имя вассала
+        :type vassal: str
+        :returns: Статистика по вассалу
+        :rtype: dict
+        """
         for l in self.__stats__()["vassals"]:
             if l["id"] == "{}.ini".format(vassal):
                 return l
@@ -304,6 +356,10 @@ class Emperor(object):
         return {}
 
     def __stats__(self):
+        """Возвращает внутреннюю статистику uwsgi-emperor
+        :returns: Словарь со статистикой
+        :rtype: dict
+        """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("127.0.0.1", 1777))
 
@@ -319,6 +375,10 @@ class Emperor(object):
 
     @coroutine
     def log_message(self, message):
+        """Обрабатывает входящее сообщение uwsgi-emperor
+        :param message: Входящее сообщение ZeroMQ
+        :type message: list
+        """
         for m in (_.strip() for _ in message if _.strip()):
             data, important = logparse_emperor(m)
 
