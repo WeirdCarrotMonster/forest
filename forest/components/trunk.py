@@ -35,11 +35,21 @@ class Trunk(tornado.web.Application):
 
     @property
     def id(self):
+        """Возвращает уникальный идентификатор ноды леса
+        :returns: Уникальный идентификатор ноды
+        :rtype: str
+        """
         return self.name
 
     @property
     def forest_root(self):
+        """Возвращает путь к корневой рабочей директории леса
+        :return: Полный путь к рабочей директории
+        :rtype: str
+        """
         return self.root
 
     def cleanup(self):
+        """Останавливает ноду леса
+        """
         self.emperor.stop()
