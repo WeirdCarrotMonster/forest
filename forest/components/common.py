@@ -10,28 +10,6 @@ from tornado.gen import coroutine, Return
 from bson import json_util
 
 
-class LogicError(Exception):
-    pass
-
-
-class Message(object):
-
-    def __init__(self, httpclient, message):
-        self.httpclient = httpclient
-        self.message = message
-
-    def __enter__(self):
-        if self.httpclient.interactive:
-            self.httpclient.write(self.message)
-            self.httpclient.flush()
-        return None
-
-    def __exit__(self, m_type, value, traceback):
-        if self.httpclient.interactive and traceback:
-            self.httpclient.write(str(traceback))
-            self.httpclient.flush()
-
-
 def log_message(message, component="Forest", end="\n", begin=""):
     print("{3}[{0}][{1}] {2}".format(datetime.now(), component.center(10), message, begin), end=end)
 
