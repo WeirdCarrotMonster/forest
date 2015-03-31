@@ -186,9 +186,6 @@ class Emperor(object):
         self.stream = ZMQStream(s)
         self.stream.on_recv(self.log_message)
 
-        self.__scan_callback__ = PeriodicCallback(self.__read_vassals_status__, 5000)
-        self.__scan_callback__.start()
-
     @property
     def root_dir(self):
         """Корневая директория uwsgi-emperor
@@ -237,15 +234,6 @@ class Emperor(object):
         """
         raw_names = os.listdir(self.vassal_dir)
         return [name[:-4] for name in raw_names]
-
-    @coroutine
-    def __read_vassals_status__(self):
-        """Обновляет статус активных вассалов, опрашивая uwsgi-emperor через stats-server
-        """
-        for vassal in self.__stats__()["vassals"]:
-            if vassal["id"][0:-4] in self.vassals:
-                if vassal["ready"] == 1 and self.vassals[vassal["id"][0:-4]].status != "Running":
-                    self.vassals[vassal["id"][0:-4]].status = "Running"
 
     @coroutine
     def call_vassal_rpc(self, vassal, *args):
