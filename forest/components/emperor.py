@@ -150,7 +150,8 @@ class Emperor(object):
         if os.path.exists(self.pidfile):
             with open(self.pidfile) as pid_file:
                 try:
-                    psutil.Process(int(pid_file.read()))
+                    emperor_pid = int(pid_file.read())
+                    psutil.Process(emperor_pid)
 
                     log_message("Found running emperor server", component="Emperor")
                 except (ValueError, psutil.NoSuchProcess):
