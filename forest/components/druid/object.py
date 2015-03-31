@@ -6,6 +6,8 @@ from toro import Queue, Lock
 from tornado import gen
 from pymongo.errors import AutoReconnect, ConnectionFailure, DuplicateKeyError
 
+# pylint: disable=W0702
+
 
 class Druid(object):
 
@@ -47,7 +49,6 @@ class Druid(object):
         yield self.store_log(event)
 
         for l in self.__log_listeners__[leaf]:
-            # noinspection PyBroadException
             try:
                 l.put(event)
             except:

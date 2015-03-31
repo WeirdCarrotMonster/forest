@@ -140,7 +140,6 @@ class Branch(object):
             if "log_source" in data_parsed:
                 data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
 
-            # noinspection PyBroadException
             try:
                 yield [logger.log(data_parsed) for logger in self.__loggers__ if logger.suitable(data_parsed)]
             except:
