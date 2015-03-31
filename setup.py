@@ -19,6 +19,8 @@ setup(
         'forest.components.roots',
         'forest.components.branch',
         'forest.components.exceptions',
+        'forest.jsonschema',
+        'forest.jsonschema.air',
         'forest.utils'
     ],
     long_description=(""),
