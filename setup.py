@@ -24,9 +24,14 @@ setup(
     long_description=(""),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
-        "Topic :: Utilities",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
-        "Environment :: Console"
+        "Natural Language :: Russian",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python",
+        "Topic :: System :: Systems Administration",
+        "Topic :: Utilities"
     ],
     install_requires=[
         "simplejson",
