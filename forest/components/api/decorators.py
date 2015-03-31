@@ -3,6 +3,10 @@
 from __future__ import unicode_literals, print_function
 import simplejson as json
 from tornado.gen import Return
+from jsonschema import validate, ValidationError
+
+import forest.jsonschema as global_schema
+from forest.components.common import loads
 
 
 def token_auth(f):
@@ -18,3 +22,32 @@ def token_auth(f):
             return f(self, *args, **kwargs)
 
     return wrapper
+
+
+def schema(argument):
+    """Создает валидирующий схему декоратор
+    :param argument: Путь к описанию схемы
+    :type argument: str
+    """
+    try:
+        module, schema_descriptor = argument.split(".")
+        module = global_schema.__getattribute__(module)
+        schema_descriptor = module.__getattribute__(schema_descriptor)
+    except AttributeError:
+        raise Exception("Can't import schema: {}".format(argument))
+    except ValueError:
+        raise Exception("Invalid schema declaration: {}".format(argument))
+
+    def real_decorator(function):
+        def wrapper(self, *args, **kwargs):
+            try:
+                data = loads(self.request.body)
+                validate(data, schema_descriptor)
+            except ValidationError as e:
+                self.set_status(400)
+                self.finish({"result": "failure", "message": str(e)})
+            else:
+                self.request.body = data
+                function(self, *args, **kwargs)
+        return wrapper
+    return real_decorator

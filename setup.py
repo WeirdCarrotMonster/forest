@@ -43,7 +43,8 @@ setup(
         "pyzmq",
         "dateutils",
         "virtualenv",
-        "toro"
+        "toro",
+        "jsonschema"
     ],
     entry_points={
         'console_scripts': [
