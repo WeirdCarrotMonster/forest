@@ -14,13 +14,10 @@ class HostHandler(Handler):
     @gen.coroutine
     @token_auth
     @schema("air.host")
-    def post(self):
+    def post(self, host):
+        """Добавляет передаваемый в параметре host в список разрешенных
+        :param host: Хостнейм, разрешаемый в системе
+        :type host: str
         """
-        POST-запросы, поступающие на апи обработки хостов, должны содержать информацию о добавляемом хосте.
-        Имя хоста, указанное в поле host, будет добавлено в список разрешенных для подключения к
-        uwsgi-router.
-        """
-        data = self.request.body
-
-        self.application.air.allow_host(data["host"])
+        self.application.air.allow_host(host)
         self.finish(dumps({}))

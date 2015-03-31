@@ -47,7 +47,7 @@ def schema(argument):
                 self.set_status(400)
                 self.finish({"result": "failure", "message": str(e)})
             else:
-                self.request.body = data
-                function(self, *args, **kwargs)
+                data.update(kwargs)
+                function(self, *args, **data)
         return wrapper
     return real_decorator
