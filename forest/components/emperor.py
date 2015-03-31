@@ -119,7 +119,7 @@ class Vassal(object):
         :returns: Строка конфигурации uwsgi
         :rtype: str
         """
-        return "\n".join("cron={}".format(_) for _ in self.__uwsgi_cron__)
+        return "\n".join("cron={}".format("".join(_)) for _ in self.__uwsgi_cron__)
 
     def get_mules_config(self):
         """Генерирует конфигурацию uwsgi-mule
