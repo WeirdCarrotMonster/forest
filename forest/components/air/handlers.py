@@ -20,4 +20,4 @@ class HostHandler(Handler):
         :type host: str
         """
         self.application.air.allow_host(host)
-        self.finish(dumps({}))
+        self.finish(dumps({"result": "success"}))
