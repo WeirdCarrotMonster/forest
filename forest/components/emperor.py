@@ -21,7 +21,6 @@ from forest.components.common import log_message
 from forest.components.logparse import logparse_emperor
 from tornado.tcpclient import TCPClient
 from tornado.gen import coroutine, Return
-from tornado.ioloop import PeriodicCallback
 from tornado.iostream import StreamClosedError
 
 
