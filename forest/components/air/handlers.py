@@ -8,6 +8,8 @@ from forest.components.common import dumps
 from forest.components.api.decorators import token_auth, schema
 from forest.components.api.handler import Handler
 
+# pylint: disable=W0221
+
 
 class HostHandler(Handler):
 
