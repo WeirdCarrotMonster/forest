@@ -102,8 +102,7 @@ class LeavesHandler(Handler):
                 }
             )
 
-            for air in self.application.druid.air:
-                yield air_enable_host(air, data["address"])
+            yield [air_enable_host(air, data["address"]) for air in self.application.druid.air]
 
             if species.get("requires", []):
                 roots = self.application.druid.roots[0]
