@@ -24,12 +24,13 @@ def token_auth(f):
     return wrapper
 
 
-def schema(argument):
+def schema(argument=None):
     """Создает валидирующий схему декоратор
     :param argument: Путь к описанию схемы
     :type argument: str
     """
     try:
+        assert argument
         module, schema_descriptor = argument.split(".")
         module = global_schema.__getattribute__(module)
         schema_descriptor = module.__getattribute__(schema_descriptor)
@@ -37,6 +38,13 @@ def schema(argument):
         raise Exception("Can't import schema: {}".format(argument))
     except ValueError:
         raise Exception("Invalid schema declaration: {}".format(argument))
+    except AssertionError:
+        schema_descriptor = {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "id": "",
+            "type": "object",
+            "properties": {}
+        }
 
     def real_decorator(function):
         def wrapper(self, *args, **kwargs):
