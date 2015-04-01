@@ -15,7 +15,7 @@ from forest.components.api.handler import Handler
 from forest.components.api.decorators import token_auth, schema
 from forest.components.common import send_request
 from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, \
-    branch_stop_leaf
+    branch_stop_leaf, full_leaf_info
 
 
 # pylint: disable=W0221,W0612
@@ -121,14 +121,13 @@ class LeavesHandler(Handler):
             else:
                 pass
 
-            leaf_config = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
+            leaf = yield self.application.async_db.leaves.find_one({"_id": leaf_id})
 
-            if leaf_config.get("active", True):
-                leaf_config["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
-                leaf_config["uwsgi_mules"] = species.get("uwsgi_mules", [])
-                leaf_config["uwsgi_triggers"] = species.get("triggers", {})
+            if leaf.get("active", True):
+                leaf = full_leaf_info(leaf, self.application.druid.air, species)
+
                 yield branch_prepare_species(branch, species)
-                yield branch_start_leaf(branch, leaf_config)
+                yield branch_start_leaf(branch, leaf)
 
             self.finish(dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
 
@@ -170,33 +169,28 @@ class LeafHandler(Handler):
             {"$set": data}
         )
 
-        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
+        leaf = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
         if apply_changes:
-            if leaf_data["active"]:
-                branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
+            if leaf["active"]:
+                branch = next(x for x in self.application.druid.branch if x["name"] == leaf["branch"])
 
-                leaf_data["fastrouters"] = [
-                    "{host}:{fastrouter}".format(**a) for a in self.application.druid.air
-                ]
+                species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
 
-                species = yield self.application.async_db.species.find_one({"_id": leaf_data["type"]})
-                leaf_data["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
-                leaf_data["uwsgi_mules"] = species.get("uwsgi_mules", [])
-                leaf_data["uwsgi_triggers"] = species.get("triggers", {})
+                leaf = full_leaf_info(leaf, self.application.druid.air, species)
 
                 yield branch_prepare_species(branch, species)
-                yield branch_start_leaf(branch, leaf_data)
+                yield branch_start_leaf(branch, leaf)
 
                 yield [
                     air_enable_host(air, address) for air, address in product(
                         self.application.druid.air,
-                        leaf_data["address"]
+                        leaf["address"]
                     )
                 ]
             else:
-                branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
-                yield branch_stop_leaf(branch, leaf_data)
+                branch = next(x for x in self.application.druid.branch if x["name"] == leaf["branch"])
+                yield branch_stop_leaf(branch, leaf)
         self.finish(dumps({"result": "success", "message": "OK"}))
 
 
@@ -318,9 +312,7 @@ class BranchHandler(Handler):
             leaf = cursor.next_object()
 
             species = yield self.application.async_db.species.find_one({"_id": leaf["type"]})
-            leaf["fastrouters"] = ["{host}:{fastrouter}".format(**a) for a in self.application.druid.air]
-            leaf["uwsgi_mules"] = species.get("uwsgi_mules", [])
-            leaf["uwsgi_triggers"] = species.get("triggers", {})
+            leaf = full_leaf_info(leaf, self.application.druid.air, species)
 
             if leaf["type"] not in verified_species:
                 yield branch_prepare_species(branch, species)
