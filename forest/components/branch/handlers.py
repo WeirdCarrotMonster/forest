@@ -45,7 +45,7 @@ class LeavesHandler(tornado.web.RequestHandler):
         data = loads(self.request.body)
 
         try:
-            leaf = self.application.branch.create_leaf(data)
+            leaf = self.application.branch.create_leaf(**data)
             started = self.application.branch.add_leaf(leaf)
             self.finish(dumps({"result": "started" if started else "queued"}))
         except Species.NotDefined:

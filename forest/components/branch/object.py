@@ -90,7 +90,7 @@ class Branch(object):
                     continue
 
                 try:
-                    leaf = self.create_leaf(data)
+                    leaf = self.create_leaf(**data)
                 except (TypeError, ValueError):
                     pass
 
@@ -220,7 +220,7 @@ class Branch(object):
 
         raise Return(species)
 
-    def create_leaf(self, leaf):
+    def create_leaf(self, **leaf):
         """
         Создает экземпляр листа
 
