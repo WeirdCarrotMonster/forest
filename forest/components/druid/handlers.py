@@ -393,7 +393,7 @@ class LogHandler(Handler):
 
     @gen.coroutine
     @token_auth
-    def post(self):
-        data = loads(self.request.body)
+    @schema()
+    def post(self, **data):
         yield self.application.druid.propagate_event(data)
         self.finish()
