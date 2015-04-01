@@ -13,5 +13,6 @@ host = {
     },
     "required": [
         "host"
-    ]
+    ],
+    "additionalProperties": False
 }

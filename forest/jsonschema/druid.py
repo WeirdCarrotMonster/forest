@@ -23,5 +23,6 @@ leaves = {
         "name",
         "type",
         "address"
-    ]
+    ],
+    "additionalProperties": False
 }
