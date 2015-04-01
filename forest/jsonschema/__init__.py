@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from . import air
+from . import air, druid
 
 
-__all__ = ["air"]
+__all__ = ["air", "druid"]
