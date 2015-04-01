@@ -48,6 +48,6 @@ def schema(argument):
                 self.finish({"result": "failure", "message": str(e)})
             else:
                 data.update(kwargs)
-                function(self, *args, **data)
+                return function(self, *args, **data)
         return wrapper
     return real_decorator
