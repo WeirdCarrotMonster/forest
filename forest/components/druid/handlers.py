@@ -271,24 +271,22 @@ class SpeciesHandler(Handler):
 
         species = yield self.application.async_db.species.find_one({"_id": _id})
 
-        if not species:
+        if species:
+            yield self.application.async_db.species.update(
+                {"_id": _id},
+                {"$set": {"modified": datetime.utcnow()}}
+            )
+
+            species = yield self.application.async_db.species.find_one({"_id": _id})
+
+            yield [send_request(
+                branch,
+                "branch/species/{}".format(species["_id"]),
+                "PATCH",
+                species
+            ) for branch in self.application.druid.branch]
+        else:
             self.set_status(404)
-            self.finish("{}")
-            raise gen.Return()
-
-        yield self.application.async_db.species.update(
-            {"_id": _id},
-            {"$set": {"modified": datetime.utcnow()}}
-        )
-
-        species = yield self.application.async_db.species.find_one({"_id": _id})
-
-        yield [send_request(
-            branch,
-            "branch/species/{}".format(species["_id"]),
-            "PATCH",
-            species
-        ) for branch in self.application.druid.branch]
 
         self.finish("{}")
 
