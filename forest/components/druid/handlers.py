@@ -6,11 +6,11 @@ import random
 from datetime import datetime
 
 from tornado import gen, websocket
-import simplejson as json
 from simplejson import JSONDecodeError
-from bson import ObjectId, json_util
+from bson import ObjectId
 from bson.errors import InvalidId
 
+from forest.components.common import loads, dumps
 from forest.components.api.handler import Handler
 from forest.components.api.decorators import token_auth
 from forest.components.common import send_request
@@ -47,7 +47,7 @@ class LeavesHandler(Handler):
                 first = False
 
             leaf = cursor.next_object()
-            self.write(json.dumps(leaf, default=json_util.default))
+            self.write(dumps(leaf))
         self.finish("]")
 
     @gen.coroutine
@@ -58,10 +58,10 @@ class LeavesHandler(Handler):
         """
         with (yield self.application.druid.creation_lock.acquire()):
             try:
-                data = json.loads(self.request.body, object_hook=json_util.object_hook)
+                data = loads(self.request.body)
             except JSONDecodeError:
                 self.set_status(400)
-                self.finish(json.dumps({
+                self.finish(dumps({
                     "result": "error",
                     "message": "Malformed json"
                 }))
@@ -70,7 +70,7 @@ class LeavesHandler(Handler):
             for k in ["name", "type", "address"]:
                 if k not in data:
                     self.set_status(400)
-                    self.finish(json.dumps({
+                    self.finish(dumps({
                         "result": "error",
                         "message": "Missing key",
                         "key": k
@@ -86,7 +86,7 @@ class LeavesHandler(Handler):
 
             if leaf_address_check:
                 self.set_status(400)
-                self.finish(json.dumps({
+                self.finish(dumps({
                     "result": "error",
                     "message": "Duplicate address"
                 }))
@@ -101,7 +101,7 @@ class LeavesHandler(Handler):
 
             if not species:
                 self.set_status(400)
-                self.finish(json.dumps({
+                self.finish(dumps({
                     "result": "error",
                     "message": "Unknown species"
                 }))
@@ -152,7 +152,7 @@ class LeavesHandler(Handler):
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_config)
 
-            self.finish(json.dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
+            self.finish(dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
 
 
 class LeafHandler(Handler):
@@ -167,7 +167,7 @@ class LeafHandler(Handler):
             self.finish("")
             return
 
-        self.finish(json.dumps(leaf_data, default=json_util.default))
+        self.finish(dumps(leaf_data))
 
     @gen.coroutine
     @token_auth
@@ -176,7 +176,7 @@ class LeafHandler(Handler):
         apply_changes = self.get_argument("apply", default="TRUE").upper() == "TRUE"
 
         keys = ["active", "address"]
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
 
         for key in data.keys():
             if key not in keys:
@@ -185,7 +185,7 @@ class LeafHandler(Handler):
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
         if not leaf_data:
             self.set_status(404)
-            self.finish(json.dumps({"result": "failure", "message": "Unknown leaf"}))
+            self.finish(dumps({"result": "failure", "message": "Unknown leaf"}))
             raise gen.Return()
 
         yield self.application.async_db.leaves.update(
@@ -217,7 +217,7 @@ class LeafHandler(Handler):
             else:
                 branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
                 yield branch_stop_leaf(branch, leaf_data)
-        self.finish(json.dumps({"result": "success", "message": "OK"}))
+        self.finish(dumps({"result": "success", "message": "OK"}))
 
 
 class LeafStatusHandler(Handler):
@@ -234,7 +234,7 @@ class LeafStatusHandler(Handler):
         branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
         leaf_status, code = yield send_request(branch, "branch/leaf/{}".format(str(leaf_data["_id"])), "GET")
 
-        self.finish(json.dumps(leaf_status, default=json_util.default))
+        self.finish(dumps(leaf_status))
 
 
 class SpeciesListHandler(Handler):
@@ -252,10 +252,10 @@ class SpeciesListHandler(Handler):
                 first = False
 
             species = cursor.next_object()
-            self.write(json.dumps({
+            self.write(dumps({
                 "_id": species["_id"],
                 "name": species["name"]
-            }, default=json_util.default))
+            }))
         self.finish("]")
 
 
@@ -274,7 +274,7 @@ class TracebackHandler(Handler):
             self.finish("")
             return
 
-        self.finish(json.dumps(traceback, default=json_util.default))
+        self.finish(dumps(traceback))
 
 
 class SpeciesHandler(Handler):
@@ -288,7 +288,7 @@ class SpeciesHandler(Handler):
         if not species:
             self.set_status(404)
 
-        self.finish(json.dumps(species, default=json_util.default))
+        self.finish(dumps(species))
 
     @gen.coroutine
     @token_auth
@@ -328,7 +328,7 @@ class BranchHandler(Handler):
         if branch_name:
             self.finish("{}")
         else:
-            self.finish(json.dumps([x["name"] for x in self.application.druid.branch]))
+            self.finish(dumps([x["name"] for x in self.application.druid.branch]))
 
     @gen.coroutine
     @token_auth
@@ -359,7 +359,7 @@ class BranchHandler(Handler):
 
             yield branch_start_leaf(branch, leaf)
 
-        self.finish(json.dumps({"result": "success"}))
+        self.finish(dumps({"result": "success"}))
 
 
 class LogWatcher(Handler):
@@ -376,7 +376,8 @@ class LogWatcher(Handler):
         q = self.application.druid.get_listener(leaf_data["_id"])
         while not self.closed:
             data = yield q.get()
-            self.note(json.dumps(data, default=json_util.default))
+            self.write(dumps(data))
+            self.flush()
 
 
 class WebsocketLogWatcher(websocket.WebSocketHandler):
@@ -397,7 +398,7 @@ class WebsocketLogWatcher(websocket.WebSocketHandler):
             self.subscribe_logger()
 
     def on_message(self, message):
-        parsed = json.loads(message)
+        parsed = loads(message)
 
         if "Token" in parsed and self.application.secret == parsed["Token"]:
             self.subscribe_logger()
@@ -414,7 +415,7 @@ class WebsocketLogWatcher(websocket.WebSocketHandler):
             self.application.druid.remove_listener(self.leaf_data["_id"], self)
 
     def put(self, data):
-        self.write_message(json.dumps(data, default=json_util.default))
+        self.write_message(dumps(data))
 
 
 class LogHandler(Handler):
@@ -422,6 +423,6 @@ class LogHandler(Handler):
     @gen.coroutine
     @token_auth
     def post(self):
-        data = json.loads(self.request.body, object_hook=json_util.object_hook)
+        data = loads(self.request.body)
         yield self.application.druid.propagate_event(data)
         self.finish()
