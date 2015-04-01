@@ -249,11 +249,7 @@ class TracebackHandler(Handler):
             "traceback_id": traceback_id
         })
 
-        if not traceback:
-            self.set_status(404)
-            self.finish("")
-            return
-
+        self.set_status(200 if traceback else 404)
         self.finish(dumps(traceback))
 
 
