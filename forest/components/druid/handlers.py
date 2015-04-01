@@ -277,6 +277,12 @@ class SpeciesHandler(Handler):
                 "PATCH",
                 species
             ) for branch in self.application.druid.branch]
+
+            cursor = self.application.async_db.leaves.find({"type": species["_id"], "active": True})
+            while (yield cursor.fetch_next):
+                leaf = full_leaf_info(cursor.next_object(), self.application.druid.air, species)
+                branch = next(x for x in self.application.druid.branch if x["name"] == leaf["branch"])
+                yield branch_start_leaf(branch, leaf)
         else:
             self.set_status(404)
 
