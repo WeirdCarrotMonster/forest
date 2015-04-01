@@ -12,7 +12,7 @@ from bson.errors import InvalidId
 
 from forest.components.common import loads, dumps
 from forest.components.api.handler import Handler
-from forest.components.api.decorators import token_auth
+from forest.components.api.decorators import token_auth, schema
 from forest.components.common import send_request
 from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, \
     branch_stop_leaf
@@ -52,31 +52,12 @@ class LeavesHandler(Handler):
 
     @gen.coroutine
     @token_auth
-    def post(self):
+    @schema("druid.leaves")
+    def post(self, **data):
         """
         Создает новый лист.
         """
         with (yield self.application.druid.creation_lock.acquire()):
-            try:
-                data = loads(self.request.body)
-            except JSONDecodeError:
-                self.set_status(400)
-                self.finish(dumps({
-                    "result": "error",
-                    "message": "Malformed json"
-                }))
-                raise gen.Return()
-
-            for k in ["name", "type", "address"]:
-                if k not in data:
-                    self.set_status(400)
-                    self.finish(dumps({
-                        "result": "error",
-                        "message": "Missing key",
-                        "key": k
-                    }))
-                    raise gen.Return()
-
             leaf_address_check = yield self.application.async_db.leaves.find_one({
                 "$or": [
                     {"address": data["address"]},
