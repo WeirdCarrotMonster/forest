@@ -39,12 +39,11 @@ class LeavesHandler(Handler):
                 "name": True
             }
         )
-        first = True
+
+        leaf = None
         while (yield cursor.fetch_next):
-            if not first:
+            if leaf:
                 self.write(",")
-            else:
-                first = False
 
             leaf = cursor.next_object()
             self.write(dumps(leaf))
