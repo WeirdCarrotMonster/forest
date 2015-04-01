@@ -26,8 +26,6 @@ class LeavesHandler(Handler):
     @gen.coroutine
     @token_auth
     def get(self, address=None):
-        self.write("[")
-
         if address:
             query = {"address": address}
         else:
@@ -40,6 +38,7 @@ class LeavesHandler(Handler):
             }
         )
 
+        self.write("[")
         leaf = None
         while (yield cursor.fetch_next):
             if leaf:
