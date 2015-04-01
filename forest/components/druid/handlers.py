@@ -226,12 +226,10 @@ class SpeciesListHandler(Handler):
     def get(self):
         cursor = self.application.async_db.species.find()
         self.write("[")
-        first = True
+        species = None
         while (yield cursor.fetch_next):
-            if not first:
+            if species:
                 self.write(",")
-            else:
-                first = False
 
             species = cursor.next_object()
             self.write(dumps({
