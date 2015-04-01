@@ -292,13 +292,12 @@ class SpeciesHandler(Handler):
 
         species = yield self.application.async_db.species.find_one({"_id": _id})
 
-        for branch in self.application.druid.branch:
-            yield send_request(
-                branch,
-                "branch/species/{}".format(species["_id"]),
-                "PATCH",
-                species
-            )
+        yield [send_request(
+            branch,
+            "branch/species/{}".format(species["_id"]),
+            "PATCH",
+            species
+        ) for branch in self.application.druid.branch]
 
         self.finish("{}")
 
