@@ -4,9 +4,9 @@ from __future__ import unicode_literals, print_function
 
 import random
 from datetime import datetime
+from itertools import product
 
 from tornado import gen, websocket
-from simplejson import JSONDecodeError
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -191,9 +191,12 @@ class LeafHandler(Handler):
                 yield branch_prepare_species(branch, species)
                 yield branch_start_leaf(branch, leaf_data)
 
-                for air in self.application.druid.air:
-                    for address in leaf_data["address"]:
-                        yield air_enable_host(air, address)
+                yield [
+                    air_enable_host(air, address) for air, address in product(
+                        self.application.druid.air,
+                        leaf_data["address"]
+                    )
+                ]
             else:
                 branch = next(x for x in self.application.druid.branch if x["name"] == leaf_data["branch"])
                 yield branch_stop_leaf(branch, leaf_data)
