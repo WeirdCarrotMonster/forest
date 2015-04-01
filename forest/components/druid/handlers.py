@@ -261,9 +261,7 @@ class SpeciesHandler(Handler):
         _id = ObjectId(species_id)
         species = yield self.application.async_db.species.find_one({"_id": _id})
 
-        if not species:
-            self.set_status(404)
-
+        self.set_status(200 if species else 404)
         self.finish(dumps(species))
 
     @gen.coroutine
