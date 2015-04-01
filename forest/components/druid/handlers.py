@@ -145,9 +145,8 @@ class LeafHandler(Handler):
         if not leaf_data:
             self.set_status(404)
             self.finish("")
-            return
-
-        self.finish(dumps(leaf_data))
+        else:
+            self.finish(dumps(leaf_data))
 
     @gen.coroutine
     @token_auth
