@@ -24,10 +24,7 @@ from forest.components.common import log_message, dump, load
 
 class Species(object):
 
-    """
-    Класс, представляющий вид листа - совокупность исходного кода
-    и виртуального окружения python
-    """
+    """Класс, представляющий вид листа - совокупность исходного кода и виртуального окружения python."""
 
     class NotDefined(Exception):
         pass
@@ -41,7 +38,8 @@ class Species(object):
             interpreter=None,
             branch="master",
             **kwargs):
-        """
+        """Инициализирует объект.
+
         :param directory: Корневая директория вида
         :type directory: str
         :param _id: Уникальный идентификатор вида
@@ -71,7 +69,8 @@ class Species(object):
 
     @property
     def is_ready(self):
-        """Возвращает значение готовности вида
+        """Возвращает значение готовности вида.
+
         :returns: Готовность вида
         :rtype: bool
         """
@@ -79,7 +78,8 @@ class Species(object):
 
     @is_ready.setter
     def is_ready(self, value):
-        """Устанавливает флаг готовности вида
+        """Устанавливает флаг готовности вида.
+
         :param value: Новое значение флага готовности
         :type value: bool
         """
@@ -87,7 +87,8 @@ class Species(object):
 
     @property
     def python(self):
-        """Возвращает версию интерпретатора, на использование которой настроен данный вид
+        """Возвращает версию интерпретатора, на использование которой настроен данный вид.
+
         :returns: Строка с именем исполняемого файла интерпретатора
         :rtype: str
         """
@@ -96,6 +97,7 @@ class Species(object):
     @property
     def description(self):
         """Формирует краткое описание вида, достаточное для сравнения объектов.
+
         :returns: Словарь с кратким описанием
         :rtype dict:
         """
@@ -106,7 +108,8 @@ class Species(object):
 
     @property
     def saved_data(self):
-        """Загружает и возвращает настройки вида, описанные в файле метаданных
+        """Загружает и возвращает настройки вида, описанные в файле метаданных.
+
         :returns: Словарь с настройками вида
         :rtype: dict
         """
@@ -118,8 +121,7 @@ class Species(object):
             return {}
 
     def update_saved_data(self):
-        """Обновляет сохраненные настройки вида актуальными данными
-        """
+        """Обновляет сохраненные настройки вида актуальными данными."""
         data = {
             "_id": self.id,
             "url": self.url,
@@ -133,7 +135,7 @@ class Species(object):
 
     @coroutine
     def initialize(self):
-        """Инициализирует корневую директорию вида
+        """Инициализирует корневую директорию вида.
 
         Инициализация включает в себя следующие шаги:
 
@@ -193,8 +195,8 @@ class Species(object):
 
     @coroutine
     def run_in_env(self, cmd, stdin_data=None, env=None, apply_env=True, path=None):
-        """
-        Wrapper around subprocess call using Tornado's Subprocess class.
+        """Wrapper around subprocess call using Tornado's Subprocess class.
+
         https://gist.github.com/FZambia/5756470
         """
         cmd = shlex.split(cmd) if type(cmd) != list else cmd
@@ -231,7 +233,8 @@ class Species(object):
 
     @property
     def path(self):
-        """Возвращает полный путь к корневой директории вида
+        """Возвращает полный путь к корневой директории вида.
+
         :returns: Полный путь к корневой директории вида
         :rtype: str
         """
@@ -239,7 +242,8 @@ class Species(object):
 
     @property
     def src_path(self):
-        """Путь к директории с исходными кодами вида (обычно root/src)
+        """Путь к директории с исходными кодами вида (обычно root/src).
+
         :returns: Полынй путь к директории исходных кодов
         :rtype: str
         """
@@ -247,7 +251,8 @@ class Species(object):
 
     @property
     def environment(self):
-        """Возвращает полный путь к директории виртуального окржения вида (обычно root/env)
+        """Возвращает полный путь к директории виртуального окржения вида (обычно root/env).
+
         :returns: Полный путь к директории виртуального окружения
         :rtype: str
         """
@@ -255,7 +260,8 @@ class Species(object):
 
     @property
     def id(self):
-        """Уникальный идентификатор вида
+        """Уникальный идентификатор вида.
+
         :returns: Идентификатор вида
         :rtype: ObjectId
         """

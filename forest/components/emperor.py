@@ -48,7 +48,8 @@ class Vassal(object):
 
     @property
     def id(self):
-        """Уникальный идентификатор вассала, который может быть использован в имени конфигурационного файла
+        """Уникальный идентификатор вассала, который может быть использован в имени конфигурационного файла.
+
         :returns: Уникальный идентификатор
         :rtype: str
         """
@@ -56,7 +57,8 @@ class Vassal(object):
 
     @property
     def status(self):
-        """Текущий статус вассала
+        """Текущий статус вассала.
+
         :returns: Статус вассала
         :rtype: str
         """
@@ -64,7 +66,8 @@ class Vassal(object):
 
     @status.setter
     def status(self, value):
-        """Устанавливает статус вассала и логгирует его
+        """Устанавливает статус вассала и логгирует его.
+
         :param value: Новый статус
         :type value: str
         """
@@ -74,7 +77,8 @@ class Vassal(object):
 
     @property
     def dict(self):
-        """Словарь с базовой конфигурацией вассала, достаточной для его создания
+        """Словарь с базовой конфигурацией вассала, достаточной для его создания.
+
         :returns: Словарь с конфигурацией
         :rtype: dict
         """
@@ -87,48 +91,51 @@ class Vassal(object):
         }
 
     def start(self):
-        """Запускает вассала и устанавливает соответствующий статус
-        """
+        """Запускает вассала и устанавливает соответствующий статус."""
         self.status = "Started"
         self.__emperor__.start_vassal(self)
 
     def stop(self):
-        """Останавливает вассала и устанавливает соответствующий статус
-        """
+        """Останавливает вассала и устанавливает соответствующий статус."""
         self.status = "Stopped"
         self.__emperor__.stop_vassal(self)
 
     def get_config(self):
-        """Конфигурация вассала для запуска через uwsgi-emperor
+        """Конфигурация вассала для запуска через uwsgi-emperor.
+
         :returns: Конфигарация uwsgi в формате ini
         :rtype: str
         """
         return self.__get_config__()
 
     def __get_config__(self):
-        """Возвращает конфигурацию вассала, используемую при запуске
-        Должен быть переопределен в классе-потомке
+        """Возвращает конфигурацию вассала, используемую при запуске.
+
+        Метод должен быть переопределен в классе-потомке.
 
         :raise NotImplementedError: Метод не переопределен в классе-потомке
         """
         raise NotImplementedError
 
     def get_cron_config(self):
-        """Генерирует конфигурацию uwsgi-cron
+        """Генерирует конфигурацию uwsgi-cron.
+
         :returns: Строка конфигурации uwsgi
         :rtype: str
         """
         return "\n".join("cron={}".format(" ".join(_)) for _ in self.__uwsgi_cron__)
 
     def get_mules_config(self):
-        """Генерирует конфигурацию uwsgi-mule
+        """Генерирует конфигурацию uwsgi-mule.
+
         :returns: Строка конфигурации uwsgi
         :rtype: str
         """
         return "\n".join("mule={}".format(_) for _ in self.__uwsgi_mules__)
 
     def get_triggers_config(self):
-        """Генерирует конфигурацию uwsgi-hooks
+        """Генерирует конфигурацию uwsgi-hooks.
+
         :returns: Строка конфигурации uwsgi
         :rtype: str
         """
@@ -188,7 +195,8 @@ class Emperor(object):
 
     @property
     def root_dir(self):
-        """Корневая директория uwsgi-emperor
+        """Корневая директория uwsgi-emperor.
+
         :returns: Полный путь к корневой директории
         :rtype: str
         """
@@ -196,7 +204,8 @@ class Emperor(object):
 
     @property
     def binary_dir(self):
-        """Директория с исполняемыми файлами и плагинами uwsgi-emperor
+        """Директория с исполняемыми файлами и плагинами uwsgi-emperor.
+
         :returns: Полный путь к директории с исполняемыми файлами
         :rtype: str
         """
@@ -204,7 +213,8 @@ class Emperor(object):
 
     @property
     def uwsgi_binary(self):
-        """Основной исполняемый файл uwsgi
+        """Основной исполняемый файл uwsgi.
+
         :returns: Полный путь к исполняемому файлу uwsgi
         :rtype: str
         """
@@ -212,7 +222,8 @@ class Emperor(object):
 
     @property
     def vassal_dir(self):
-        """Директория с вассалами uwsgi
+        """Директория с вассалами uwsgi.
+
         :returns: Полный путь к директории вассалов
         :rtype: str
         """
@@ -220,7 +231,8 @@ class Emperor(object):
 
     @property
     def pidfile(self):
-        """Pid-файл uwsgi-emperor
+        """Pid-файл uwsgi-emperor.
+
         :returns: Полный путь к pid-файлу
         :rtype: str
         """
@@ -229,6 +241,7 @@ class Emperor(object):
     @property
     def vassal_names(self):
         """Возвращает спиоск имен вассалов, активных в данный момент. Имена передаются без расширения.
+
         :returns: Список имен активных вассалов
         :rtype: list
         """
@@ -237,7 +250,8 @@ class Emperor(object):
 
     @coroutine
     def call_vassal_rpc(self, vassal, *args):
-        """Вызывает rpc-функцию вассала
+        """Вызывает rpc-функцию вассала.
+
         :param vassal: Имя вассала
         :type vassal: str
         :returns: Результат выполнения функции
@@ -277,8 +291,7 @@ class Emperor(object):
             })
 
     def stop(self):
-        """Останавливает uwsgi-emperor и очищает директорию вассалов
-        """
+        """Останавливает uwsgi-emperor и очищает директорию вассалов."""
         log_message("Stopping uwsgi emperor", component="Emperor")
         subprocess.call([self.uwsgi_binary, "--stop", self.pidfile])
         os.remove(self.pidfile)
@@ -287,7 +300,8 @@ class Emperor(object):
             os.remove(os.path.join(self.vassal_dir, name))
 
     def start_vassal(self, vassal):
-        """Запускает указанного вассала
+        """Запускает указанного вассала.
+
         :param vassal: Запускаемый вассал
         :type vassal: Vassal
         """
@@ -308,7 +322,8 @@ class Emperor(object):
             cfg.write(vassal.get_config())
 
     def stop_vassal(self, vassal):
-        """Останавливает указанного вассала
+        """Останавливает указанного вассала.
+
         :param vassal: Останавливаемый вассал
         :type vassal: Vassal
         """
@@ -321,7 +336,8 @@ class Emperor(object):
             os.remove(cfg_path)
 
     def soft_restart_vassal(self, vassal):
-        """Выполняет плавный перезапуск вассала
+        """Выполняет плавный перезапуск вассала.
+
         :param vassal: Перезапускаемый вассал
         :type vassal: Vassal
         """
@@ -331,7 +347,8 @@ class Emperor(object):
             os.utime(cfg_path, None)
 
     def stats(self, vassal):
-        """Возвращает статистику по указанному вассалу
+        """Возвращает статистику по указанному вассалу.
+
         :param vassal: Имя вассала
         :type vassal: str
         :returns: Статистика по вассалу
@@ -344,7 +361,8 @@ class Emperor(object):
         return {}
 
     def __stats__(self):
-        """Возвращает внутреннюю статистику uwsgi-emperor
+        """Возвращает внутреннюю статистику uwsgi-emperor.
+
         :returns: Словарь со статистикой
         :rtype: dict
         """
@@ -363,7 +381,8 @@ class Emperor(object):
 
     @coroutine
     def log_message(self, message):
-        """Обрабатывает входящее сообщение uwsgi-emperor
+        """Обрабатывает входящее сообщение uwsgi-emperor.
+
         :param message: Входящее сообщение ZeroMQ
         :type message: list
         """
