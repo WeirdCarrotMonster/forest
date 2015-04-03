@@ -12,7 +12,6 @@ from collections import defaultdict
 import os
 
 from zmq.eventloop.zmqstream import ZMQStream
-from bson import ObjectId
 from tornado.gen import coroutine, Return
 from tornado.ioloop import IOLoop
 import simplejson as json

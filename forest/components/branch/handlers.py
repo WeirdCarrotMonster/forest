@@ -69,8 +69,6 @@ class LeafHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def delete(self, leaf_id):
-        leaf_id = ObjectId(leaf_id)
-
         if leaf_id in self.application.branch.leaves:
             leaf = self.application.branch.leaves[leaf_id]
             self.application.branch.del_leaf(leaf)
