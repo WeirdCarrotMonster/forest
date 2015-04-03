@@ -37,7 +37,6 @@ res_emperor = [
 
 
 def logparse(data):
-    important = False
     parsed = {"raw": data}
 
     for reg, more, converters in res:
@@ -51,11 +50,10 @@ def logparse(data):
                     pass
             break
 
-    return parsed, important
+    return parsed
 
 
 def logparse_emperor(data):
-    important = False
     parsed = {"raw": data}
 
     for reg, more, converters in res_emperor:
@@ -69,4 +67,4 @@ def logparse_emperor(data):
                     pass
             break
 
-    return parsed, important
+    return parsed

@@ -368,7 +368,7 @@ class Emperor(object):
         :type message: list
         """
         for m in (_.strip() for _ in message if _.strip()):
-            data, important = logparse_emperor(m)
+            data = logparse_emperor(m)
 
             if data.get("log_type") == "emperor_vassal_ready":
                 vassal_id = data.get("vassal")

@@ -129,7 +129,7 @@ class Branch(object):
 
                 data_parsed["log_type"] = "leaf.event"
             except json.JSONDecodeError:
-                data_parsed, important = logparse(data)
+                data_parsed = logparse(data)
                 data_parsed["time"] = datetime.datetime.utcnow()
 
             data_parsed.update({
