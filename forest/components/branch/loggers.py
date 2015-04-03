@@ -34,7 +34,8 @@ class Logger(object):
         return self.__failures__ >= self.__max_failures__
 
     def suitable(self, log):
-        """
+        """Проверяет, подходит ли логгер для отправки сообщения.
+
         :param log: Логгируемое сообщение
         :type log: dict
         """

@@ -13,11 +13,14 @@ from forest.components.api.handler import Handler
 
 class HostHandler(Handler):
 
+    """Хендлер для /api/air/hosts."""
+
     @gen.coroutine
     @token_auth
     @schema("air.host")
     def post(self, host):
-        """Добавляет передаваемый в параметре host в список разрешенных
+        """Добавляет передаваемый в параметре host в список разрешенных.
+
         :param host: Хостнейм, разрешаемый в системе
         :type host: str
         """

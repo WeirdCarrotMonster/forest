@@ -33,9 +33,7 @@ from forest.components.branch.loggers import POSTLogger
 
 class Branch(object):
 
-    """
-    Класс ветви, служащий для запуска приложений и логгирования их вывода
-    """
+    """Класс ветви, служащий для запуска приложений и логгирования их работы."""
 
     def __init__(self, trunk, settings):
         self.__host__ = settings.get("host", "127.0.0.1")
@@ -105,9 +103,7 @@ class Branch(object):
 
     @coroutine
     def log_message(self, message):
-        """
-        Логгирует входящее сообщение в базе, дополняя информацией о времени,
-        компоненте и т.п.
+        """Логгирует входящее сообщение в базе, дополняя информацией о времени, компоненте и т.п.
 
         :param message: Логгируемое сообщение
         :type message: list
@@ -147,8 +143,7 @@ class Branch(object):
             self.__loggers__.remove(logger)
 
     def add_logger(self, configuration):
-        """
-        Добавляет логгер заданной конфигурации
+        """Добавляет логгер заданной конфигурации.
 
         :param configuration: Конфигурация активируемого логгера
         :type configuration: dict
@@ -179,8 +174,7 @@ class Branch(object):
 
     @coroutine
     def create_species(self, species, initialize=True):
-        """
-        Создает вид листа по данным из словаря
+        """Создает вид листа по данным из словаря.
 
         :rtype : Species
         :param species: словарь с данными конфигурации вида
@@ -217,8 +211,7 @@ class Branch(object):
         raise Return(species)
 
     def create_leaf(self, **leaf):
-        """
-        Создает экземпляр листа
+        """Создает экземпляр листа.
 
         :type leaf: dict
         :param leaf: Словарь с конфигурацией листа

@@ -11,9 +11,12 @@ from forest.components.api.handler import Handler
 
 class DatabaseHandler(Handler):
 
+    """Хендлер /api/root/db."""
+
     @gen.coroutine
     def post(self):
-        """
+        """Создает базы и настраивает к ним доступ.
+
         POST-запросы, поступающие на апи обработки хостов, должны содержать информацию о добавляемом хосте.
         Имя хоста, указанное в поле host, будет добавлено в список разрешенных для подключения к
         uwsgi-router.

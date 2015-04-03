@@ -52,9 +52,7 @@ class LeavesHandler(Handler):
     @token_auth
     @schema("druid.leaves")
     def post(self, **data):
-        """
-        Создает новый лист.
-        """
+        """Создает новый лист."""
         with (yield self.application.druid.creation_lock.acquire()):
             leaf_address_check = yield self.application.async_db.leaves.find_one({
                 "$or": [

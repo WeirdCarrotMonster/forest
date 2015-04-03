@@ -17,15 +17,12 @@ from forest.components.exceptions.logger import LoggerCreationError
 
 class LeavesHandler(tornado.web.RequestHandler):
 
-    """
-    Выполняет управление каждым отдельно взятым листом
-    """
+    """Выполняет управление листом."""
+
     @tornado.gen.coroutine
     @token_auth
     def get(self):
-        """
-        Возвращает список всех известных листьев
-        """
+        """Возвращает список всех известных листьев."""
         self.write("[")
 
         first = True
@@ -55,15 +52,12 @@ class LeavesHandler(tornado.web.RequestHandler):
 
 class LeafHandler(tornado.web.RequestHandler):
 
-    """
-    Выполняет управление каждым отдельно взятым листом
-    """
+    """Выполняет управление каждым отдельно взятым листом."""
+
     @tornado.gen.coroutine
     @token_auth
     def get(self, _id):
-        """
-        Получает информацию о листе с указанным id
-        """
+        """Получает информацию о листе с указанным id."""
         self.finish(dumps(self.application.emperor.stats(_id)))
 
     @tornado.gen.coroutine
