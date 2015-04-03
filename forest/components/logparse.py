@@ -2,23 +2,22 @@
 
 import re
 import base64
+import bson
 
 
 # pylint: disable=W0702
 
 
-__all__ = ["logparse"]
-
 res = [
     (
         re.compile("\[Leaf (?P<log_source>\w{24})\]\[Traceback (?P<traceback_id>\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12})\](?P<traceback>.*)", re.S),
         {"log_type": "leaf.traceback"},
-        {"traceback": base64.b64decode}
+        {"traceback": base64.b64decode, "log_source": bson.objectid.ObjectId}
     ),
     (
         re.compile("\[Leaf (?P<log_source>\w{24})\](?P<raw>.*)", re.S),
         {"log_type": "leaf.stdout_stderr"},
-        {}
+        {"log_source": bson.objectid.ObjectId}
     )
 ]
 

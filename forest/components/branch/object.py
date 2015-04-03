@@ -137,9 +137,6 @@ class Branch(object):
                 "component_type": "branch"
             })
 
-            if "log_source" in data_parsed:
-                data_parsed["log_source"] = ObjectId(data_parsed["log_source"])
-
             try:
                 yield [logger.log(data_parsed) for logger in self.__loggers__ if logger.suitable(data_parsed)]
             except:
