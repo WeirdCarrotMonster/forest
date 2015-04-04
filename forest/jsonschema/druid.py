@@ -28,5 +28,5 @@ leaves = {
         "type",
         "address"
     ],
-    "additionalProperties": False
+    "additionalProperties": True
 }
