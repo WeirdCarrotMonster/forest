@@ -17,6 +17,10 @@ leaves = {
         "address": {
             "id": "/address",
             "type": "string"
+        },
+        "start": {
+            "id": "/start",
+            "type": "boolean"
         }
     },
     "required": [
