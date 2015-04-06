@@ -5,7 +5,7 @@ import motor
 import pymongo
 
 
-# pylint: disable=R0913
+# pylint: disable=R0913,W0613
 
 
 def get_connection_async(
