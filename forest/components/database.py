@@ -9,12 +9,12 @@ import pymongo
 
 
 def get_connection_async(
-        database="trunk",
         host="127.0.0.1",
-        password="password",
         port=27017,
-        replica=None,
+        database="trunk",
         user="admin",
+        password="password",
+        replica=None,
         **kwargs
         ):
     """Возвращает асинхронное подключение к базе.
@@ -54,12 +54,12 @@ def get_connection_async(
 
 
 def get_connection(
-        database="trunk",
         host="127.0.0.1",
-        password="password",
         port=27017,
-        replica=None,
+        database="trunk",
         user="admin",
+        password="password",
+        replica=None,
         **kwargs
         ):
     """Возвращает синхронное подключение к базе.
