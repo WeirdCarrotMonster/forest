@@ -1,4 +1,5 @@
 # coding=utf-8
+"""Модуль описывает методы API прокси-сервера и объект, работающий с ним."""
 
 from forest.components.air.object import Air
 from forest.components.air.handlers import HostHandler

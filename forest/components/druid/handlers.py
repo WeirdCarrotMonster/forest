@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Описывает хендлеры для работы внешнего API леса."""
 
 from __future__ import unicode_literals, print_function
 

@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Описывает хендлеры для API прокси-сервера."""
 
 from __future__ import unicode_literals, print_function
 
