@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Описывает класс Leaf, управляющий приложением как uwsgi-вассалом."""
 
 from itertools import product
 
@@ -8,19 +9,45 @@ from forest.components.common import dumps
 
 class Leaf(Vassal):
 
-    def __init__(self,
-                 address=None,
-                 batteries=None,
-                 fastrouters=None,
-                 keyfile=None,
-                 leaf_host=None,
-                 log_port=None,
-                 settings=None,
-                 species=None,
-                 threads=False,
-                 workers=2,
-                 **kwargs
-                 ):
+    """Класс-обертка, управляющий приложением."""
+
+    def __init__(
+            self,
+            address=None,
+            batteries=None,
+            fastrouters=None,
+            keyfile=None,
+            leaf_host=None,
+            log_port=None,
+            settings=None,
+            species=None,
+            threads=False,
+            workers=2,
+            **kwargs
+    ):
+        """Выполняет инициализацию листа.
+
+        :param address: Список адресов листа
+        :type address: list
+        :param batteries: Словарь с описанием 'батареек' листа
+        :type batteries: dict
+        :param fastrouters: Список fastrouter'ов, к которым подключается лист
+        :type fastrouters: list
+        :param keyfile: Полный путь к файлу приватного ключа
+        :type keyfile: str
+        :param leaf_host: Хост, на котором запускается лист
+        :type leaf_host: str
+        :param log_port: Порт, на который отправляются логи листа
+        :type log_port: int
+        :param settings: Дополнительные настройки приложения
+        :type settings: dict
+        :param species: Объект вида листа
+        :type species: Species
+        :param threads: Флаг возможности использования потоков в приложении
+        :type threads: bool
+        :param workers: Количество воркеров приложения
+        :type workers: int
+        """
         super(Leaf, self).__init__(**kwargs)
         self.__keyfile__ = keyfile
         self.__fastrouters__ = fastrouters or []

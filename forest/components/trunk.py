@@ -1,4 +1,11 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Модуль, описывающий класс корневого объекта леса.
+
+Корневой объект - синглтон, поверх которого инициализируются все дополнительные
+модули леса. Название 'Trunk' он получил из-за того, что по логике работы именно
+к нему крепятся корни ('Roots'), ветки ('Branch') и воздух ('Air', это уже не
+так логично, но мне всё равно).
+"""
 
 import os
 
@@ -12,7 +19,18 @@ from forest.components.database import get_default_database
 
 class Trunk(tornado.web.Application):
 
+    """Класс корневого объекта леса.
+
+    В аттрибутах класса хранятся все компоненты, с которыми инициализирована
+    нода леса, а так же подключения к базе (при их наличии).
+    """
+
     def __init__(self, settings, **kwargs):
+        """Инициализируется данными из словаря настроек.
+
+        :param settings: Словарь корневых настроек ноды
+        :type settings: dict
+        """
         super(Trunk, self).__init__(**kwargs)
         self.settings["cookie_secret"] = "asdasd"
         self.name = settings["name"]

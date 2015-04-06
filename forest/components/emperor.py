@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Обертка вокруг uwsgi-emperor.
+"""Модуль описывает классы-обертки для сервера uwsgi-emperor и управляемых им вассалов.
 
 В качестве монитора вассалов используется стандартный glob://, а конфигурационные файлы хранятся в формате ini.
 """
@@ -29,6 +28,8 @@ from tornado.iostream import StreamClosedError
 
 class Vassal(object):
 
+    """Базовый класс вассала, запускаемого через uwsgi-emperor."""
+
     def __init__(
             self,
             _id=None,
@@ -38,6 +39,18 @@ class Vassal(object):
             uwsgi_triggers=None,
             **kwargs
     ):
+        """Инициализирует вассала.
+
+        :param _id: Уникальный идентификатор вассала
+        :param emperor: Объект uwsgi-emperor
+        :type emperor: Emperor
+        :param uwsgi_cron: Список периодически запускаемых задач
+        :type uwsgi_cron: list
+        :param uwsgi_mules: Список uwsgi-mules
+        :type uwsgi_mules: list
+        :param uwsgi_triggers: Словарь с описанием триггеров
+        :type uwsgi_triggers: dict
+        """
         self.__id__ = _id
         self.__emperor__ = emperor
         self.__status__ = "Stopped"
@@ -144,7 +157,14 @@ class Vassal(object):
 
 class Emperor(object):
 
+    """Обертка вокруг uwsgi-emperor, отвечающая за его запуск и управление вассалами."""
+
     def __init__(self, root_dir):
+        """Инициализирует uwsgi-emperor.
+
+        :param root_dir: Полный путь к корневой директории uwsgi-emperor
+        :type root_dir: str
+        """
         self.__root_dir__ = root_dir
 
         if not os.path.exists(self.vassal_dir):

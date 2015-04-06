@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Модуль парсеров строковых логов."""
 
 import re
 import base64
@@ -10,7 +11,9 @@ import bson
 
 res = [
     (
-        re.compile("\[Leaf (?P<log_source>\w{24})\]\[Traceback (?P<traceback_id>\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12})\](?P<traceback>.*)", re.S),
+        re.compile(
+            "\[Leaf (?P<log_source>\w{24})\]"
+            "\[Traceback (?P<traceback_id>\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12})\](?P<traceback>.*)", re.S),
         {"log_type": "leaf.traceback"},
         {"traceback": base64.b64decode, "log_source": bson.objectid.ObjectId}
     ),
@@ -36,6 +39,13 @@ res_emperor = [
 
 
 def logparse(data):
+    """Парсит строковые логи листьев.
+
+    :param data: Строка лога
+    :type data: str
+    :returns: Словарь обработанного лога
+    :rtype: dict
+    """
     parsed = {"raw": data}
 
     for reg, more, converters in res:
@@ -53,6 +63,13 @@ def logparse(data):
 
 
 def logparse_emperor(data):
+    """Парсит строковые логи императора.
+
+    :param data: Строка лога
+    :type data: str
+    :returns: Словарь обработанного лога
+    :rtype: dict
+    """
     parsed = {"raw": data}
 
     for reg, more, converters in res_emperor:
