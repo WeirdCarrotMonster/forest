@@ -1,4 +1,5 @@
 # coding=utf-8
+"""Модуль описывает методы API сервера приложений и объект, работающий с ним."""
 
 from forest.components.branch.object import Branch
 from forest.components.branch.handlers import LeavesHandler, LeafHandler, SpeciesListHandler, \

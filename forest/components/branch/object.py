@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Модуль реализует сущность ветви, отвечающую за
-запуск приложений, обновление репозиториев и логгирование
-процессов.
+# coding=utf-8
+"""Модуль реализует сущность ветви.
+
+Ветвь отвечает за запуск приложений, обновление репозиториев и логгирование процессов.
 """
 from __future__ import print_function, unicode_literals
 
@@ -36,6 +35,13 @@ class Branch(object):
     """Класс ветви, служащий для запуска приложений и логгирования их работы."""
 
     def __init__(self, trunk, settings):
+        """Инициализирует ветвь.
+
+        :param trunk: корневой объект ноды леса.
+        :type trunk: Trunk
+        :param settings: Настройки ветви
+        :type settings: dict
+        """
         self.__host__ = settings.get("host", "127.0.0.1")
         self.trunk = trunk
 
@@ -62,6 +68,7 @@ class Branch(object):
 
     @coroutine
     def __restore_species__(self):
+        """Выполняет восстановление видов после перезагрузки."""
         try:
             for species_id in os.listdir(self.species_dir):
                 if os.path.isdir(os.path.join(self.species_dir, species_id)):
@@ -77,6 +84,7 @@ class Branch(object):
 
     @coroutine
     def __restore_leaves__(self):
+        """Выполняет восстановление листьев после перезагрузки."""
         for leaf_config in os.listdir(self.trunk.emperor.vassal_dir):
             config = ConfigParser.ConfigParser()
             config.read(os.path.join(self.trunk.emperor.vassal_dir, leaf_config))
@@ -99,6 +107,11 @@ class Branch(object):
 
     @property
     def species_dir(self):
+        """Генерирует полный путь к директории видов.
+
+        :returns: Полный путь к директории видов
+        :rtype: str
+        """
         return os.path.join(self.trunk.forest_root, "species")
 
     @coroutine
@@ -162,6 +175,13 @@ class Branch(object):
             raise LoggerCreationError("Unknown logger type")
 
     def delete_logger(self, identifier):
+        """Удаляет логгер с указанным идентификатором.
+
+        :param identifier: Идентификатор логгера
+        :type identifier: str
+        :returns: Результат удаления логгера
+        :rtype: tuple
+        """
         try:
             logger = next(x for x in self.__loggers__ if x.identifier == identifier)
             self.__loggers__.remove(logger)
@@ -232,6 +252,15 @@ class Branch(object):
         )
 
     def add_leaf(self, leaf, start=True):
+        """Добавляет лист на ветвь.
+
+        :param leaf: Лист
+        :type leaf: Leaf
+        :param start: Флаг запуска
+        :type start: bool
+        :returns: Результат запуска
+        :rtype: bool
+        """
         if leaf.id in self.leaves:
             self.leaves[leaf.id].stop()
             del self.leaves[leaf.id]
@@ -243,6 +272,11 @@ class Branch(object):
             return None
 
     def del_leaf(self, leaf):
+        """Удаляет лист с ветви.
+
+        :param leaf: Лист
+        :type leaf: Leaf
+        """
         leaf.stop()
         if leaf.id in self.leaves:
             del self.leaves[leaf.id]

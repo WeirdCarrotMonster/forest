@@ -1,4 +1,5 @@
 # coding=utf-8
+"""Хендлеры API сервера приложений."""
 
 from __future__ import unicode_literals
 from bson import ObjectId
@@ -39,6 +40,7 @@ class LeavesHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def post(self):
+        """Создает новый лист."""
         data = loads(self.request.body)
 
         try:
@@ -63,6 +65,7 @@ class LeafHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def delete(self, leaf_id):
+        """Останавливает лист."""
         if leaf_id in self.application.branch.leaves:
             leaf = self.application.branch.leaves[leaf_id]
             self.application.branch.del_leaf(leaf)
@@ -72,9 +75,12 @@ class LeafHandler(tornado.web.RequestHandler):
 
 class LeafRPCHandler(tornado.web.RequestHandler):
 
+    """Выполняет работу с uwsgi-rpc приложения."""
+
     @tornado.gen.coroutine
     @token_auth
     def post(self, _id):
+        """Обрабатывает rpc-запрос."""
         data = loads(self.request.body)
         assert type(data) == list
 
@@ -85,9 +91,12 @@ class LeafRPCHandler(tornado.web.RequestHandler):
 
 class SpeciesListHandler(tornado.web.RequestHandler):
 
+    """Выполняет работу с видами приложений."""
+
     @tornado.gen.coroutine
     @token_auth
     def post(self):
+        """Инициализирует новый вид приложения."""
         data = loads(self.request.body)
 
         yield self.application.branch.create_species(data)
@@ -97,9 +106,12 @@ class SpeciesListHandler(tornado.web.RequestHandler):
 
 class SpeciesHandler(tornado.web.RequestHandler):
 
+    """Выполняет работу с указанным видом приложения."""
+
     @tornado.gen.coroutine
     @token_auth
     def get(self, _id):
+        """Возвращает информацию об указанном виде приложения."""
         _id = ObjectId(_id)
 
         species = self.application.branch.species.get(_id)
@@ -113,6 +125,7 @@ class SpeciesHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def patch(self, _id):
+        """Модифицирует указанный вид приложения."""
         data = loads(self.request.body)
 
         self.application.branch.create_species(data)
@@ -122,9 +135,12 @@ class SpeciesHandler(tornado.web.RequestHandler):
 
 class LoggerListHandler(tornado.web.RequestHandler):
 
+    """Выполняет работу с логгерами сервера приложений."""
+
     @tornado.gen.coroutine
     @token_auth
     def get(self):
+        """Получает информацию о всех логгерах."""
         self.finish(dumps([
             {
                 "identifier": logger.identifier,
@@ -135,6 +151,7 @@ class LoggerListHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     @token_auth
     def post(self):
+        """Создает новый логгер."""
         data = loads(self.request.body)
 
         try:
@@ -147,9 +164,12 @@ class LoggerListHandler(tornado.web.RequestHandler):
 
 class LoggerHandler(tornado.web.RequestHandler):
 
+    """Выполняет работу с указанным логгером."""
+
     @tornado.gen.coroutine
     @token_auth
     def delete(self, identifier):
+        """Удаляет логгер."""
         result, code, message = self.application.branch.delete_logger(identifier)
         if not result:
             self.set_status(code)

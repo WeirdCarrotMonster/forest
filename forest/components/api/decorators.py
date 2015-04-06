@@ -1,4 +1,5 @@
 # coding=utf-8
+"""Описывает декораторы, используемые в описании методов API."""
 
 from __future__ import unicode_literals, print_function
 import simplejson as json
@@ -10,7 +11,15 @@ from forest.components.common import loads
 
 
 def token_auth(f):
+    """Добавляет функции проверку на аутентифицированность пользователя по токену.
+
+    :param f: Декорируемая функция
+    :type f: function
+    """
+    # TODO: описать требуемые для работы заголовки
+
     def wrapper(self, *args, **kwargs):
+        """Декоратор функции."""
         if self.application.secret != self.request.headers.get("Token"):
             self.set_status(403)
             self.finish(json.dumps({
@@ -25,7 +34,8 @@ def token_auth(f):
 
 
 def schema(argument=None):
-    """Создает валидирующий схему декоратор
+    """Создает валидирующий схему декоратор.
+
     :param argument: Путь к описанию схемы
     :type argument: str
     """
