@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding=utf-8
+"""Модуль описывает функции получения синхронного и асинхронного подключения к базе."""
 
 import motor
 import pymongo
@@ -7,7 +8,30 @@ import pymongo
 # pylint: disable=R0913
 
 
-def get_connection_async(host, port, user, password, replica, database="trunk"):
+def get_connection_async(
+        database="trunk",
+        host="127.0.0.1",
+        password="password",
+        port=27017,
+        replica=None,
+        user="admin",
+        **kwargs
+        ):
+    """Возвращает асинхронное подключение к базе.
+
+    :param host: Хост, к которому выполняется подключение
+    :type host: str
+    :param port: Порт базы данных
+    :type port: int
+    :param user: Имя пользователя базы данных
+    :type user: str
+    :param password: Пароль пользователя базы данных
+    :type password: str
+    :param replica: Название replicaSet (при наличии)
+    :type replica: str
+    :param database: Имя базы данных
+    :type database: str
+    """
     if not replica:
         con = motor.MotorClient(
             "mongodb://{}:{}@{}:{}/{}".format(
@@ -29,18 +53,30 @@ def get_connection_async(host, port, user, password, replica, database="trunk"):
     return con
 
 
-def get_settings_connection_async(settings):
-    return get_connection_async(
-        settings.get("host", "127.0.0.1"),
-        settings.get("port", 27017),
-        settings.get("user", "admin"),
-        settings.get("pass", "password"),
-        settings.get("replica", None),
-        settings.get("database", "trunk")
-    )
+def get_connection(
+        database="trunk",
+        host="127.0.0.1",
+        password="password",
+        port=27017,
+        replica=None,
+        user="admin",
+        **kwargs
+        ):
+    """Возвращает синхронное подключение к базе.
 
-
-def get_connection(host, port, user, password, replica, database="trunk"):
+    :param host: Хост, к которому выполняется подключение
+    :type host: str
+    :param port: Порт базы данных
+    :type port: int
+    :param user: Имя пользователя базы данных
+    :type user: str
+    :param password: Пароль пользователя базы данных
+    :type password: str
+    :param replica: Название replicaSet (при наличии)
+    :type replica: str
+    :param database: Имя базы данных
+    :type database: str
+    """
     if not replica:
         con = pymongo.MongoClient(
             "mongodb://{}:{}@{}:{}/{}".format(
@@ -60,22 +96,3 @@ def get_connection(host, port, user, password, replica, database="trunk"):
             socketTimeoutMS=1500
         )
     return con
-
-
-def get_settings_connection(settings):
-    return get_connection(
-        settings.get("host", "127.0.0.1"),
-        settings.get("port", 27017),
-        settings.get("user", "admin"),
-        settings.get("pass", "password"),
-        settings.get("replica", None),
-        settings.get("database", "trunk")
-    )
-
-
-def get_default_database(settings, async=False):
-    if async:
-        connection = get_settings_connection_async(settings)
-    else:
-        connection = get_settings_connection(settings)
-    return connection[settings.get("database", "trunk")]

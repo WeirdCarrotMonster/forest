@@ -14,7 +14,7 @@ import tornado.template
 import tornado.web
 
 from forest.components.emperor import Emperor
-from forest.components.database import get_default_database
+from forest.components.database import get_connection, get_connection_async
 
 
 class Trunk(tornado.web.Application):
@@ -41,8 +41,8 @@ class Trunk(tornado.web.Application):
 
         self.database = settings.get("db")
         if self.database:
-            self.async_db = get_default_database(self.database, async=True)
-            self.sync_db = get_default_database(self.database)
+            self.async_db = get_connection_async(**self.database)
+            self.sync_db = get_connection(**self.database)
 
         self.branch = None
         self.roots = None
