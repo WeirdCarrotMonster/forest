@@ -50,7 +50,7 @@ def get_connection_async(
             connectTimeoutMS=1500,
             socketTimeoutMS=1500
         )
-    return con
+    return con[database]
 
 
 def get_connection(
@@ -95,4 +95,4 @@ def get_connection(
             connectTimeoutMS=1500,
             socketTimeoutMS=1500
         )
-    return con
+    return con[database]
