@@ -3,6 +3,8 @@
 
 from __future__ import unicode_literals, print_function
 from forest.components.common import loads, load
+from simplejson import JSONDecodeError
+
 
 from os.path import join, realpath, dirname
 
@@ -37,7 +39,7 @@ def schema(argument=None):
             try:
                 data = loads(self.request.body)
                 validate(data, schema_descriptor)
-            except ValidationError as e:
+            except (ValidationError, JSONDecodeError) as e:
                 self.set_status(400)
                 self.finish({"result": "failure", "message": str(e)})
             else:

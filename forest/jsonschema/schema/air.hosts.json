@@ -1,15 +1,14 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "/",
+    "id": "",
     "type": "object",
     "properties": {
         "host": {
-            "id": "host",
+            "id": "/host",
             "type": "string"
         }
     },
     "required": [
         "host"
-    ],
-    "additionalProperties": false
+    ]
 }
