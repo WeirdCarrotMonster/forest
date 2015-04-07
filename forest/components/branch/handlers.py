@@ -2,15 +2,14 @@
 """Хендлеры API сервера приложений."""
 
 from __future__ import unicode_literals
+
 from bson import ObjectId
-
-import tornado.web
-import tornado.gen
-
-from forest.components.species import Species
-from forest.components.common import loads, dumps
 from forest.components.api.decorators import token_auth
+from forest.components.common import loads, dumps
 from forest.components.exceptions.logger import LoggerCreationError
+from forest.components.species import Species
+import tornado.gen
+import tornado.web
 
 
 # pylint: disable=W0221,W0613

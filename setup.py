@@ -38,17 +38,18 @@ setup(
         "Topic :: Utilities"
     ],
     install_requires=[
-        "simplejson",
-        "tornado",
+        "dateutils",
+        "jsonschema",
+        "motor",
         "psutil",
         "pymongo",
-        "motor",
         "PyMySQL",
         "pyzmq",
-        "dateutils",
-        "virtualenv",
+        "requests",
+        "simplejson",
+        "tornado",
         "toro",
-        "jsonschema"
+        "virtualenv"
     ],
     entry_points={
         'console_scripts': [

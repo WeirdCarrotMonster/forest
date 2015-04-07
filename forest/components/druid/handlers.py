@@ -303,6 +303,11 @@ class BranchHandler(Handler):
     @gen.coroutine
     @token_auth
     def put(self, branch_name=None):
+        """Выполняет принудительную проверку всех листьев на указанной ветви.
+
+        :param branch_name: Имя ветви
+        :type branch_name: str
+        """
         assert branch_name
         try:
             branch = next(x for x in self.application.druid.branch if x["name"] == branch_name)
@@ -330,67 +335,49 @@ class BranchHandler(Handler):
         self.finish(dumps({"result": "success"}))
 
 
-class LogWatcher(Handler):
-
-    @gen.coroutine
-    @token_auth
-    def get(self, leaf_name):
-        leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
-        if not leaf_data:
-            self.set_status(404)
-            self.finish()
-            raise gen.Return()
-
-        q = self.application.druid.get_listener(leaf_data["_id"])
-        while not self.closed:
-            data = yield q.get()
-            self.write(dumps(data))
-            self.flush()
-
-
 class WebsocketLogWatcher(websocket.WebSocketHandler):
 
-    def check_origin(self, origin):
+    """Хендлер клиентов, ожидающих логи по websocket-протоколу."""
+
+    def check_origin(self, *args, **kwargs):
+        """Отключает проверку origin."""
         return True
 
-    def open(self, leaf_name):
-        self.subscribed = False
+    def open(self, leaf):
+        """Открывает подключение и регистрирует логгер.
 
-        self.leaf_data = self.application.sync_db.leaves.find_one({"name": leaf_name})
-
-        if not self.leaf_data:
-            self.close()
-            return
-
-        if self.application.secret == self.request.headers.get("Token"):
-            self.subscribe_logger()
-
-    def on_message(self, message):
-        parsed = loads(message)
-
-        if "Token" in parsed and self.application.secret == parsed["Token"]:
-            self.subscribe_logger()
-
-    def subscribe_logger(self):
-        if self.subscribed:
-            return
-
-        self.application.druid.add_listener(self.leaf_data["_id"], self)
-        self.subscribed = True
+        :param leaf: Лист, логи которого передаются клиенту
+        :type leaf: str
+        """
+        self.leaf = leaf
+        self.application.druid.add_listener(self.leaf, self)
 
     def on_close(self):
-        if self.subscribed:
-            self.application.druid.remove_listener(self.leaf_data["_id"], self)
+        """Обработчик события закрытия подключения."""
+        self.application.druid.remove_listener(self.leaf, self)
 
     def put(self, data):
+        """Отправляет лог клиенту.
+
+        :param data: Передаваемый лог
+        :type data: dict
+        """
         self.write_message(dumps(data))
 
 
 class LogHandler(Handler):
 
+    """Хендлер логов, поступающих от других нод."""
+
     @gen.coroutine
     @token_auth
     @schema()
     def post(self, **data):
+        """Сохраняет данные лога в базу.
+
+        Предполагается, что логи всегда поступают в виде json-словаря и разбираются в декораторе schema().
+        :param data: Словарь с данными.
+        :type data: dict
+        """
         yield self.application.druid.propagate_event(data)
         self.finish()

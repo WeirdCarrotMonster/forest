@@ -3,13 +3,12 @@
 
 from __future__ import unicode_literals, print_function
 
-from tornado import gen
-
-from forest.jsonschema.decorators import schema
-
-from forest.components.common import dumps
 from forest.components.api.decorators import token_auth
 from forest.components.api.handler import Handler
+from forest.components.common import dumps
+from forest.jsonschema.decorators import schema
+from tornado import gen
+
 
 # pylint: disable=W0221
 
