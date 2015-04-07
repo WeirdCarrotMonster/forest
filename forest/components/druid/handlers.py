@@ -11,9 +11,11 @@ from tornado import gen, websocket
 from bson import ObjectId
 from bson.errors import InvalidId
 
+from forest.jsonschema.decorators import schema
+
 from forest.components.common import loads, dumps
 from forest.components.api.handler import Handler
-from forest.components.api.decorators import token_auth, schema
+from forest.components.api.decorators import token_auth
 from forest.components.common import send_request
 from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, \
     branch_stop_leaf, full_leaf_info
