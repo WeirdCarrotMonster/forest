@@ -138,6 +138,7 @@ def runserver(args):
         else:
             log_message("Shutting down forest, keeping uwsgi", begin="\r")
 
+        loop.stop()
         sys.exit(0)
 
     for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGQUIT]:
