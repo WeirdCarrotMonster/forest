@@ -12,6 +12,7 @@ import requests
 import simplejson as json
 from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
+from tornado.httpclient import HTTPRequest
 from tornado.websocket import websocket_connect
 
 
@@ -104,9 +105,10 @@ class LeafShell(Cmd):
                 traceback.print_exc()
 
         def watch_logs():
-            conn = yield websocket_connect(
+            conn = yield websocket_connect(HTTPRequest(
                 "ws://{}/api/druid/logs/{}".format(self.host, self.__id__),
-            )
+                headers={"Token": self.token}
+            ))
             while True:
                 msg = yield conn.read_message()
 

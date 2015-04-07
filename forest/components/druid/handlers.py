@@ -349,12 +349,23 @@ class WebsocketLogWatcher(websocket.WebSocketHandler):
         :param leaf: Лист, логи которого передаются клиенту
         :type leaf: str
         """
+        if self.application.secret != self.request.headers.get("Token"):
+            self.write_message(dumps({
+                "result": "error",
+                "message": "Not authenticated"
+            }))
+            self.close()
+            return
+
         self.leaf = leaf
         self.application.druid.add_listener(self.leaf, self)
 
     def on_close(self):
         """Обработчик события закрытия подключения."""
-        self.application.druid.remove_listener(self.leaf, self)
+        try:
+            self.application.druid.remove_listener(self.leaf, self)
+        except AttributeError:
+            pass
 
     def put(self, data):
         """Отправляет лог клиенту.
