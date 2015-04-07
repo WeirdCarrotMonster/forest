@@ -326,6 +326,16 @@ class ShellTool(Cmd):
         )
         print(loads(r.text))
 
+    def complete_create_leaf(self, text, line, begidx, endidx):
+        """Автокомплит для команды create_leaf."""
+        if len(line.split(" ")) == 3:
+            # Комплитим только второй аргумент - инстанс
+            return [
+                f["name"] for f in self.species if f["name"].startswith(text)
+            ]
+        else:
+            return []
+
     def do_set_token(self, token):
         """Устанавливает секретный ключ для связи с брокером.
 
