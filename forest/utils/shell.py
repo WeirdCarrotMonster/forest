@@ -33,6 +33,28 @@ def print_dict(data, ident=0):
             print("{}{}: {}".format(" " * ident, key, value))
 
 
+def print_log(data):
+    """Парсит и печатает лог листа.
+
+    :param data: Лог листа
+    :type data: dict
+    """
+    try:
+        if data["log_type"] == "leaf.event":
+            if "traceback" in data and data["traceback"] != "-":
+                print(
+                    "[{time}] {status} {method} - {uri} "
+                    "[ Traceback id: {traceback} ]".format(**data)
+                )
+            else:
+                print("[{time}] {status} {method} - {uri}".format(**data))
+        elif data["log_type"] == "leaf.stdout_stderr":
+            print("[{time}] {raw}".format(**data))
+    except Exception:
+        import traceback
+        traceback.print_exc()
+
+
 class LeafShell(Cmd):
 
     """Интерактивный shell для работы с листом."""
@@ -90,20 +112,6 @@ class LeafShell(Cmd):
 
     def do_watch(self, *args, **kwargs):
         """Выводит в консоль логи листа в реальном времени."""
-        def parse_response(data):
-            try:
-                data = loads(data)
-                if data["log_type"] == "leaf.event":
-                    if "traceback" in data and data["traceback"] != "-":
-                        print("[{time}] {status} {method} - {uri} [ Traceback id: {traceback} ]".format(**data))
-                    else:
-                        print("[{time}] {status} {method} - {uri}".format(**data))
-                elif data["log_type"] == "leaf.stdout_stderr":
-                    print("[{time}] {raw}".format(**data))
-            except Exception:
-                import traceback
-                traceback.print_exc()
-
         def watch_logs():
             conn = yield websocket_connect(HTTPRequest(
                 "ws://{}/api/druid/logs/{}".format(self.host, self.__id__),
@@ -115,20 +123,7 @@ class LeafShell(Cmd):
                 if not msg:
                     break
 
-                try:
-                    data = loads(msg)
-                    if data["log_type"] == "leaf.event":
-                        if "traceback" in data and data["traceback"] != "-":
-                            print(
-                                "[{time}] {status} {method} - {uri} "
-                                "[ Traceback id: {traceback} ]".format(**data))
-                        else:
-                            print("[{time}] {status} {method} - {uri}".format(**data))
-                    elif data["log_type"] == "leaf.stdout_stderr":
-                        print("[{time}] {raw}".format(**data))
-                except Exception:
-                    import traceback
-                    traceback.print_exc()
+                print_log(loads(msg))
 
         loop = IOLoop.instance()
         loop.clear_instance()

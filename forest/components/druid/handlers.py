@@ -21,7 +21,7 @@ from forest.components.druid.shortcuts import branch_prepare_species, branch_sta
     branch_stop_leaf, full_leaf_info
 
 
-# pylint: disable=W0221,W0612
+# pylint: disable=W0221,W0612,W0613
 
 
 class LeavesHandler(Handler):
