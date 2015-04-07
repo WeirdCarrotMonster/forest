@@ -22,6 +22,9 @@ setup(
         'forest.jsonschema',
         'forest.utils'
     ],
+    package_data={
+        'forest': ['jsonschema/schema/*.json'],
+    },
     long_description=(""),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
