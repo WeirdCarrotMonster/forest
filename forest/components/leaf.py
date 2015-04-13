@@ -203,10 +203,12 @@ req-logger=zeromq:tcp://127.0.0.1:{log_port}
 logformat={logformat}
 log-encoder=prefix [Leaf {id}]
 
+{media}
+{static}
+
 plugin={python}
 module=wsgi:application
 processes={workers}
-static-map=/static={chdir}/static
 offload-threads=4
 {threads}
 
@@ -233,8 +235,10 @@ endif=
             leaf_host=self.leaf_host,
             log_port=self.log_port,
             logformat=dumps(logs_format),
+            media=self.get_media_config(),
             mules=self.get_mules_config(),
             python=self.__species__.python,
+            static=self.get_static_config(),
             threads="enable-threads=" if self.threads else "",
             triggers=self.get_triggers_config(),
             virtualenv=self.species.environment,
@@ -248,3 +252,29 @@ endif=
             )
 
         return config
+
+    def get_static_config(self):
+        """Возвращает строку конфигурации файлов статики.
+
+        :returns: Строка конфигурации статики
+        :rtype: str
+        """
+        return "static-map=/static={}/static".format(self.__species__.src_path)
+
+    def get_media_config(self):
+        """Возвращает строку конфигурации медиа-файлов.
+
+        В строке будет указан route на gridfs, если приложение использует MongoDB.
+        Настройки подключения и реплика-сет берутся по-умолчанию.
+
+        :returns: Строка конфигурации медиа-файлов
+        :rtype: str
+        """
+        if "mongo" in self.__batteries__:
+            return ("plugin=gridfs\n"
+                    "route=^/media/(.+) gridfs:"
+                    "server={host}:{port},"
+                    "username={user},password={pass},"
+                    "db={name},replica=forest,itemname=$1").format(**self.__batteries__["mongo"])
+        else:
+            return ""
