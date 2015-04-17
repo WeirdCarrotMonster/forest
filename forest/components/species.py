@@ -161,7 +161,8 @@ class Species(object):
                 "--branch", self.branch,
                 self.url,
                 self.src_path
-                ], apply_env=False
+                ],
+                apply_env=False
             )
 
             if os.path.exists(self.environment):
@@ -190,13 +191,22 @@ class Species(object):
             log_message("Done initializing {}".format(self.id), "Species")
 
     @coroutine
-    def run_in_env(self, cmd, stdin_data=None, env=None, apply_env=True, path=None):
+    def run_in_env(self, cmd, stdin_data=None, env=None, apply_env=True):
         """Wrapper around subprocess call using Tornado's Subprocess class.
 
         https://gist.github.com/FZambia/5756470
+
+        :param cmd: Исполняемая команда
+        :type cmd: list
+        :param stdin_data: Входные данные процесса на stdin
+        :type stdin_data: str
+        :param env: Дополнительные переменные окружения
+        :type env: dict
+        :param apply_env: Флаг применения локального окружения
+        :type apply_env: bool
         """
-        cmd = shlex.split(cmd) if type(cmd) != list else cmd
         process_env = os.environ.copy()
+
         if apply_env:
             process_env["PATH"] = join(self.environment, "bin") + ":" + process_env.get("PATH", "")
             process_env["VIRTUAL_ENV"] = self.environment
@@ -204,13 +214,10 @@ class Species(object):
         if env:
             process_env.update(env)
 
-        if not path:
-            path = self.path
-
         sub_process = tornado.process.Subprocess(
             cmd,
             env=process_env,
-            cwd=path,
+            cwd=self.path,
             stdin=tornado.process.Subprocess.STREAM,
             stdout=tornado.process.Subprocess.STREAM,
             stderr=tornado.process.Subprocess.STREAM
