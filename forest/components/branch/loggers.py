@@ -15,6 +15,9 @@ class Logger(object):
 
     """Базовый класс логгера."""
 
+    class LoggerCreationError(Exception):
+        pass
+
     def __init__(
             self,
             identifier,

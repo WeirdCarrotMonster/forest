@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from bson import ObjectId
 from forest.components.api.decorators import token_auth
 from forest.components.common import loads, dumps
-from forest.components.exceptions.logger import LoggerCreationError
+from forest.components.branch.loggers import Logger
 from forest.components.species import Species
 from tornado import gen, web
 
@@ -155,7 +155,7 @@ class LoggerListHandler(web.RequestHandler):
         try:
             self.application.branch.add_logger(data)
             self.finish(dumps({"result": "success"}))
-        except LoggerCreationError as e:
+        except Logger.LoggerCreationError as e:
             self.set_status(400)
             self.finish(dumps({"result": "failure", "message": e.message}))
 

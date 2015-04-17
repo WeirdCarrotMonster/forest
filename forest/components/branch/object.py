@@ -18,13 +18,12 @@ import ConfigParser
 import zmq
 
 from forest.components.common import log_message
-from forest.components.exceptions.logger import LoggerCreationError
 
 from forest.components.leaf import Leaf
 from forest.components.logparse import logparse
 from forest.components.species import Species
 from forest.components.common import loads, load
-from forest.components.branch.loggers import POSTLogger
+from forest.components.branch.loggers import Logger, POSTLogger
 
 
 # pylint: disable=W0702,W0612,W0613
@@ -52,7 +51,7 @@ class Branch(object):
         for logger in settings.get("loggers", []):
             try:
                 self.add_logger(logger)
-            except LoggerCreationError as e:
+            except Logger.LoggerCreationError as e:
                 log_message("Error adding '{}': {}".format(logger.get("identifier"), e.message), component="Branch")
 
         self.batteries = defaultdict(list)
@@ -164,15 +163,15 @@ class Branch(object):
         """
         for logger in self.__loggers__:
             if logger.identifier == configuration["identifier"]:
-                raise LoggerCreationError("Duplicate identifier")
+                raise Logger.LoggerCreationError("Duplicate identifier")
 
         if configuration.get("type") == "POSTLogger":
             try:
                 self.__loggers__.append(POSTLogger(**configuration))
             except TypeError:
-                raise LoggerCreationError("Invalid logger configuration")
+                raise Logger.LoggerCreationError("Invalid logger configuration")
         else:
-            raise LoggerCreationError("Unknown logger type")
+            raise Logger.LoggerCreationError("Unknown logger type")
 
     def delete_logger(self, identifier):
         """Удаляет логгер с указанным идентификатором.
