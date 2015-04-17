@@ -1,5 +1,5 @@
-#!python2
 # coding=utf-8
+"""Модуль описывает методы сборки uwsgi со всеми необходимыми плагинами."""
 
 from __future__ import unicode_literals, print_function
 
@@ -28,13 +28,27 @@ inherit = base
 
 
 def progressbar(bcount, bsize, fsize):
-    dsize = bcount * bsize
+    """Обновляет прогрессбар загрузки исходного кода.
+
+    :param bcount: Количество блоков
+    :type bcount: int
+    :param bsize: Размер блока
+    :type bsize: int
+    :param fsize: Размер файла
+    :type fsize: int
+    """
+    dsize = min(bcount * bsize, fsize)
     part = int((dsize * 20) / fsize)
     print("\rDownloading {dsize:6}/{fsize:6} [{pbar:20}]".format(pbar="="*part, **locals()), end="")
     sys.stdout.flush()
 
 
 def build_uwsgi(target):
+    """Выполняет сборку uwsgi.
+
+    :param target: Директория, куда будут помещены исполняемые файлы и плагины.
+    :type target: str
+    """
     tempdir = tempfile.mkdtemp()
 
     try:
@@ -107,10 +121,3 @@ def build_uwsgi(target):
         print("Error building uwsgi: {}".format(e))
     finally:
         shutil.rmtree(tempdir)
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Wrong number of arguments")
-        sys.exit(1)
-    build_uwsgi(sys.argv[1])
