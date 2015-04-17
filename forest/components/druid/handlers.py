@@ -8,6 +8,7 @@ from datetime import datetime
 from itertools import product
 
 from tornado import gen, websocket
+from tornado.ioloop import IOLoop
 from bson import ObjectId
 from bson.errors import InvalidId
 
@@ -390,5 +391,8 @@ class LogHandler(Handler):
         :param data: Словарь с данными.
         :type data: dict
         """
-        yield self.application.druid.propagate_event(data)
+        IOLoop.current().spawn_callback(
+            self.application.druid.propagate_event,
+            data
+        )
         self.finish()
