@@ -6,7 +6,6 @@ from __future__ import print_function, unicode_literals
 import os
 from os.path import join
 import shutil
-import shlex
 
 import tornado
 from tornado.gen import coroutine, Task, Return
