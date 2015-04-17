@@ -27,9 +27,16 @@ from forest.components.druid.shortcuts import branch_prepare_species, branch_sta
 
 class LeavesHandler(Handler):
 
+    """Хендлер списка листьев."""
+
     @gen.coroutine
     @token_auth
     def get(self, address=None):
+        """Возвращает все листья, соответствующие фильтру.
+
+        :param address: Адрес для фильтрации
+        :type address: str
+        """
         if address:
             query = {"address": address}
         else:
@@ -136,9 +143,16 @@ class LeavesHandler(Handler):
 
 class LeafHandler(Handler):
 
+    """Хендлер листа."""
+
     @gen.coroutine
     @token_auth
     def get(self, leaf_name):
+        """Возвращает настройки листа.
+
+        :param leaf_name: Имя листа
+        :type leaf_name: str
+        """
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
         if not leaf_data:
@@ -150,6 +164,11 @@ class LeafHandler(Handler):
     @gen.coroutine
     @token_auth
     def patch(self, leaf_name):
+        """Модифицирует информацию о листе.
+
+        :param leaf_name: Имя листа
+        :type leaf_name: str
+        """
         # Обрабатываем только ключи active, address
         apply_changes = self.get_argument("apply", default="TRUE").upper() == "TRUE"
 
@@ -198,9 +217,16 @@ class LeafHandler(Handler):
 
 class LeafStatusHandler(Handler):
 
+    """Хендлер статуса листа."""
+
     @gen.coroutine
     @token_auth
     def get(self, leaf_name):
+        """Возвращает статус листа, полученный с активной ветви.
+
+        :param leaf_name: Имя листа
+        :type leaf_name: str
+        """
         leaf_data = yield self.application.async_db.leaves.find_one({"name": leaf_name})
 
         if not leaf_data:
@@ -215,9 +241,12 @@ class LeafStatusHandler(Handler):
 
 class SpeciesListHandler(Handler):
 
+    """Хендлер списка видов."""
+
     @gen.coroutine
     @token_auth
     def get(self):
+        """Возвращает все известные виды листьев."""
         cursor = self.application.async_db.species.find()
         self.write("[")
         species = None
@@ -235,9 +264,16 @@ class SpeciesListHandler(Handler):
 
 class TracebackHandler(Handler):
 
+    """Хендлер трейсбеков листов."""
+
     @gen.coroutine
     @token_auth
     def get(self, traceback_id):
+        """Возвращает трейсбек по его id.
+
+        :param traceback_id: Идентификатор трейсбека
+        :type traceback_id: str
+        """
         traceback = yield self.application.async_db.logs.find_one({
             "log_type": "leaf.traceback",
             "traceback_id": traceback_id
@@ -249,9 +285,16 @@ class TracebackHandler(Handler):
 
 class SpeciesHandler(Handler):
 
+    """Хендлер вида листа."""
+
     @gen.coroutine
     @token_auth
     def get(self, species_id):
+        """Возвращает информацию о виде листа.
+
+        :param species_id: Идентификатор вида
+        :type species_id: str
+        """
         _id = ObjectId(species_id)
         species = yield self.application.async_db.species.find_one({"_id": _id})
 
@@ -261,6 +304,11 @@ class SpeciesHandler(Handler):
     @gen.coroutine
     @token_auth
     def patch(self, species_id):
+        """Выполняет принудительное обновление вида листа.
+
+        :param species_id: Идентификатор вида
+        :type species_id: str
+        """
         _id = ObjectId(species_id)
 
         species = yield self.application.async_db.species.find_one({"_id": _id})
@@ -293,23 +341,26 @@ class SpeciesHandler(Handler):
 
 class BranchHandler(Handler):
 
-    @gen.coroutine
-    @token_auth
-    def get(self, branch_name=None):
-        if branch_name:
-            self.finish("{}")
-        else:
-            self.finish(dumps([x["name"] for x in self.application.druid.branch]))
+    """Хендлер ветви."""
 
     @gen.coroutine
     @token_auth
-    def put(self, branch_name=None):
+    def get(self, branch_name):
+        """Возвращает известную информацию о ветви.
+
+        :param branch_name: Имя ветви
+        :type branch_name: str
+        """
+        self.finish("{}")
+
+    @gen.coroutine
+    @token_auth
+    def put(self, branch_name):
         """Выполняет принудительную проверку всех листьев на указанной ветви.
 
         :param branch_name: Имя ветви
         :type branch_name: str
         """
-        assert branch_name
         try:
             branch = next(x for x in self.application.druid.branch if x["name"] == branch_name)
         except StopIteration:
@@ -334,6 +385,17 @@ class BranchHandler(Handler):
             yield branch_start_leaf(branch, leaf)
 
         self.finish(dumps({"result": "success"}))
+
+
+class BranchListHandler(Handler):
+
+    """Хендлер списка ветвей."""
+
+    @gen.coroutine
+    @token_auth
+    def get(self):
+        """Возвращает имена всех ветвей, известных серверу."""
+        self.finish(dumps([x["name"] for x in self.application.druid.branch]))
 
 
 class WebsocketLogWatcher(websocket.WebSocketHandler):
