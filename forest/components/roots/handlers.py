@@ -3,14 +3,12 @@
 
 from __future__ import unicode_literals, print_function
 
-from tornado import gen
+from tornado import gen, web
 import simplejson as json
 from bson import json_util
 
-from forest.components.api.handler import Handler
 
-
-class DatabaseHandler(Handler):
+class DatabaseHandler(web.RequestHandler):
 
     """Хендлер /api/root/db."""
 

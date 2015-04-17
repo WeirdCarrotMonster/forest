@@ -7,7 +7,7 @@ import random
 from datetime import datetime
 from itertools import product
 
-from tornado import gen, websocket
+from tornado import gen, web, websocket
 from tornado.ioloop import IOLoop
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -15,7 +15,6 @@ from bson.errors import InvalidId
 from forest.jsonschema.decorators import schema
 
 from forest.components.common import loads, dumps
-from forest.components.api.handler import Handler
 from forest.components.api.decorators import token_auth
 from forest.components.common import send_request
 from forest.components.druid.shortcuts import branch_prepare_species, branch_start_leaf, air_enable_host, \
@@ -25,7 +24,7 @@ from forest.components.druid.shortcuts import branch_prepare_species, branch_sta
 # pylint: disable=W0221,W0612,W0613
 
 
-class LeavesHandler(Handler):
+class LeavesHandler(web.RequestHandler):
 
     """Хендлер списка листьев."""
 
@@ -141,7 +140,7 @@ class LeavesHandler(Handler):
             self.finish(dumps({"result": "success", "message": "OK", "branch": branch["name"]}))
 
 
-class LeafHandler(Handler):
+class LeafHandler(web.RequestHandler):
 
     """Хендлер листа."""
 
@@ -215,7 +214,7 @@ class LeafHandler(Handler):
         self.finish(dumps({"result": "success", "message": "OK"}))
 
 
-class LeafStatusHandler(Handler):
+class LeafStatusHandler(web.RequestHandler):
 
     """Хендлер статуса листа."""
 
@@ -239,7 +238,7 @@ class LeafStatusHandler(Handler):
         self.finish(dumps(leaf_status))
 
 
-class SpeciesListHandler(Handler):
+class SpeciesListHandler(web.RequestHandler):
 
     """Хендлер списка видов."""
 
@@ -262,7 +261,7 @@ class SpeciesListHandler(Handler):
         self.finish("]")
 
 
-class TracebackHandler(Handler):
+class TracebackHandler(web.RequestHandler):
 
     """Хендлер трейсбеков листов."""
 
@@ -283,7 +282,7 @@ class TracebackHandler(Handler):
         self.finish(dumps(traceback))
 
 
-class SpeciesHandler(Handler):
+class SpeciesHandler(web.RequestHandler):
 
     """Хендлер вида листа."""
 
@@ -339,7 +338,7 @@ class SpeciesHandler(Handler):
         self.finish("{}")
 
 
-class BranchHandler(Handler):
+class BranchHandler(web.RequestHandler):
 
     """Хендлер ветви."""
 
@@ -387,7 +386,7 @@ class BranchHandler(Handler):
         self.finish(dumps({"result": "success"}))
 
 
-class BranchListHandler(Handler):
+class BranchListHandler(web.RequestHandler):
 
     """Хендлер списка ветвей."""
 
@@ -439,7 +438,7 @@ class WebsocketLogWatcher(websocket.WebSocketHandler):
         self.write_message(dumps(data))
 
 
-class LogHandler(Handler):
+class LogHandler(web.RequestHandler):
 
     """Хендлер логов, поступающих от других нод."""
 

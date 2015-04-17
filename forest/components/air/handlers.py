@@ -4,16 +4,15 @@
 from __future__ import unicode_literals, print_function
 
 from forest.components.api.decorators import token_auth
-from forest.components.api.handler import Handler
 from forest.components.common import dumps
 from forest.jsonschema.decorators import schema
-from tornado import gen
+from tornado import gen, web
 
 
 # pylint: disable=W0221
 
 
-class HostHandler(Handler):
+class HostHandler(web.RequestHandler):
 
     """Хендлер для /api/air/hosts."""
 

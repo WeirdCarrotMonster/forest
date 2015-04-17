@@ -8,18 +8,17 @@ from forest.components.api.decorators import token_auth
 from forest.components.common import loads, dumps
 from forest.components.exceptions.logger import LoggerCreationError
 from forest.components.species import Species
-import tornado.gen
-import tornado.web
+from tornado import gen, web
 
 
 # pylint: disable=W0221,W0613
 
 
-class LeavesHandler(tornado.web.RequestHandler):
+class LeavesHandler(web.RequestHandler):
 
     """Выполняет управление листом."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def get(self):
         """Возвращает список всех известных листьев."""
@@ -36,7 +35,7 @@ class LeavesHandler(tornado.web.RequestHandler):
 
         self.finish("]")
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def post(self):
         """Создает новый лист."""
@@ -51,17 +50,17 @@ class LeavesHandler(tornado.web.RequestHandler):
             self.finish(dumps({"result": "error", "message": "Unknown species"}))
 
 
-class LeafHandler(tornado.web.RequestHandler):
+class LeafHandler(web.RequestHandler):
 
     """Выполняет управление каждым отдельно взятым листом."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def get(self, _id):
         """Получает информацию о листе с указанным id."""
         self.finish(dumps(self.application.emperor.stats(_id)))
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def delete(self, leaf_id):
         """Останавливает лист."""
@@ -72,11 +71,11 @@ class LeafHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class LeafRPCHandler(tornado.web.RequestHandler):
+class LeafRPCHandler(web.RequestHandler):
 
     """Выполняет работу с uwsgi-rpc приложения."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def post(self, _id):
         """Обрабатывает rpc-запрос."""
@@ -88,11 +87,11 @@ class LeafRPCHandler(tornado.web.RequestHandler):
         self.finish(dumps(response))
 
 
-class SpeciesListHandler(tornado.web.RequestHandler):
+class SpeciesListHandler(web.RequestHandler):
 
     """Выполняет работу с видами приложений."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def post(self):
         """Инициализирует новый вид приложения."""
@@ -103,11 +102,11 @@ class SpeciesListHandler(tornado.web.RequestHandler):
         self.finish(dumps({"result": "success", "message": "OK"}))
 
 
-class SpeciesHandler(tornado.web.RequestHandler):
+class SpeciesHandler(web.RequestHandler):
 
     """Выполняет работу с указанным видом приложения."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def get(self, _id):
         """Возвращает информацию об указанном виде приложения."""
@@ -121,7 +120,7 @@ class SpeciesHandler(tornado.web.RequestHandler):
             self.set_status(404)
             self.finish(dumps({}))
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def patch(self, _id):
         """Модифицирует указанный вид приложения."""
@@ -132,11 +131,11 @@ class SpeciesHandler(tornado.web.RequestHandler):
         self.finish(dumps({"result": "success", "message": "OK"}))
 
 
-class LoggerListHandler(tornado.web.RequestHandler):
+class LoggerListHandler(web.RequestHandler):
 
     """Выполняет работу с логгерами сервера приложений."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def get(self):
         """Получает информацию о всех логгерах."""
@@ -147,7 +146,7 @@ class LoggerListHandler(tornado.web.RequestHandler):
             } for logger in self.application.branch.__loggers__
         ]))
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def post(self):
         """Создает новый логгер."""
@@ -161,11 +160,11 @@ class LoggerListHandler(tornado.web.RequestHandler):
             self.finish(dumps({"result": "failure", "message": e.message}))
 
 
-class LoggerHandler(tornado.web.RequestHandler):
+class LoggerHandler(web.RequestHandler):
 
     """Выполняет работу с указанным логгером."""
 
-    @tornado.gen.coroutine
+    @gen.coroutine
     @token_auth
     def delete(self, identifier):
         """Удаляет логгер."""
