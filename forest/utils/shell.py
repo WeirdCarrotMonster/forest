@@ -159,7 +159,7 @@ class LeafShell(Cmd):
             "http://{}/api/druid/traceback/{}".format(self.host, tb_id),
             headers={"Token": self.token}
         )
-        print(loads(r.text))
+        print(loads(r.text)["traceback"])
 
 
 class ShellTool(Cmd):
