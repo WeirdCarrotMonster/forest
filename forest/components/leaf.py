@@ -60,6 +60,9 @@ class Leaf(Vassal):
         self.threads = threads
         self.leaf_host = leaf_host
 
+        # TODO: передавать параметрами
+        self.__gridfs_media__ = False
+
     def start(self):
         """Запускает лист.
 
@@ -270,7 +273,7 @@ endif=
         :returns: Строка конфигурации медиа-файлов
         :rtype: str
         """
-        if "mongo" in self.__batteries__:
+        if "mongo" in self.__batteries__ and self.__gridfs_media__:
             return ("plugin=gridfs\n"
                     "route=^/media/(.+) gridfs:"
                     "server={host}:{port},"
