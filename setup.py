@@ -41,7 +41,7 @@ setup(
         "jsonschema",
         "motor",
         "psutil",
-        "pymongo",
+        "pymongo==2.8.0",
         "PyMySQL",
         "pyzmq",
         "requests",
