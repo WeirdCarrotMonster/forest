@@ -18,7 +18,6 @@ setup(
         'forest.components.druid',
         'forest.components.roots',
         'forest.components.branch',
-        'forest.components.exceptions',
         'forest.jsonschema',
         'forest.utils'
     ],
