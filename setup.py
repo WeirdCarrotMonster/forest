@@ -48,7 +48,8 @@ setup(
         "simplejson",
         "tornado",
         "toro",
-        "virtualenv"
+        "virtualenv",
+        "pygments"
     ],
     entry_points={
         'console_scripts': [

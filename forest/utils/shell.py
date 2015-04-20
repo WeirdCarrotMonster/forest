@@ -15,6 +15,9 @@ from tornado.ioloop import IOLoop
 from tornado.httpclient import HTTPRequest
 from tornado.websocket import websocket_connect
 
+from pygments import highlight
+from pygments.lexers import PythonTracebackLexer
+from pygments.formatters import TerminalFormatter
 
 # pylint: disable=W0702,W0612,W0613
 
@@ -159,7 +162,7 @@ class LeafShell(Cmd):
             "http://{}/api/druid/traceback/{}".format(self.host, tb_id),
             headers={"Token": self.token}
         )
-        print(loads(r.text)["traceback"])
+        print(highlight(loads(r.text)["traceback"], PythonTracebackLexer(), TerminalFormatter()))
 
 
 class ShellTool(Cmd):
