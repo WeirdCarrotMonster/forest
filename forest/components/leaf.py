@@ -61,7 +61,7 @@ class Leaf(Vassal):
         self.leaf_host = leaf_host
 
         # TODO: передавать параметрами
-        self.__gridfs_media__ = False
+        self.__gridfs_media__ = True
 
     def start(self):
         """Запускает лист.
