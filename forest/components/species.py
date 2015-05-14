@@ -171,7 +171,7 @@ class Species(object):
 
             yield self.run_in_env([
                 "virtualenv",
-                "--python=%s" % self.python,
+                "--python={}".format(self.python),
                 self.environment
                 ],
                 apply_env=False

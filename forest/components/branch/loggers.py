@@ -83,7 +83,7 @@ class Logger(object):
             )
         except:
             import traceback
-            print(traceback.format_exc())
+            traceback.print_exc()
             self.__error__()
         else:
             self.__success__()
